@@ -1,0 +1,107 @@
+{
+  "row_count": 170,
+  "unique_case_ids": 170,
+  "duplicate_case_ids": [],
+  "schema_errors": [],
+  "duplicated_utterances": {},
+  "duplicated_utterance_count": 0,
+  "label_conflicts": [],
+  "distributions": {
+    "split": {
+      "evaluation": 150,
+      "adversarial": 20
+    },
+    "language": {
+      "en": 143,
+      "hinglish": 27
+    },
+    "issue_type": {
+      "security_identity_access": 25,
+      "ambiguous_or_missing_context": 25,
+      "state_conflict_or_stale": 20,
+      "human_requested": 17,
+      "template_rejection": 16,
+      "billing_refund": 16,
+      "message_delivery": 15,
+      "integration_webhook": 13,
+      "chatbot_flow": 12,
+      "number_waba_setup": 11
+    },
+    "urgency": {
+      "medium": 78,
+      "high": 65,
+      "critical": 26,
+      "low": 1
+    },
+    "expected_route": {
+      "human_handoff": 80,
+      "rules_playbook": 55,
+      "clarify_once": 35
+    },
+    "needs_human": {
+      "False": 90,
+      "True": 80
+    },
+    "state_available": {
+      "yes": 120,
+      "partial_or_missing": 30,
+      "conflicting_or_context_dependent": 20
+    },
+    "confidence_band": {
+      "medium": 87,
+      "high": 64,
+      "low": 19
+    },
+    "expected_action": {
+      "none": 115,
+      "propose_only_then_require_confirmation": 51,
+      "read_only_or_propose_only": 4
+    },
+    "expected_outcome": {
+      "human_handoff_with_evidence": 80,
+      "diagnosis_and_proposed_fix_no_write_before_confirmation": 51,
+      "one_clarifying_question": 35,
+      "truthful_diagnosis_without_unauthorized_write": 4
+    }
+  },
+  "needs_human_by_issue": {
+    "template_rejection": {
+      "False": 16
+    },
+    "state_conflict_or_stale": {
+      "True": 20
+    },
+    "number_waba_setup": {
+      "False": 11
+    },
+    "security_identity_access": {
+      "True": 25
+    },
+    "message_delivery": {
+      "False": 14,
+      "True": 1
+    },
+    "integration_webhook": {
+      "False": 13
+    },
+    "human_requested": {
+      "True": 17
+    },
+    "chatbot_flow": {
+      "False": 12
+    },
+    "ambiguous_or_missing_context": {
+      "False": 24,
+      "True": 1
+    },
+    "billing_refund": {
+      "True": 16
+    }
+  },
+  "route_vs_needs_human": {
+    "rules_playbook|False": 55,
+    "human_handoff|True": 80,
+    "clarify_once|False": 35
+  },
+  "route_needs_human_mismatches": []
+}

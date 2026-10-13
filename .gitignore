@@ -1,0 +1,40 @@
+# --- Node / frontend ---
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# --- Python sidecar (workbook tooling only) ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Logs / temp ---
+*.log
+logs/
+tmp/
+.tmp/
+
+# --- Local model weights / caches ---
+models/
+*.gguf
+*.safetensors
+*.bin
+!public/**/*.bin
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+
+# --- Generated private data ---
+docs/audits/raw/
