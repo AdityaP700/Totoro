@@ -63,3 +63,14 @@ User-visible changes. (Internal engineering notes live in the other continuity f
   - Added strict JSON schema validation, deterministic safety interceptor, and confidence gating (<0.70 routes to clarification or handoff).
 - Connected interactive reasoning engine switcher into `src/App.tsx` topbar.
 - Added comprehensive unit test suite `tests/adapter.test.ts` (9 tests passing).
+
+## 2026-10-13 — Backend-First Experiment Phase (Hosted Laya API & Terminal CLI)
+
+- Integrated real Hosted Laya System One Decision API (`POST https://api.laya.studio/v1/systemone`) using model `laya` (`laya-rl-agent`).
+- Implemented `HostedLayaClient` (`src/domain/layaClient.ts`) with typed System One question schemas, 10s timeout, and comprehensive error handling (401, 402, 429, 500, network error).
+- Added secure server-side API proxy in `vite.config.ts`; `LAYA_API_KEY` stored exclusively in local `.env` and never leaked into client bundles or logs.
+- Added terminal entry point CLI (`src/cli/resolveCli.ts` / `npm run cli`) emitting structured JSON with rules baseline, raw Laya prediction, guarded decision, route, recommended action, confirmation requirements, token usage, latency, and verified status.
+- Added credit-controlled bounded smoke test (`tools/run_laya_smoke.ts` / `npm run eval:smoke`) over 8 representative synthetic cases: 100% API success, 2,653 tokens consumed (within 5,481 credit budget), 0 safety violations.
+- Added evaluation suite runner (`tools/evaluate_suite.ts`) for repeatable commands: `npm run eval:rules`, `npm run eval:hybrid`, `npm run eval:smoke`.
+- Added unit tests for Laya client (`tests/layaClient.test.ts`) and CLI (`tests/cli.test.ts`), bringing the full test suite to 43/43 passing tests.
+- Authored comprehensive `README.md` and updated all continuity files.

@@ -112,6 +112,18 @@ npm run build
 # Fills deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx
 ```
 
+### 3.4 Terminal CLI & Evaluation Commands
+```bash
+# Terminal entry point (structured JSON)
+npm run cli -- --message "Why was my promotional template rejected?" --template-id "TPL-1001" --rules-only
+npm run cli -- --message "The template says rejected, but dashboard doesn't show why." # live Hosted Laya
+
+# Repeatable evaluation benchmarks
+npm run eval:rules   # 105 iteration cases (deterministic baseline)
+npm run eval:hybrid  # 105 iteration cases (guarded hybrid)
+npm run eval:smoke   # 8-case bounded live inference smoke test against Hosted Laya
+```
+
 ---
 
 ## 4. Interactive Reviewer Demo Script

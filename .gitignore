@@ -7,6 +7,7 @@ coverage/
 
 # --- Python sidecar (workbook tooling only) ---
 .venv/
+.venv-laya/
 venv/
 __pycache__/
 *.py[cod]
@@ -27,6 +28,8 @@ tmp/
 
 # --- Local model weights / caches ---
 models/
+.cache/
+cache/
 *.gguf
 *.safetensors
 *.bin

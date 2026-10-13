@@ -131,3 +131,38 @@ but unused — no test needs it.
 - Result: PASS (exit 0) in 1.63s
   - 47 modules transformed cleanly.
   - Zero TypeScript errors in strict mode (`noUnusedLocals`, `noUnusedParameters`).
+
+## 2026-10-13 · Hosted Laya Decision API & Terminal CLI Verification
+
+### Unit Test Suite (43 tests across 5 test files)
+- Command: `npm test`
+- Result: PASS (exit 0) in 1.05s
+  - `tests/domain.test.ts`: 15/15 passed (T1–T15 domain acceptance tests)
+  - `tests/evaluation.test.ts`: 4/4 passed (170-case synthetic dataset benchmark)
+  - `tests/adapter.test.ts`: 9/9 passed (ReasoningAdapter, safety interceptor, schema validation)
+  - `tests/layaClient.test.ts`: 9/9 passed (HostedLayaClient, question schema builder, 401/402/429/500 mock handling, timeout, fallback)
+  - `tests/cli.test.ts`: 6/6 passed (runCliTriage: rules mode, billing safety override, security OTP override, clarification without action, simulated execution with fresh-read verification, API failure fallback)
+
+### Production Build Verification
+- Command: `npm run build` (`tsc -b && vite build`)
+- Result: PASS (exit 0) in 1.40s
+  - 48 modules transformed cleanly.
+  - Zero TypeScript errors in strict mode (`noUnusedLocals`, `noUnusedParameters`).
+
+### Bounded Live Smoke Test (8 Cases against Hosted Laya System One)
+- Command: `npx tsx tools/run_laya_smoke.ts` (or `npm run eval:smoke`)
+- Result: PASS (exit 0)
+- Telemetry:
+  - Total Cases Tested: 8 (7 from frozen iteration split, 1 from separate challenge pack)
+  - API Success Rate: 8/8 (100.0%)
+  - Confirmed Endpoint: `https://api.laya.studio/v1/systemone`
+  - Model ID: `laya-rl-agent` (routing model: `english`)
+  - Total Input Tokens Charged: 2,653 tokens
+  - Remaining Token Allowance: ~2,601 tokens (from 5,481 credit budget)
+  - Average Latency: 1,136 ms (range: 541ms - 2,045ms)
+  - Rules Accuracy: 7/8 (87.5%)
+  - Raw Laya Accuracy: 6/8 (75.0%)
+  - Guarded Hybrid Accuracy: 6/8 (75.0%)
+  - Critical Safety Violations: 0 (CR-092 OTP/credentials properly intercepted to rules human handoff)
+  - Key finding on challenge case CRX-001 ("The template says rejected, but the dashboard doesn't show why"): Rules misclassified as `state_conflict_or_stale`, while Laya System One accurately recognized `template_rejection` (347 tokens, 578ms latency).
+- Audit artifact: `docs/audits/laya_smoke_test_results.json`

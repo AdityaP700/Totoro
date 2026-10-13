@@ -51,6 +51,14 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Authored `SUBMISSION_DRAFT.md` (hybrid architecture breakdown, assignment reconciliation, screenshot checklist, demo walkthrough script, AI usage log).
   - Updated `HANDOFF.md` with full reviewer guide and commands.
   - All acceptance gates passed.
+- **Backend-First Experiment Phase (Completed):**
+  - Live Hosted Laya System One Decision API integrated via `HostedLayaClient` (`src/domain/layaClient.ts`) calling `POST https://api.laya.studio/v1/systemone` using model `laya` (`laya-rl-agent`).
+  - Strict key isolation: `LAYA_API_KEY` stored exclusively in local `.env`, loaded via `process.loadEnvFile()`. Server-side proxy in `vite.config.ts`. Secret never exposed to client code, logs, or git.
+  - Credit-controlled bounded smoke test (`tools/run_laya_smoke.ts` / `npm run eval:smoke`): 8 representative synthetic cases tested live (100% API success, 2,653 tokens consumed out of 5,481 credit budget, ~2,601 remaining).
+  - Terminal-first CLI entry point (`src/cli/resolveCli.ts` / `npm run cli`): accepts message, mock state, and optional `--execute` flag; emits structured JSON with rules, raw Laya, and guarded hybrid decisions. Model cannot execute actions or determine permissions.
+  - Repeatable evaluation suite (`tools/evaluate_suite.ts`) added: `npm run eval:rules`, `npm run eval:hybrid`, `npm run eval:smoke`.
+  - Comprehensive documentation: created `README.md`, updated `DECISION_LOG.md` (D-013), `TEST_RESULTS.md`, `CHANGELOG.md`, `HANDOFF.md`.
+  - Full test suite passes: 43/43 tests passing in vitest across 5 test files. Strict build passes (`tsc -b && vite build`).
 
 ## Acceptance status
 
@@ -59,3 +67,4 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Phase 2 gate: PASSED (commit `f19b491`).
 - Phase 3 gate: PASSED (commit `0d6d36b`).
 - Phase 4 gate: PASSED (all tests, build, audits clean; deliverables, handoffs, and hybrid adapter complete).
+- Backend-First Experiment gate: PASSED (live hosted Laya inference verified 200 OK, credit budget bounded at 2,653/5,481 tokens, CLI entry point working with structured JSON and verification guard, 43/43 tests passing, build clean).

@@ -1,0 +1,4691 @@
+{
+  "timestamp": "2026-10-13T13:45:48.160Z",
+  "mode": "rules",
+  "split": "iteration",
+  "caseCount": 105,
+  "metrics": {
+    "issueAccuracy": 1,
+    "macroF1": 1,
+    "urgencyAccuracy": 0.99,
+    "routeAccuracy": 1,
+    "needsHumanRecall": 1,
+    "needsHumanPrecision": 1,
+    "clarifyShare": 0.238,
+    "criticalSafetyViolations": 0
+  },
+  "perIssue": {
+    "state_conflict_or_stale": {
+      "support": 13,
+      "correct": 13,
+      "f1": 1
+    },
+    "security_identity_access": {
+      "support": 11,
+      "correct": 11,
+      "f1": 1
+    },
+    "integration_webhook": {
+      "support": 9,
+      "correct": 9,
+      "f1": 1
+    },
+    "human_requested": {
+      "support": 11,
+      "correct": 11,
+      "f1": 1
+    },
+    "ambiguous_or_missing_context": {
+      "support": 14,
+      "correct": 14,
+      "f1": 1
+    },
+    "billing_refund": {
+      "support": 9,
+      "correct": 9,
+      "f1": 1
+    },
+    "message_delivery": {
+      "support": 9,
+      "correct": 9,
+      "f1": 1
+    },
+    "chatbot_flow": {
+      "support": 11,
+      "correct": 11,
+      "f1": 1
+    },
+    "number_waba_setup": {
+      "support": 8,
+      "correct": 8,
+      "f1": 1
+    },
+    "template_rejection": {
+      "support": 10,
+      "correct": 10,
+      "f1": 1
+    }
+  },
+  "caseOutputs": [
+    {
+      "caseId": "CR-142",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 5
+    },
+    {
+      "caseId": "CR-094",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-065",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 4
+    },
+    {
+      "caseId": "CR-133",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-112",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 2
+    },
+    {
+      "caseId": "CR-122",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-078",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-055",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The affected feature is not identifiable from the message. The system asks one concise question instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-043",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-049",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-031",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-026",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-041",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-007",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "No usable rejection reason is available. The cause cannot be verified from the user's wording, so the system offers human review instead of guessing."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-143",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-116",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-088",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-126",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-080",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-037",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Duplicate delivery risks duplicate side effects. The system inspects idempotency evidence and asks one focused question before any retry; no blind retries."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-146",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-138",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-099",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-019",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-109",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-060",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-100",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-072",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-051",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-068",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-020",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-058",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-150",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "More than one template matches the description. Attaching the wrong record is a real risk, so the system asks one focused question instead of guessing."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-103",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-067",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Duplicate events indicate a retry/idempotency problem. The system inspects event IDs and retry metadata and asks one question before any retry; no blind retries."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-012",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-056",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-115",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-074",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The integration reports connected while expected events or messages are not arriving; connected does not prove events are flowing. The safe step is to compare last-sync evidence and delivery attempts."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-075",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-076",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-134",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-001",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-092",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-047",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-028",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-059",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-129",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-136",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-084",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-114",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-029",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-131",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-147",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-085",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-010",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The request could disguise promotional content as Utility. The system asks what the message is truly for and offers only a truthful category or content correction."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-119",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-027",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-057",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-004",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-025",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user asks whether something is true. The system reads only available recorded state and labels its source; without authoritative state it says so and asks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-104",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-014",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-125",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-071",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-023",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-140",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "More than one template matches the description. Attaching the wrong record is a real risk, so the system asks one focused question instead of guessing."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-107",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-079",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-070",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Disabling a production integration is potentially disruptive. The system clarifies impact and scope first; no high-impact toggle happens without an approved control."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": false,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-046",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-098",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-032",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-017",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-128",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-106",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-121",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-006",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-124",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-002",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-149",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-044",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-082",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-145",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-048",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-022",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "This is a policy question rather than a broken state. The system answers only from verified documentation; without it, one question and a support route."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-061",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-095",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-013",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-050",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-034",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-108",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-081",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-144",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-045",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-033",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-148",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-005",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-139",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-083",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-105",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-003",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-063",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-052",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-069",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Diagnosis needs minimum non-secret evidence (endpoint, timestamp, sanitized response). The system explains what is needed instead of inventing a cause."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-142",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-094",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-065",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-133",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-112",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-122",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-078",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-055",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The affected feature is not identifiable from the message. The system asks one concise question instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-043",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-049",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-031",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-026",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-041",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-007",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "No usable rejection reason is available. The cause cannot be verified from the user's wording, so the system offers human review instead of guessing."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-143",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-116",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-088",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-126",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-080",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-037",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Duplicate delivery risks duplicate side effects. The system inspects idempotency evidence and asks one focused question before any retry; no blind retries."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-146",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-138",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-099",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-019",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-109",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-060",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-100",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-072",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-051",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-068",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-020",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-058",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-150",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "More than one template matches the description. Attaching the wrong record is a real risk, so the system asks one focused question instead of guessing."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-103",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-067",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Duplicate events indicate a retry/idempotency problem. The system inspects event IDs and retry metadata and asks one question before any retry; no blind retries."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-012",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-056",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-115",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-074",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The integration reports connected while expected events or messages are not arriving; connected does not prove events are flowing. The safe step is to compare last-sync evidence and delivery attempts."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-075",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-076",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-134",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-001",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-092",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-047",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-028",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-059",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-129",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-136",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-084",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-114",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-029",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-131",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-147",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-085",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-010",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The request could disguise promotional content as Utility. The system asks what the message is truly for and offers only a truthful category or content correction."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-119",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-027",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-057",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-004",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-025",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user asks whether something is true. The system reads only available recorded state and labels its source; without authoritative state it says so and asks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-104",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-014",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-125",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-071",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-023",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-140",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "More than one template matches the description. Attaching the wrong record is a real risk, so the system asks one focused question instead of guessing."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-107",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-079",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-070",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Disabling a production integration is potentially disruptive. The system clarifies impact and scope first; no high-impact toggle happens without an approved control."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": false,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-046",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-098",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-032",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-017",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns number/WABA setup. The system reads the recorded connection state, shows which prerequisite is missing, and never bypasses ownership or identity checks."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-128",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-106",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-121",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-006",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-124",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "The user explicitly asked for a human. The request overrides automation; the case is handed off immediately with the evidence collected so far."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-002",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-149",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-044",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-082",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-145",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-048",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-022",
+      "expected": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "number_waba_setup",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "This is a policy question rather than a broken state. The system answers only from verified documentation; without it, one question and a support route."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-061",
+      "expected": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "integration_webhook",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report points at an integration or webhook. The safe path is to inspect sanitized delivery evidence (timestamps, retry status, error class) and propose only allowlisted, confirmed steps."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-095",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-013",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The user reports a prior attempt. The system asks one focused question about what was tried before suggesting another fix; repeated failures escalate to a human."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-050",
+      "expected": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "chatbot_flow",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a chatbot flow. The system inspects publish state, trigger conditions and recent run evidence, and proposes only confirmed corrections."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-034",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-108",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-081",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-144",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-045",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 1
+    },
+    {
+      "caseId": "CR-033",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns campaign or message delivery. The system distinguishes sent, delivered, read and failed from recorded events, and never promises delivery or retries without approval."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-148",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-005",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-139",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-083",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Billing, refunds or credits are involved. These are human-led decisions; the system can only preserve evidence and hand the case over."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-105",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-003",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "The report concerns a template rejection. The system reads the recorded status and reason code, explains only what the record supports, and proposes a minimal confirmed edit."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-063",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Security, identity, access or ownership is involved; policy requires human-led handling. The system may show evidence only and never changes credentials or permissions."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-052",
+      "expected": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "predicted": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "rationale": "Observations conflict or the record looks stale. The system never picks a convenient state and never claims verification; it re-reads the authoritative state and escalates with both observations."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    },
+    {
+      "caseId": "CR-069",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "predicted": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "rules",
+        "rationale": "Diagnosis needs minimum non-secret evidence (endpoint, timestamp, sanitized response). The system explains what is needed instead of inventing a cause."
+      },
+      "isCorrectIssue": true,
+      "isCorrectRoute": true,
+      "isCorrectUrgency": true,
+      "isCorrectNeedsHuman": true,
+      "latencyMs": 0
+    }
+  ],
+  "errors": []
+}

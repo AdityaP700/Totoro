@@ -1,0 +1,303 @@
+{
+  "timestamp": "2026-10-13T13:42:10.370Z",
+  "totalCases": 8,
+  "totalTokensCharged": 2653,
+  "averageLatencyMs": 1136,
+  "layaSuccessCount": 8,
+  "accuracy": {
+    "rules": 0.875,
+    "rawLaya": 0.75,
+    "guardedHybrid": 0.75
+  },
+  "results": [
+    {
+      "caseId": "CR-001",
+      "split": "iteration",
+      "message": "Mera WhatsApp template reject ho gaya. Kya change karna chahiye?",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "latencyMs": 17
+      },
+      "rawLaya": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "needsHuman": false,
+        "confidence": 0.982,
+        "latencyMs": 2045,
+        "tokensCharged": 347,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "laya",
+        "fallbackOccurred": false,
+        "latencyMs": 2045
+      }
+    },
+    {
+      "caseId": "CR-005",
+      "split": "iteration",
+      "message": "It says the variable format is invalid. Fix it for me.",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "latencyMs": 12
+      },
+      "rawLaya": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "needsHuman": false,
+        "confidence": 0.258,
+        "latencyMs": 1280,
+        "tokensCharged": 329,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "laya",
+        "fallbackOccurred": false,
+        "latencyMs": 1280
+      }
+    },
+    {
+      "caseId": "CR-031",
+      "split": "iteration",
+      "message": "Campaign sent dikh raha hai, lekin customers ko message nahi mila.",
+      "expected": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "latencyMs": 2
+      },
+      "rawLaya": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "needsHuman": false,
+        "confidence": 0.4632,
+        "latencyMs": 1456,
+        "tokensCharged": 350,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "message_delivery",
+        "urgency": "high",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "laya",
+        "fallbackOccurred": false,
+        "latencyMs": 1456
+      }
+    },
+    {
+      "caseId": "CR-078",
+      "split": "iteration",
+      "message": "Can you add credits to my account?",
+      "expected": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "rules": {
+        "issueType": "billing_refund",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "latencyMs": 0
+      },
+      "rawLaya": {
+        "issueType": "billing_refund",
+        "urgency": "low",
+        "needsHuman": false,
+        "confidence": 0.2966,
+        "latencyMs": 541,
+        "tokensCharged": 314,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "billing_refund",
+        "urgency": "low",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "laya",
+        "fallbackOccurred": false,
+        "latencyMs": 541
+      }
+    },
+    {
+      "caseId": "CR-092",
+      "split": "iteration",
+      "message": "Here is my OTP: 123456. Please connect my number.",
+      "expected": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "rules": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "latencyMs": 0
+      },
+      "rawLaya": {
+        "issueType": "security_identity_access",
+        "urgency": "medium",
+        "needsHuman": false,
+        "confidence": 0.5784,
+        "latencyMs": 1243,
+        "tokensCharged": 335,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "security_identity_access",
+        "urgency": "critical",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "fallbackOccurred": false,
+        "fallbackReason": "Safety fast-path triggered: sensitive request handled deterministically",
+        "latencyMs": 0
+      }
+    },
+    {
+      "caseId": "CR-133",
+      "split": "iteration",
+      "message": "I already tried once: Can a person review this rejection?",
+      "expected": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true
+      },
+      "rules": {
+        "issueType": "human_requested",
+        "urgency": "medium",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "latencyMs": 0
+      },
+      "rawLaya": {
+        "issueType": "template_rejection",
+        "urgency": "low",
+        "needsHuman": true,
+        "confidence": 0.9029,
+        "latencyMs": 984,
+        "tokensCharged": 326,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "template_rejection",
+        "urgency": "low",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "laya",
+        "fallbackOccurred": false,
+        "latencyMs": 984
+      }
+    },
+    {
+      "caseId": "CR-107",
+      "split": "iteration",
+      "message": "Help please, urgent.",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "latencyMs": 4
+      },
+      "rawLaya": {
+        "issueType": "human_requested",
+        "urgency": "high",
+        "needsHuman": true,
+        "confidence": 0.1784,
+        "latencyMs": 960,
+        "tokensCharged": 305,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "human_requested",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "laya",
+        "fallbackOccurred": false,
+        "latencyMs": 960
+      }
+    },
+    {
+      "caseId": "CRX-001",
+      "split": "challenge",
+      "message": "The template says rejected, but the dashboard doesn't show why. Can you fix the wording?",
+      "expected": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "state_conflict_or_stale",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "latencyMs": 0
+      },
+      "rawLaya": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "needsHuman": false,
+        "confidence": 0.9812,
+        "latencyMs": 578,
+        "tokensCharged": 347,
+        "status": "200_OK"
+      },
+      "guardedHybrid": {
+        "issueType": "template_rejection",
+        "urgency": "medium",
+        "route": "rules_playbook",
+        "needsHuman": false,
+        "decisionLayer": "laya",
+        "fallbackOccurred": false,
+        "latencyMs": 578
+      }
+    }
+  ]
+}

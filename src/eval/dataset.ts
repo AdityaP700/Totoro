@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** One labelled synthetic case (docs/source/DATASET_SCHEMA.md). */
 export interface EvalCase {
@@ -24,7 +25,8 @@ export interface EvalCase {
   notes: string;
 }
 
-const DATASET_PATH = resolve(__dirname, "../../docs/source/cheerio_resolve_synthetic_eval_170.jsonl");
+const currentDir = typeof __dirname !== "undefined" ? __dirname : dirname(fileURLToPath(import.meta.url));
+const DATASET_PATH = resolve(currentDir, "../../docs/source/cheerio_resolve_synthetic_eval_170.jsonl");
 
 let cache: EvalCase[] | null = null;
 

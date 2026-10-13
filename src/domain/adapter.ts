@@ -208,6 +208,8 @@ export class RulesReasoningAdapter implements ReasoningAdapter {
   }
 }
 
+import { HostedLayaClient } from "./layaClient";
+
 export type LayaClassifierFn = (
   ctx: ReasoningContext,
 ) => Partial<TriageResult> | Promise<Partial<TriageResult>> | null;
@@ -227,9 +229,16 @@ export class HybridLayaReasoningAdapter implements ReasoningAdapter {
   readonly version = "laya-1.0-hybrid";
   private readonly rulesAdapter = new RulesReasoningAdapter();
   private readonly classifier?: LayaClassifierFn;
+  private readonly client?: HostedLayaClient;
 
-  constructor(classifier?: LayaClassifierFn) {
-    this.classifier = classifier;
+  constructor(target?: LayaClassifierFn | HostedLayaClient) {
+    if (target instanceof HostedLayaClient) {
+      this.client = target;
+    } else if (typeof target === "function") {
+      this.classifier = target;
+    } else {
+      this.client = new HostedLayaClient();
+    }
   }
 
   triage(ctx: ReasoningContext): TriageResult {
@@ -294,5 +303,76 @@ export class HybridLayaReasoningAdapter implements ReasoningAdapter {
       rationale: `${fallback.rationale} [Fallback from model decision layer]`,
       latencyMs: Date.now() - start,
     };
+  }
+
+  async triageAsync(ctx: ReasoningContext): Promise<TriageResult> {
+    const start = Date.now();
+
+    // Fast Path 1: Known rejection code on template fixture
+    const knownReason = ctx.templateSnapshot?.reasonCode;
+    if (
+      knownReason &&
+      (knownReason.includes("PROMO") ||
+        knownReason.includes("VARIABLE") ||
+        knownReason.includes("TAG"))
+    ) {
+      const res = this.rulesAdapter.triage(ctx);
+      return {
+        ...res,
+        decisionLayer: "rules",
+        rationale: `Rules fast-path: template rejected with known verified condition (${knownReason}).`,
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    // Fast Path 2: Sensitive request / explicit human request
+    const isSensitive =
+      /\b(otp|password|token|admin|hack|bypass|refund|invoice|bill|human|agent|support team)\b/i.test(
+        ctx.message,
+      );
+    if (isSensitive) {
+      const res = this.rulesAdapter.triage(ctx);
+      return {
+        ...res,
+        decisionLayer: "rules",
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    // Complex / Ambiguous: If hosted client is configured, call live API
+    if (this.client && this.client.isConfigured) {
+      const apiRes = await this.client.triage(ctx.message);
+      if (apiRes.success && apiRes.issueType) {
+        const raw = {
+          issueType: apiRes.issueType,
+          urgency: apiRes.urgency || "medium",
+          needsHuman: apiRes.needsHuman ?? false,
+          route: apiRes.needsHuman ? "human_handoff" : "rules_playbook",
+          confidence: apiRes.confidence ?? 0.5,
+          rationale: `Laya decision inference (model=${apiRes.modelId || "laya"}, tokens=${apiRes.inputTokens || 0})`,
+        };
+        const validated = validateModelOutput(raw, ctx);
+        if (validated.valid && validated.sanitized) {
+          return {
+            ...validated.sanitized,
+            decisionLayer: "laya",
+            latencyMs: apiRes.latencyMs,
+          };
+        }
+      }
+
+      // If API failed or was invalid, fall back safely to rules
+      const fallback = this.rulesAdapter.triage(ctx);
+      const failReason = apiRes.error ? ` (${apiRes.error.code}: ${apiRes.error.message})` : "";
+      return {
+        ...fallback,
+        decisionLayer: "fallback",
+        rationale: `${fallback.rationale} [Fallback from Laya API${failReason}]`,
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    // Otherwise use synchronous triage
+    return this.triage(ctx);
   }
 }
