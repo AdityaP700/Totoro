@@ -11,9 +11,19 @@ export function expectedStatusAfter(operation: string): TemplateStatus | null {
 }
 
 export function verifyAgainstFreshRead(
-  fresh: MockTemplate,
+  fresh: MockTemplate | null | undefined,
   expected: TemplateStatus,
 ): VerificationResult {
+  if (!fresh) {
+    return {
+      verified: false,
+      observedStatus: "UNAVAILABLE",
+      expectedStatus: expected,
+      statement:
+        "Fresh-state verification failed: record was unavailable or could not be re-read from the authoritative store.",
+    };
+  }
+
   const verified = fresh.status === expected;
   const statement = verified
     ? "Verified by fresh read: the record now shows SUBMITTED/PENDING review. This is NOT approval — Meta's review is outside Cheerio's control."

@@ -73,7 +73,13 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Authored comprehensive test suite `tests/e2eMatrix.test.ts` (7/7 tests passing) verifying Cases A, B, C1, C2, D, E, F.
   - Executed all 6 cases live through terminal CLI entry point (`npx tsx src/cli/resolveCli.ts`) with zero fabricated output, capturing complete JSON outputs and telemetry.
   - Generated audit report: `docs/audits/end_to_end_execution_matrix.md`.
-  - Full test suite passes: 85/85 tests across 12 test files. Strict build passes (`tsc -b && vite build`).
+- **Adversarial Stress Test, Reliability & Security Audit (Completed):**
+  - Designed, built, and executed a hostile testing harness in `tests/harness/adversarialHarness.ts` (`FaultInjectableStore`, `FaultInjectableAdapter`) simulating timeouts, rate limits, TOCTOU state drift, and unavailable fresh reads.
+  - Authored comprehensive 36-test hostile suite `tests/adversarial.test.ts` covering all 20 threat categories and edge scenarios A–H.
+  - Discovered and resolved 7 engineering defects: prompt injection regex gap, Hinglish human agent regex gap, custom adapter timeout/exception CLI crash, state machine re-serialization on duplicate click, front-door idempotency key bypass, store copy immutability, and pre-execution status drift checks.
+  - Created and executed concurrency benchmark `tools/concurrency_benchmark.ts` across 5, 10, 20, and 50 concurrent sessions under active fault injection: 0 unhandled crashes, 0 cross-session data contamination events, 0 duplicate executions, p95 latency < 4.3ms.
+  - Produced comprehensive audit report: `docs/audits/adversarial_stress_test.md`.
+  - Full test suite passes: 121/121 tests across 13 test files. Strict build passes (`tsc -b && vite build` in 1.30s).
 
 ## Acceptance status
 
@@ -86,11 +92,13 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Hybrid Decision Precedence & Regression Guardrails gate: PASSED (CR-133 and CR-107 root-caused and fixed; deterministic safety precedence strictly enforced; 6 new regression tests added; 49/49 tests passing; build clean; cached smoke replay demonstrates 8/8 100% guarded hybrid accuracy with 0 live credits consumed).
 - Product Capability Expansion (Phases 1–6) gate: PASSED (Conversational response, playbook registry, uncertainty assessment, template drafter, evidence trail, Groq integration, and multi-provider benchmark complete; 78/78 tests passing; strict build clean; Guarded Hybrid scores 8/8 100% with 0 safety violations).
 - End-to-End Execution Reality Check gate: PASSED (All 6 execution categories verified live on real CLI; 85/85 tests passing across 12 test files; strict build clean; comprehensive audit matrix authored in `docs/audits/end_to_end_execution_matrix.md`).
+- Adversarial Stress Test & Reliability Hardening gate: PASSED (All 20 threat categories tested; 36 hostile tests passing; 7 defects remediated; 200 concurrent requests benchmarked with 0 crashes and 0 contamination; strict build clean; audit report in `docs/audits/adversarial_stress_test.md`).
 
 ## Exact next command / task
 
-End-to-End execution matrix is fully verified and documented. Commands available:
-- `npm test`: run full 85-test suite across 12 test files.
+Adversarial stress testing, defect remediation, and reliability benchmark are complete. Commands available:
+- `npm test`: run full 121-test suite across 13 test files.
 - `npm run build`: verify static production build (`tsc -b && vite build`).
-- `npx vitest run tests/e2eMatrix.test.ts`: run the 7-case end-to-end reality check matrix tests.
+- `npx vitest run tests/adversarial.test.ts`: run the 36-test adversarial stress suite.
+- `npx tsx tools/concurrency_benchmark.ts`: run the concurrency and fault injection benchmark.
 - `npx tsx src/cli/resolveCli.ts --message "<message>" [--template-id <id>] [--rules-only] [--provider laya|groq] [--execute]`: run CLI recovery agent.

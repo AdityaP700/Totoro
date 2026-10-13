@@ -168,3 +168,20 @@ Closed integration gaps between independently tested modules and the primary CLI
    - Case F: Unverified recovery (`TPL-1003`, simulated resubmit yields no change) -> fresh read remains `REJECTED` -> verified: false, escalated to support.
 5. **Report & Test Coverage**: Authored `docs/audits/end_to_end_execution_matrix.md` and `tests/e2eMatrix.test.ts` (7/7 tests passing; overall test suite: 85/85 passing across 12 files).
 - Evidence label: DOCUMENTED (Guardrails G1–G15, D1–D11) + REPORTED (CLI execution traces in docs/audits/end_to_end_execution_matrix.md).
+
+## D-017 · 2026-10-14 · Adversarial Stress Testing, Defect Remediation, Reliability Hardening & Concurrency Benchmark
+
+Conducted hostile stress testing across 20 threat categories and edge scenarios A–H to discover, document, and remediate failure modes:
+1. **Testing Harness (`tests/harness/adversarialHarness.ts`)**: Built `FaultInjectableAdapter` (simulating timeouts, rate limits, malformed JSON) and `FaultInjectableStore` (simulating crashes, in-place state drift, unavailable fresh reads, and concurrency tracking).
+2. **Defect Remediation**:
+   - *Prompt injection regex incompleteness*: Fixed multi-word instructions matching (`ignore all previous instructions`, `dan mode`, `jailbreak`) in `src/domain/triage.ts`.
+   - *Hinglish intent handling*: Added `human agent`, `agent se baat`, `baat karwao`, `kisi human` to `HUMAN_REQUEST` rules in `src/domain/triage.ts`.
+   - *Custom adapter exception isolation*: Decoupled `options.customAdapter` from Step 2 rules baseline in `src/cli/resolveCli.ts`. Model adapter exceptions are caught inside Step 3 and safely fall back to the deterministic rules baseline with `decision_layer: "fallback"`.
+   - *State machine confirmation reuse*: In `src/domain/stateMachine.ts`, duplicate approval calls reuse the session's existing confirmation snapshot rather than re-evaluating against an already-mutated template in the store.
+   - *Front-door idempotency interception*: Added `hasIdempotencyKey(key)` to `MockStore` and `resolveCli.ts` to immediately intercept duplicate confirmation replays before action evaluation (G11).
+   - *Pre-execution status drift detection*: In `src/domain/mockStore.ts`, `applyApprovedChange` asserts `target.status === "REJECTED"` before resubmission, rejecting drifted state with `before_after_mismatch`.
+   - *Store in-place update interface*: Added `updateTemplate(id, mutator)` to `MockStore` to support controlled in-place state drift simulation without breaking shallow-copy encapsulation.
+3. **Concurrency Benchmark (`tools/concurrency_benchmark.ts`)**: Evaluated 200 triage sessions across concurrency levels 5, 10, 20, 50 with 25% active fault injection. Measured 0 unhandled crashes, 0 cross-session data leaks, 0 duplicate executions, and p95 latency under 4.3ms.
+4. **Test & Build Verification**: Expanded test suite to 121 tests across 13 test files (100% passing). Strict build passes (`tsc -b && vite build` in 1.30s). Authored audit report `docs/audits/adversarial_stress_test.md`.
+- Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/adversarial.test.ts, report in docs/audits/adversarial_stress_test.md).
+

@@ -166,6 +166,15 @@ export function validateModelOutput(
     finalNeedsHuman = true;
     finalRoute = "human_handoff";
     rationale = "Safety override: Two previous attempts failed; escalated with case file (G8).";
+  } else if (
+    finalIssueType === "security_identity_access" ||
+    finalIssueType === "billing_refund" ||
+    finalIssueType === "human_requested"
+  ) {
+    // Invariant: ANY sensitive issue type (whether detected by rules or predicted by model)
+    // MUST strictly be assigned needsHuman=true and route="human_handoff" (G8, G10).
+    finalNeedsHuman = true;
+    finalRoute = "human_handoff";
   }
 
   // Confidence gating: low confidence cannot route directly to playbook
@@ -182,8 +191,12 @@ export function validateModelOutput(
   const band: ConfidenceBand =
     confidence >= 0.85 ? "high" : confidence >= 0.65 ? "medium" : "low";
 
-  // Critical failure if invalid schema
-  if (!ALLOWED_ISSUE_TYPES.has(finalIssueType) || !ALLOWED_URGENCIES.has(finalUrgency)) {
+  // Critical failure if invalid schema or unallowlisted route
+  if (
+    !ALLOWED_ISSUE_TYPES.has(finalIssueType) ||
+    !ALLOWED_URGENCIES.has(finalUrgency) ||
+    !ALLOWED_ROUTES.has(finalRoute)
+  ) {
     return { valid: false, reasons };
   }
 

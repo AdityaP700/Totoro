@@ -1,4 +1,4 @@
-import { createMockStore } from "../domain/mockStore";
+import { createMockStore, type MockStore } from "../domain/mockStore";
 import { RulesReasoningAdapter, validateModelOutput } from "../domain/adapter";
 import { HostedLayaClient } from "../domain/layaClient";
 import { GroqClient } from "../domain/groqClient";
@@ -65,10 +65,13 @@ export interface CliOptions {
   rulesOnly?: boolean;
   apiKey?: string;
   provider?: "laya" | "groq";
+  store?: MockStore;
+  idempotencyKey?: string;
+  customAdapter?: any;
 }
 
 export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
-  const store = createMockStore();
+  const store = options.store || createMockStore();
   let templateSnapshot: MockTemplate | null = null;
 
   // Resolve template state if provided
@@ -127,7 +130,38 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
   const provider = options.provider || "laya";
 
   if (!options.rulesOnly) {
-    if (provider === "groq") {
+    if (options.customAdapter) {
+      try {
+        const start = Date.now();
+        const customRes = await Promise.resolve(
+          options.customAdapter.triage({
+            message: options.message,
+            templateSnapshot,
+          })
+        );
+        modelLatencyMs = Date.now() - start;
+        if (customRes && customRes.issueType) {
+          requestStatus = "success";
+          rawLayaPrediction = {
+            issue_type: customRes.issueType,
+            urgency: customRes.urgency,
+            needs_human: customRes.needsHuman,
+            confidence: customRes.confidence,
+          };
+          tokenUsage = {
+            input_tokens: 0,
+          };
+        } else {
+          requestStatus = "error_malformed";
+        }
+      } catch (err: any) {
+        requestStatus = err?.message?.includes("ETIMEDOUT")
+          ? "error_timeout"
+          : err?.message?.includes("429")
+          ? "error_rate_limit"
+          : "error_exception";
+      }
+    } else if (provider === "groq") {
       groqClient = new GroqClient(options.apiKey ? { apiKey: options.apiKey } : {});
       if (groqClient.isConfigured) {
         const apiRes = await groqClient.triage(options.message);
@@ -253,6 +287,8 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
   let confirmationRequired = false;
   let isVerified = false;
   let verificationResult: VerificationResult | null = null;
+  let actionBlockedReason: string | undefined = undefined;
+  let actionFailureKind: string | undefined = undefined;
 
   if (uncertainty.status === "UNSAFE_OR_SENSITIVE_HUMAN_REVIEW") {
     mappedRoute = "human_handoff";
@@ -282,7 +318,14 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     templateSnapshot,
   });
 
-  if (mappedRoute === "safe_playbook") {
+  if (options.execute && options.idempotencyKey && store.hasIdempotencyKey(options.idempotencyKey)) {
+    actionBlockedReason = "This confirmation was already used. Duplicate submissions are blocked (G11).";
+    actionFailureKind = "duplicate_idempotency_key";
+    recommendedAction = "Action blocked: duplicate_idempotency_key - This confirmation was already used. Duplicate submissions are blocked (G11).";
+    confirmationRequired = false;
+    mappedRoute = "human_handoff";
+    isVerified = false;
+  } else if (mappedRoute === "safe_playbook") {
     const actionDef = playbook.permittedActions[0];
     if (actionDef && actionDef.operation === "resubmit_template" && templateSnapshot) {
       // Evaluate playbook preconditions
@@ -317,38 +360,94 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
 
         // Simulated action execution only when explicitly requested
         if (options.execute) {
-          const changes: ProposedChange[] = actionDef.buildChanges
-            ? actionDef.buildChanges(templateSnapshot)
-            : [];
-          const exactBefore = JSON.stringify({ text: templateSnapshot.text, category: templateSnapshot.category });
-          const exactAfterObj: Record<string, string> = { text: templateSnapshot.text, category: templateSnapshot.category };
-          for (const c of changes) exactAfterObj[c.field] = c.after;
-          const exactAfter = JSON.stringify(exactAfterObj);
+          // Invariant: Re-read fresh state from store immediately before execution to prevent TOCTOU drift
+          const freshCurrent = store.getTemplate(templateSnapshot.id);
 
-          const applyRes = store.applyApprovedChange({
-            operation: "resubmit_template",
-            targetId: templateSnapshot.id,
-            changes,
-            confirmation: {
-              approvedAt: new Date().toISOString(),
-              exactBefore,
-              exactAfter,
-              idempotencyKey: `CLI:${templateSnapshot.id}:${Date.now()}`,
-            },
-          });
+          if (!freshCurrent) {
+            actionBlockedReason = "Target template no longer exists in store.";
+            actionFailureKind = "target_not_found";
+            recommendedAction = `Action aborted: ${actionBlockedReason}`;
+            confirmationRequired = false;
+            mappedRoute = "human_handoff";
+          } else {
+            // Re-evaluate preconditions against the fresh pre-execution state
+            let freshPreconditionsMet = true;
+            let freshPreconditionFailure = "";
+            for (const cond of actionDef.preconditions) {
+              if (cond === "category == UTILITY" && freshCurrent.category !== "UTILITY") {
+                freshPreconditionsMet = false;
+                freshPreconditionFailure = `State drift: category is now "${freshCurrent.category}", expected "UTILITY".`;
+                break;
+              }
+              if (cond === "category == MARKETING" && freshCurrent.category !== "MARKETING") {
+                freshPreconditionsMet = false;
+                freshPreconditionFailure = `State drift: category is now "${freshCurrent.category}", expected "MARKETING".`;
+                break;
+              }
+              if (cond === "status == REJECTED" && freshCurrent.status !== "REJECTED") {
+                freshPreconditionsMet = false;
+                freshPreconditionFailure = `State drift: status changed to "${freshCurrent.status}" before execution.`;
+                break;
+              }
+            }
 
-          if (applyRes.ok) {
-            const expected = expectedStatusAfter("resubmit_template");
-            if (expected) {
-              const fresh = store.getTemplate(templateSnapshot.id)!;
-              const ver = verifyAgainstFreshRead(fresh, expected);
-              isVerified = ver.verified;
-              verificationResult = ver;
+            if (!freshPreconditionsMet) {
+              actionBlockedReason = freshPreconditionFailure;
+              actionFailureKind = "before_after_mismatch";
+              recommendedAction = `Action aborted: ${freshPreconditionFailure}`;
+              confirmationRequired = false;
+              mappedRoute = "human_handoff";
+            } else {
+              const changes: ProposedChange[] = actionDef.buildChanges
+                ? actionDef.buildChanges(freshCurrent)
+                : [];
+              const exactBefore = JSON.stringify({ text: freshCurrent.text, category: freshCurrent.category });
+              const exactAfterObj: Record<string, string> = { text: freshCurrent.text, category: freshCurrent.category };
+              for (const c of changes) exactAfterObj[c.field] = c.after;
+              const exactAfter = JSON.stringify(exactAfterObj);
 
-              // If fresh-read verification failed (Case F): do NOT claim verified; escalate to human
-              if (!ver.verified) {
+              try {
+                const applyRes = store.applyApprovedChange({
+                  operation: "resubmit_template",
+                  targetId: freshCurrent.id,
+                  changes,
+                  confirmation: {
+                    approvedAt: new Date().toISOString(),
+                    exactBefore,
+                    exactAfter,
+                    idempotencyKey: options.idempotencyKey || `CLI:${freshCurrent.id}:${Date.now()}`,
+                  },
+                });
+
+                if (applyRes.ok) {
+                  const expected = expectedStatusAfter("resubmit_template");
+                  if (expected) {
+                    const freshAfter = store.getTemplate(freshCurrent.id);
+                    const ver = verifyAgainstFreshRead(freshAfter, expected);
+                    isVerified = ver.verified;
+                    verificationResult = ver;
+
+                    if (!ver.verified) {
+                      mappedRoute = "human_handoff";
+                      recommendedAction = "Handoff to human support team: simulated resubmission failed fresh-read verification";
+                    }
+                  }
+                } else {
+                  // Action was rejected by store (e.g. duplicate idempotency, unallowlisted, etc.)
+                  actionBlockedReason = applyRes.message;
+                  actionFailureKind = applyRes.failureKind;
+                  mappedRoute = "human_handoff";
+                  recommendedAction = `Action blocked: ${applyRes.message}`;
+                  isVerified = false;
+                }
+              } catch (execErr: unknown) {
+                // Catches store timeouts, network partition, or unhandled execution crashes
+                const errMsg = (execErr as Error)?.message || "Execution timeout or uncertain outcome";
+                actionBlockedReason = errMsg;
+                actionFailureKind = "operation_failed";
                 mappedRoute = "human_handoff";
-                recommendedAction = "Handoff to human support team: simulated resubmission failed fresh-read verification";
+                recommendedAction = `Action failed: ${errMsg}`;
+                isVerified = false;
               }
             }
           }
@@ -381,6 +480,8 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     uncertaintyStatus: uncertainty.status,
     hasStateConflict: uncertainty.signals.hasStateConflict,
     clarifyingQuestion: uncertainty.clarifyingQuestion,
+    actionBlockedReason,
+    actionFailureKind,
   });
 
   // 9. Case Audit Trail (Phase 5)
@@ -415,7 +516,13 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     playbook,
     customerConfirmed: options.execute ?? false,
     actionExecuted: options.execute ?? false,
-    mockResult: isVerified ? "SIMULATED_PENDING_REVIEW" : (verificationResult && !verificationResult.verified ? "SIMULATED_FAILED_VERIFICATION" : null),
+    mockResult: isVerified
+      ? "SIMULATED_PENDING_REVIEW"
+      : verificationResult && !verificationResult.verified
+      ? "SIMULATED_FAILED_VERIFICATION"
+      : actionBlockedReason
+      ? `SIMULATED_ACTION_BLOCKED: ${actionFailureKind || "error"}`
+      : null,
     verification: verificationResult,
     totalLatencyMs: modelLatencyMs ?? 0,
   });

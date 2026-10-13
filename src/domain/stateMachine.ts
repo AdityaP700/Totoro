@@ -225,22 +225,25 @@ export class ResolveSession {
     }
     const template = this.deps.store.getTemplate(proposal.targetId)!;
 
-    const exactBefore = this.exactSnapshot(template, proposal.changes, "before");
-    const exactAfter = this.exactSnapshot(template, proposal.changes, "after");
-    const confirmation = {
-      approvedAt: this.deps.now(),
-      exactBefore,
-      exactAfter,
-      idempotencyKey: `${this.state.caseId}:${proposal.playbookId ?? "noop"}:${hashProposal(proposal)}`,
-    };
-    if (!checkExactChange(template, proposal.changes, confirmation)) {
-      throw new Error("Proposal serialization mismatch — refusing to confirm.");
+    let confirmation = this.state.confirmation;
+    if (!confirmation) {
+      const exactBefore = this.exactSnapshot(template, proposal.changes, "before");
+      const exactAfter = this.exactSnapshot(template, proposal.changes, "after");
+      confirmation = {
+        approvedAt: this.deps.now(),
+        exactBefore,
+        exactAfter,
+        idempotencyKey: `${this.state.caseId}:${proposal.playbookId ?? "noop"}:${hashProposal(proposal)}`,
+      };
+      if (!checkExactChange(template, proposal.changes, confirmation)) {
+        throw new Error("Proposal serialization mismatch — refusing to confirm.");
+      }
+      this.state.confirmation = confirmation;
+      this.state.stage = "CONFIRM";
+      this.append("USER_CONFIRMED", "User explicitly approved the exact proposed change", {
+        idempotencyKey: confirmation.idempotencyKey,
+      });
     }
-    this.state.confirmation = confirmation;
-    this.state.stage = "CONFIRM";
-    this.append("USER_CONFIRMED", "User explicitly approved the exact proposed change", {
-      idempotencyKey: confirmation.idempotencyKey,
-    });
 
     const result = this.deps.store.applyApprovedChange({
       operation: proposal.operation,

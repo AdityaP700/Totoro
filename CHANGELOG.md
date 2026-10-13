@@ -110,4 +110,24 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - **End-to-End Matrix Test Suite (`tests/e2eMatrix.test.ts`)**: Authored 7 tests validating the 6 realistic operational categories (Cases A–F) against the CLI entry point. All 7 passed. Total test suite expanded to 85/85 tests across 12 files.
 - **Audit Report (`docs/audits/end_to_end_execution_matrix.md`)**: Fully documented the end-to-end execution paths, component interactions, runtime traces, guardrail decisions, playbook evaluations, and fresh-read outcomes with zero fabricated output.
 
+## 2026-10-14 — Adversarial Stress Testing, Defect Remediation & Concurrency Benchmark
+
+- **Adversarial Test Suite (`tests/adversarial.test.ts`)**: Built hostile 36-test suite testing 20 threat categories and edge scenarios A–H: vague messages, Hinglish mixing, mid-flow cancellations, conflicting states, invalid identifiers, prompt injections, `--execute` abuse on sensitive operations, tampered before/after states, parameter injection, unsafe model outputs, provider timeouts/429s/malformed JSON, playbook precondition violations, TOCTOU state drift, duplicate idempotency key replays, action crashes, unallowlisted operations, unavailable fresh reads, retry exhaustion (G8), registry/issue-type inconsistencies, and property-based randomized fuzzing.
+- **Defect Remediation**:
+  - Fixed prompt injection regular expression matching consecutive words (`ignore all previous instructions`, `dan mode`, `jailbreak`) in `src/domain/triage.ts`.
+  - Added Hinglish human agent phrases (`human agent`, `agent se baat`, `baat karwao`, `kisi human`) to `HUMAN_REQUEST` rules in `src/domain/triage.ts`.
+  - Decoupled `options.customAdapter` from Step 2 rules baseline in `src/cli/resolveCli.ts`; provider timeouts, 429s, or exceptions now cleanly fall back to deterministic rules baseline with `decision_layer: "fallback"`.
+  - Reused existing session confirmation records in `src/domain/stateMachine.ts` on duplicate clicks, preventing proposal serialization mismatches on already-mutated templates.
+  - Added `hasIdempotencyKey(key)` in `MockStore` and front-door check in `resolveCli.ts` to immediately intercept duplicate confirmation replays before action evaluation (G11).
+  - Enforced `target.status === "REJECTED"` check in `src/domain/mockStore.ts` before applying `resubmit_template`, rejecting state drift with `before_after_mismatch`.
+  - Added `updateTemplate(id, mutator)` to `MockStore` interface to support controlled in-place state drift simulation without breaking store encapsulation.
+- **Concurrency & Fault-Injection Benchmark (`tools/concurrency_benchmark.ts`)**: Tested 200 triage requests across concurrency levels 5, 10, 20, 50 with 25% active fault injection (10% rate-limit, 5% timeout, 5% state drift, 5% missing template):
+  - 0 unhandled crashes (100% crash-free).
+  - 0 cross-session data contamination events (100% isolated).
+  - 0 duplicate executions.
+  - Sub-5ms p95 latency even at 50 concurrent requests.
+- **Audit Report (`docs/audits/adversarial_stress_test.md`)**: Fully documented the 20-category audit matrix, failure modes, root causes, remediations, and benchmark metrics.
+- **Test Suite**: Total tests expanded to 121/121 passing tests across 13 test files. Production build (`npm run build`) passes cleanly.
+
+
 

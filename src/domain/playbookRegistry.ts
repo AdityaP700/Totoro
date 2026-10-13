@@ -74,6 +74,18 @@ export class PlaybookRegistry {
   }): RecoveryPlaybook {
     const { issueType, reasonCode, templateSnapshot } = context;
 
+    // 0. Sensitive / human-led zones ALWAYS route to their dedicated escalation policy (G8, G10)
+    // A stale template reasonCode must NEVER override a security, billing, or human escalation.
+    if (issueType === "security_identity_access") {
+      return this.playbooks.get("PB-SECURITY-IDENTITY-LOCKOUT")!;
+    }
+    if (issueType === "billing_refund") {
+      return this.playbooks.get("PB-BILLING-FINANCIAL-AUDIT")!;
+    }
+    if (issueType === "human_requested") {
+      return this.playbooks.get("PB-HUMAN-EXPLICIT-HANDOFF")!;
+    }
+
     // 1. Reason code exact match (highest specificity for template issues)
     if (reasonCode) {
       for (const pb of this.playbooks.values()) {

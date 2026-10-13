@@ -34,6 +34,8 @@ export interface ConversationalContext {
   uncertaintyStatus?: string;
   hasStateConflict?: boolean;
   clarifyingQuestion?: string;
+  actionBlockedReason?: string;
+  actionFailureKind?: string;
 }
 
 /**
@@ -73,6 +75,25 @@ export function generateCustomerFacingResponse(
       requiresConfirmation: false,
       canAutomate: false,
       statusLabel: "Verification Failed — Escalated to Support",
+    };
+  }
+
+  // --- 0c. Action Execution Blocked or Failed (State drift, duplicate submission, target not found) ---
+  if (ctx.actionBlockedReason) {
+    return {
+      headline: "Automated Action Blocked",
+      whatIsWrong: ctx.actionBlockedReason,
+      evidenceExplanation:
+        ctx.actionFailureKind === "duplicate_idempotency_key"
+          ? "Our idempotency safeguards prevent duplicate submissions with the same authorization key."
+          : ctx.actionFailureKind === "before_after_mismatch"
+          ? "The template state changed between diagnosis and execution; the proposed edit no longer applies."
+          : "Safety checks prevented the action from mutating state.",
+      nextSteps:
+        "The operation was aborted to protect your account state, and this case has been escalated to human support.",
+      requiresConfirmation: false,
+      canAutomate: false,
+      statusLabel: "Action Blocked — Escalated to Support",
     };
   }
 

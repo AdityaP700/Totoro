@@ -150,6 +150,10 @@ npm run eval:rules   # 105 iteration cases (deterministic baseline)
 npm run eval:hybrid  # 105 iteration cases (guarded hybrid with rules vs guarded separation)
 npm run eval:smoke   # 8-case bounded live inference smoke test against Hosted Laya
 npx tsx tools/run_laya_smoke.ts --cached # Replay 8 benchmark cases offline with cached telemetry (zero credits consumed)
+
+# Adversarial & Concurrency Testing
+npx vitest run tests/adversarial.test.ts # 36-test hostile adversarial stress test suite
+npx tsx tools/concurrency_benchmark.ts  # Concurrency benchmark (5, 10, 20, 50 workers + fault injection)
 ```
 
 ---

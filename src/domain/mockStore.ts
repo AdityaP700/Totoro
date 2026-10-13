@@ -40,6 +40,8 @@ export interface MockStore {
   getTemplate(id: string): MockTemplate | undefined;
   listTemplates(): MockTemplate[];
   applyApprovedChange(req: ApplyRequest): ApplyResult;
+  hasIdempotencyKey(key: string): boolean;
+  updateTemplate(id: string, mutator: (t: MockTemplate) => void): boolean;
   /** Restore the pristine fixtures (T15). */
   reset(): void;
 }
@@ -59,6 +61,17 @@ export function createMockStore(): MockStore {
     },
     listTemplates() {
       return templates.map((t) => ({ ...t }));
+    },
+    hasIdempotencyKey(key) {
+      return usedIdempotencyKeys.has(key);
+    },
+    updateTemplate(id, mutator) {
+      const t = templates.find((x) => x.id === id);
+      if (t) {
+        mutator(t);
+        return true;
+      }
+      return false;
     },
     applyApprovedChange(req) {
       if (!isAllowlisted(req.operation)) {
@@ -96,6 +109,14 @@ export function createMockStore(): MockStore {
           simulated: true,
           failureKind: "duplicate_idempotency_key",
           message: "This confirmation was already used. Duplicate submissions are blocked (G11).",
+        };
+      }
+      if (req.operation === "resubmit_template" && target.status !== "REJECTED") {
+        return {
+          ok: false,
+          simulated: true,
+          failureKind: "before_after_mismatch",
+          message: `State drift detected: template status is "${target.status}", expected "REJECTED". Nothing was changed (G1).`,
         };
       }
       if (!checkExactChange(target, req.changes, req.confirmation)) {
@@ -146,6 +167,27 @@ export function checkExactChange(
   changes: { field: "text" | "category"; before: string; after: string }[],
   confirmation: { exactBefore: string; exactAfter: string },
 ): boolean {
+  if (!changes || changes.length === 0) {
+    return false;
+  }
+
+  const allowedCategories = new Set(["UTILITY", "MARKETING", "AUTHENTICATION"]);
+
+  for (const c of changes) {
+    // Invariant: The target template's current state MUST match the proposed before state (G1).
+    if (template[c.field] !== c.before) {
+      return false;
+    }
+
+    if (c.field === "category" && !allowedCategories.has(c.after)) {
+      return false;
+    }
+
+    if (c.field === "text" && (typeof c.after !== "string" || c.after.length === 0)) {
+      return false;
+    }
+  }
+
   const beforeObj: Record<string, string> = {
     text: template.text,
     category: template.category,

@@ -137,7 +137,7 @@ export interface Diagnosis {
 
 export interface VerificationResult {
   verified: boolean;
-  observedStatus: TemplateStatus;
+  observedStatus: TemplateStatus | "UNAVAILABLE";
   expectedStatus: TemplateStatus;
   statement: string;
 }
