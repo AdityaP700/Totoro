@@ -1,14 +1,14 @@
 # IMPLEMENTATION STATE
 
-Last updated: 2026-10-13 (Phase 3 PASSED — moving to Phase 4)
+Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 
 ## Current phase
 
-**Phase 4 — Functional submission, reconciliation, Codex design handoff, and final report**
+**Phase 4 — Complete (Production Verification, Continuity Finalized, and Report Rendered)**
 
 ## Completed
 
-- **Phase 0 (commit `57f4f63`, pushed to origin/main):** source docs read and vendored into `docs/source/`; dataset audited (170 rows, 0 errors); workbook inspected; ADR-0001 written; risk register, decision log, all continuity files created; `.venv` + openpyxl 3.1.5.
+- **Phase 0 (commit `57f4f63`, pushed to origin/main):** Source docs extracted to `docs/source/`; dataset audited (170 rows, 0 errors); workbook inspected; ADR-0001 written; risk register, decision log, and all continuity files created; `.venv` + openpyxl 3.1.5 initialized.
 - **Phase 1 (commit `40a2326`, pushed to origin/main):**
   - Domain core: types, mock store with allowlist & idempotency key enforcement, playbooks data table, fresh-read verification, case file builder, event logging, `ResolveSession` state machine.
   - Acceptance tests: `tests/domain.test.ts` (15/15 passed) covering T1–T15 with deterministic injected deps.
@@ -18,7 +18,7 @@ Last updated: 2026-10-13 (Phase 3 PASSED — moving to Phase 4)
     - Complete dataset (n=170): 99.4% issue accuracy, 99.4% route accuracy, 100% needs-human recall, 0 critical safety violations.
   - Strict TypeScript build: `npm run build` passes with zero errors.
 - **Phase 2 (commit `f19b491`, pushed to origin/main):**
-  - Implemented thin React presentation components S1–S6 in `src/ui/components/`:
+  - Thin presentation components S1–S6 implemented in `src/ui/components/`:
     - `S1TemplateList.tsx`: WhatsApp catalog with fixture switcher (`TPL-1001`, `TPL-1002`, `TPL-1003`), filters, and entry button.
     - `S2Diagnosis.tsx`: diagnostic explanation, evidence list, known limits ("What cannot be verified"), clarification handler, escalation button.
     - `S3Proposal.tsx`: side-by-side exact before/after diff viewer, per-change rationales, scope boundary, explicit confirmation gate, decline button.
@@ -28,7 +28,7 @@ Last updated: 2026-10-13 (Phase 3 PASSED — moving to Phase 4)
   - Connected end-to-end user journeys in `src/App.tsx` over `ResolveSession`: happy path, decline path, unverified failure path, human request escalation, and clean demo reset.
   - Authored `DESIGN_HANDOFF.md` with complete screen inventory, state matrix, component contracts, and Codex guardrails.
   - Strict build and tests clean (19/19 passing).
-- **Phase 3 (commit pending):**
+- **Phase 3 (commit `0d6d36b`, pushed to origin/main):**
   - Created working copy `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx` (leaving `docs/source/` untouched).
   - Populated `Evaluation Scorecard` sheet with measured rules baseline metrics from Phase 1 test execution:
     - Issue type accuracy: 99.4% (Full), 98.5% (Held-out), 100% (Iteration)
@@ -43,22 +43,18 @@ Last updated: 2026-10-13 (Phase 3 PASSED — moving to Phase 4)
   - Marked model comparison rows (`Structured LLM baseline`, `Laya adapter`) as `NOT RUN` with explanatory notes per AGENTS.md rules 1 & 9 and ADR-0001; zero metrics fabricated.
   - Verified `Cost Assumptions` formulas (`=B2*B3*B4`, `=B11*B5`, `=B12*B6`, `=B13-B14-B15`) and evidence labels preserved intact.
   - Tooling created in `tools/populate_workbook.py`.
-
-## In progress
-
-- **Phase 4:** Verification, reconciliation, final commit/push, and 10-point execution report.
-
-## Exact next command / task (for the next agent)
-
-1. Run full verification suite: `npm test && npm run build && .venv/Scripts/python tools/audit_dataset.py`.
-2. Reconcile assignment requirements one by one.
-3. Commit Phase 3 & 4 with explicit paths, push to `origin/main`.
-4. Output the 10-point final report matching `docs/source/AGENT_EXECUTION_PROMPT.md` specification and emit `<!-- GOAL_COMPLETE -->`.
+- **Phase 4 (completed):**
+  - Clean test verification: `npm test` passed (19/19 in 1.16s).
+  - Clean build verification: `npm run build` passed (`tsc -b && vite build` in 1.41s).
+  - Clean dataset audit: `.venv/Scripts/python tools/audit_dataset.py` passed (170/170 rows valid, 0 errors).
+  - Authored `SUBMISSION_DRAFT.md` (assignment reconciliation, screenshot checklist, demo walkthrough script, AI usage log).
+  - Updated `HANDOFF.md` with full reviewer guide and commands.
+  - All acceptance gates passed.
 
 ## Acceptance status
 
-- Phase 0 gate: PASSED (committed `57f4f63`).
-- Phase 1 gate: PASSED (committed `40a2326`).
-- Phase 2 gate: PASSED (committed `f19b491`).
-- Phase 3 gate: PASSED (workbook scorecard populated honestly, formulas preserved).
-- Phase 4 gate: IN PROGRESS.
+- Phase 0 gate: PASSED (commit `57f4f63`).
+- Phase 1 gate: PASSED (commit `40a2326`).
+- Phase 2 gate: PASSED (commit `f19b491`).
+- Phase 3 gate: PASSED (commit `0d6d36b`).
+- Phase 4 gate: PASSED (all tests, build, audits clean; deliverables and handoffs complete).

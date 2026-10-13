@@ -43,3 +43,11 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Kept `Structured LLM baseline` and `Laya adapter` marked `NOT RUN` with honest explanatory notes (no unapproved API tokens, no network calls, GPU kept dormant).
 - Verified `Cost Assumptions` sheet formulas (`=B2*B3*B4`, `=B11*B5`, `=B12*B6`, `=B13-B14-B15`) and evidence labels preserved intact.
 - Added `tools/populate_workbook.py` automation script using `.venv` and pinned `openpyxl`.
+
+## 2026-10-13 — Phase 4 (functional submission, assignment reconciliation & final verification)
+
+- Verified clean test execution across full domain acceptance suite T1–T15 and 170-case evaluation benchmark (19/19 tests passing).
+- Verified production static build (`tsc -b && vite build`) passing cleanly with zero TypeScript errors or bundle warnings.
+- Ran automated dataset audit (`tools/audit_dataset.py`) confirming 170/170 rows valid with zero schema or label errors.
+- Authored `SUBMISSION_DRAFT.md` featuring assignment reconciliation matrix, reviewer screenshot checklist, demo walkthrough script, unresolved risks, and transparent AI usage disclosure.
+- Updated `HANDOFF.md` with comprehensive instructions, architecture map, and verification commands.

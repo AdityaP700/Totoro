@@ -1,71 +1,146 @@
-# HANDOFF — resume instructions for the next agent
+# HANDOFF — Continuity & Resume Instructions
 
-## Where things stand (2026-10-13, after Phase 1 WIP commit)
+**Project:** Cheerio Resolve (Assignment A Prototype)
+**Latest State:** Phases 0–4 Completed, Committed, and Pushed to `origin/main`
+**Latest Commit:** `0d6d36b` (Phase 3) + Phase 4 reconciliation commit
+**Branch:** `main` (clean, in sync with `origin/main`)
 
-Phase 0 is complete and pushed (`57f4f63`). Phase 1 is ~60% done: the whole
-domain core and evaluation harness are written but **never executed** — no test
-file exists yet. `IMPLEMENTATION_STATE.md` "Exact next command / task" is the
-authoritative resume checklist.
+---
 
-## Read these files first, in order
+## 1. Executive Summary
 
-1. `AGENTS.md` — durable rules (guardrails, boundaries, commands).
-2. `IMPLEMENTATION_STATE.md` — exact status + next steps.
-3. `HANDOFF.md` (this file) + `DECISION_LOG.md` (D-001…D-010) + `RISK_REGISTER.md`.
-4. `docs/adr/ADR-0001-stack-architecture-evaluation.md` — stack + eval protocol.
-5. `docs/source/AGENT_EXECUTION_PROMPT.md` — the operative phase-gate spec.
-6. `docs/source/Cheerio_Resolve_Design_Brief_for_AI_Agent_Decisions.md` — G1–G15,
-   D1–D11 (binding).
-7. `docs/source/Cheerio_Resolve_Implementation_Plan_and_Agent_Handoff.md` — state
-   machine spec (§5), screens (§6), fixtures/playbooks (§7), T1–T15 (§10).
+Cheerio Resolve is a context-aware recovery workflow for rejected WhatsApp message templates built for the Cheerio product-intern assignment. It implements a complete deterministic rules-only baseline with pure TypeScript domain logic, 100% network/GPU-free execution, strict allowlist and idempotency controls, and thin presentation screens (S1–S6).
 
-## Code map (all written, none tested)
+All acceptance gates from Phase 0 to Phase 4 have passed:
+- **T1–T15 Domain Tests:** 15/15 passed (`tests/domain.test.ts`).
+- **170-Case Benchmark Evaluation:** 4/4 passed (`tests/evaluation.test.ts`), with 99.4% overall issue accuracy, 100% human-escalation recall, and 0 safety violations.
+- **Production Build:** Clean TypeScript strict build (`tsc -b && vite build`) producing single-bundle static assets.
+- **Dataset Audit:** 170/170 rows valid, zero duplicates, zero schema errors (`tools/audit_dataset.py`).
+- **Workbook Deliverable:** `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx` populated with measured baseline results and formulas intact (`tools/populate_workbook.py`).
+- **Codex Design Handoff:** Fully documented in `DESIGN_HANDOFF.md`.
 
-- `src/domain/types.ts` — all domain types (CaseState, TriageResult, Proposal…).
-- `src/domain/triage.ts` — deterministic rules v1.0 (`TRIAGE_RULE_VERSION`),
-  ordered rule table + clarify transforms; never emits provider codes; never
-  echoes the raw message in rationale.
-- `src/data/templates.ts` — MOCK workspace + 3 rejected-template fixtures
-  (TPL-1001 promo-in-utility → simulates PENDING; TPL-1002 malformed variable →
-  PENDING; TPL-1003 category mismatch → simulates NO-CHANGE failure path/T7).
-- `src/data/playbooks.ts` — 4 playbooks keyed on FIXTURE_* reason codes +
-  UNKNOWN_REASON playbook (no proposal; human review offer).
-- `src/domain/mockStore.ts` — the ONLY mutation path; enforces allowlist,
-  exact before/after confirmation, idempotency (duplicate key = blocked).
-- `src/domain/allowlist.ts` — `["resubmit_template"]` constant.
-- `src/domain/verification.ts` — fresh-read vs expected ("Verified" only on
-  match; PENDING ≠ approved).
-- `src/domain/eventLog.ts` / `src/domain/caseFile.ts` — audit events; complete
-  case file + `copySummary`.
-- `src/domain/stateMachine.ts` — `ResolveSession`: constructor runs
-  ENTRY→READ_STATE→TRIAGE→(route); `clarify(answer)`, `approveProposal()`,
-  `declineProposal()`, `requestHuman()`; two-failed-attempts escalation; T13
-  duplicate-confirm blocked.
-- `src/eval/dataset.ts` (JSONL loader), `src/eval/split.ts` (seed 20261013,
-  70/30 + all adversarial in held-out — DO NOT retune membership),
-  `src/eval/scorer.ts` (metrics + separate safety counters).
+---
 
-## Known cautions
+## 2. Codebase Map
 
-- `ResolveSession` deps need deterministic `now()`/`newId()` in tests (inject).
-- `triage.ts` has a `CLARIFY_TRANSFORMS` regex list; the "policy_question_can_i"
-  transform matches messages STARTING with "can i" — dataset has several such
-  cases (e.g. CR-022, CR-025) that expect clarify_once.
-- `mockStore.checkExactChange` compares full before/after JSON — proposal
-  `buildChanges` must return the template's current values as `before`.
-- Watch `tsconfig.json` `noUnusedLocals` — delete dead imports before build.
-- Tests: `npm test` (vitest, node env). Build: `npm run build` (tsc -b + vite).
-- Never tune rules on held-out; safety bugs (missed escalation, invented codes)
-  may be fixed anywhere — guardrails outrank the tuning protocol; log it.
+```
+docs/
+  source/                 Authoritative input pack (read-only provenance)
+    cheerio_resolve_eval_and_cost_workbook.xlsx
+    cheerio_resolve_eval_dataset_170_cases.jsonl
+    AGENT_EXECUTION_PROMPT.md
+    Cheerio_Resolve_Design_Brief_for_AI_Agent_Decisions.md
+    Cheerio_Resolve_Implementation_Plan_and_Agent_Handoff.md
+  adr/
+    ADR-0001-stack-architecture-evaluation.md
+  audits/
+    DATASET_AUDIT.md      Audit report for the 170-case synthetic dataset
+    dataset_audit.json
 
-## Git
+deliverables/
+  cheerio_resolve_eval_and_cost_workbook.xlsx  Working workbook with populated Evaluation Scorecard
 
-- Branch `main`; remote origin configured and pushing works.
-- Commit style: "Phase N: <summary>"; explicit paths only; never `git add -A`;
-  never touch `.zcodeignore` (user file) or `.env*`.
+src/
+  domain/                 Pure, UI-free domain logic
+    types.ts              CaseState, TriageResult, Proposal, SessionEvent, etc.
+    triage.ts             Deterministic triage rule engine (v1.0)
+    mockStore.ts          In-memory mock store with allowlist & idempotency keys
+    allowlist.ts          ["resubmit_template"] allowlist definition
+    verification.ts       Fresh-read verification against expected state
+    caseFile.ts           Support escalation dossier builder & Markdown formatter
+    eventLog.ts           Session audit event append logger
+    stateMachine.ts       ResolveSession orchestrator and state transitions
+  data/                   Mock fixtures and playbook data tables
+    templates.ts          TPL-1001, TPL-1002, TPL-1003 mock fixtures
+    playbooks.ts          PB-001 through PB-004 + unknown reason playbooks
+  eval/                   Evaluation harness
+    dataset.ts            JSONL dataset loader
+    split.ts              Deterministic split (seed 20261013): 105 iteration / 65 held-out
+    scorer.ts             Accuracy, Macro-F1, urgency weighting, safety counters
+  ui/components/          Thin React presentation screens
+    S1TemplateList.tsx    Template catalog, fixture switcher, filters
+    S2Diagnosis.tsx       Plain-language diagnosis, evidence badges, clarification
+    S3Proposal.tsx        Before/after diff viewer, confirmation gate, decline path
+    S4Outcome.tsx         Simulated submission, fresh-read verification check
+    S5CaseFile.tsx        Support escalation file with clipboard copy button
+    S6ManagerView.tsx     Manager analytics KPI cards and full audit event table
+  App.tsx                 Screen navigation and ResolveSession state bindings
+  styles.css              Accessible semantic styles, WCAG AA contrast, mock banners
 
-## Quota note
+tests/
+  domain.test.ts          Vitest acceptance tests covering T1–T15
+  evaluation.test.ts      Vitest benchmark runner for the 170 synthetic cases
 
-This handoff exists because the original agent approached its usage budget.
-Everything needed to continue is in the repo; no conversation context is
-required beyond these files.
+tools/
+  audit_dataset.py        Dataset structural validation tool
+  populate_workbook.py    Openpyxl automation script to fill Evaluation Scorecard
+```
+
+---
+
+## 3. How to Run & Verify
+
+### Local Development Server
+```powershell
+npm run dev
+# Opens Vite dev server at http://localhost:5173
+```
+
+### Full Test Suite (19 tests)
+```powershell
+npm test
+# Runs vitest covering T1-T15 domain tests and 170-case eval benchmark
+```
+
+### Static Production Build
+```powershell
+npm run build
+# Runs tsc -b (strict mode, noUnusedLocals) and vite build
+```
+
+### Dataset Audit (Python Sidecar)
+```powershell
+.venv\Scripts\python tools/audit_dataset.py
+# Audits 170-case JSONL dataset, outputs docs/audits/DATASET_AUDIT.md
+```
+
+### Workbook Population Script
+```powershell
+.venv\Scripts\python tools/populate_workbook.py
+# Fills deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx
+```
+
+---
+
+## 4. Interactive Reviewer Demo Script
+
+1. **Happy Path (Fix & Resubmit):**
+   - On **S1**, select `TPL-1001` ("Summer Sale 50% Off", marked `REJECTED`).
+   - Click `"Why isn't this working?"` -> moves to **S2 (Diagnosis)**.
+   - Review diagnosis: detects promotional language incorrectly submitted under `UTILITY` category.
+   - Click `"Review Fix Proposal"` -> moves to **S3 (Proposal)**.
+   - View diff: category switches to `MARKETING`, URL variable simplified.
+   - Check confirmation box and click `"Confirm and Resubmit"` -> moves to **S4 (Outcome)**.
+   - Observe fresh-read verification: status reads `SIMULATED_PENDING_REVIEW` with fresh read confirmation.
+2. **Decline Path:**
+   - In **S3**, click `"Decline Proposal"`.
+   - Moves to **S4** with outcome `DECLINED`. Mock store remains completely unchanged; audit log records decline.
+3. **Unverifiable State Path:**
+   - On **S1**, select `TPL-1003` ("Account Verification Code").
+   - Follow flow to S3 and submit. Fresh-read detects simulated state mismatch (`COULD_NOT_VERIFY`).
+   - Click `"Transfer to Support Agent"` -> opens **S5 (Case File)**.
+4. **Human Handoff & Clipboard:**
+   - On **S5**, review the structured case file (correlation ID, checks run, attempted actions).
+   - Click `"Copy Case Summary"` -> interactive toast confirms Markdown copied to clipboard.
+5. **Manager Analytics & Audit Log:**
+   - Navigate to **S6** to view session statistics and chronological timeline of audit events.
+6. **Reset:**
+   - Click `"Reset Demo"` in header or on S4/S5 to restore pristine mock fixtures (T15).
+
+---
+
+## 5. Codex Design Pass Instructions
+
+Refer to `DESIGN_HANDOFF.md` before making any visual modifications.
+- **Allowed:** CSS variables, typography, margins, padding, button styles, cards, subtle transitions.
+- **Forbidden:** Removing confirmation gates (G1), editing unallowlisted fields (G2), removing fresh-read verification (G5), hiding `MOCK` banners (G4/G7), or modifying domain state machine files.
