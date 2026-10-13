@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,6 +6,7 @@ const currentDir = typeof __dirname !== "undefined" ? __dirname : dirname(fileUR
 import { loadDataset } from "../src/eval/dataset";
 import { buildSplit } from "../src/eval/split";
 import { RulesReasoningAdapter, validateModelOutput } from "../src/domain/adapter";
+import { isSecurityRequest, isExplicitHumanRequest, isBillingRequest } from "../src/domain/triage";
 import { HostedLayaClient } from "../src/domain/layaClient";
 import type { IssueType, Urgency } from "../src/domain/types";
 
@@ -68,18 +69,39 @@ interface SmokeResultRow {
 }
 
 async function main() {
+  const isCached = process.argv.includes("--cached") || process.argv.includes("--offline");
   console.log("================================================================================");
-  console.log("Cheerio Resolve — Bounded Live Hosted Laya Smoke Test (Credit Controlled)");
+  console.log(`Cheerio Resolve — Bounded ${isCached ? "Cached/Offline" : "Live"} Hosted Laya Smoke Test`);
   console.log("================================================================================\n");
 
   const apiKey = process.env.LAYA_API_KEY;
-  if (!apiKey) {
+  if (!apiKey && !isCached) {
     console.error("ERROR: LAYA_API_KEY is not configured in environment or .env!");
     process.exit(1);
   }
 
-  const client = new HostedLayaClient({ apiKey, timeoutMs: 12000 });
+  const client = apiKey ? new HostedLayaClient({ apiKey, timeoutMs: 12000 }) : null;
   const rulesAdapter = new RulesReasoningAdapter();
+
+  // Audit file path
+  const auditDir = resolve(currentDir, "../docs/audits");
+  mkdirSync(auditDir, { recursive: true });
+  const auditFile = resolve(auditDir, "laya_smoke_test_results.json");
+
+  // Load cached telemetry if requested
+  const cachedMap = new Map<string, any>();
+  if (isCached) {
+    if (existsSync(auditFile)) {
+      const cachedData = JSON.parse(readFileSync(auditFile, "utf-8"));
+      if (Array.isArray(cachedData?.results)) {
+        for (const r of cachedData.results) {
+          cachedMap.set(r.caseId, r.rawLaya);
+        }
+      }
+    } else {
+      console.warn(`Warning: Cached results file not found at ${auditFile}.`);
+    }
+  }
 
   // Load 170-case dataset and build split
   const all170 = loadDataset();
@@ -160,7 +182,7 @@ async function main() {
   for (const sc of smokeCases) {
     console.log(`- [${sc.caseId}] (${sc.split}) expected=${sc.expectedIssueType}, needsHuman=${sc.expectedNeedsHuman} | "${sc.message.slice(0, 50)}..."`);
   }
-  console.log("\nStarting live inference with credit and rate tracking...\n");
+  console.log(`\nStarting ${isCached ? "cached replay (zero live credits)" : "live inference with credit and rate tracking"}...\n`);
 
   const results: SmokeResultRow[] = [];
   let totalTokensCharged = 0;
@@ -173,8 +195,45 @@ async function main() {
     // 1. Rules-only prediction
     const rulesRes = rulesAdapter.triage({ message: sc.message });
 
-    // 2. Raw Laya API Call (direct)
-    const layaRes = await client.triage(sc.message);
+    // 2. Raw Laya API Call (direct or cached replay)
+    let layaRes: {
+      success: boolean;
+      issueType?: IssueType;
+      urgency?: Urgency;
+      needsHuman?: boolean;
+      confidence?: number;
+      latencyMs: number;
+      inputTokens?: number;
+      modelId?: string;
+      error?: { code: string; message: string };
+    };
+
+    if (isCached) {
+      const cached = cachedMap.get(sc.caseId);
+      if (cached) {
+        layaRes = {
+          success: cached.status === "200_OK" || !cached.status?.startsWith("FAIL"),
+          issueType: cached.issueType as IssueType,
+          urgency: cached.urgency as Urgency,
+          needsHuman: cached.needsHuman,
+          confidence: cached.confidence,
+          latencyMs: cached.latencyMs || 0,
+          inputTokens: cached.tokensCharged || 0,
+          modelId: "laya-cached",
+        };
+      } else {
+        layaRes = {
+          success: false,
+          latencyMs: 0,
+          inputTokens: 0,
+          error: { code: "not_in_cache", message: "Case not found in cached telemetry" },
+        };
+      }
+    } else {
+      if (!client) throw new Error("HostedLayaClient is not initialized.");
+      layaRes = await client.triage(sc.message);
+    }
+
     const tokens = layaRes.inputTokens || 0;
     totalTokensCharged += tokens;
     totalLayaLatencyMs += layaRes.latencyMs;
@@ -188,10 +247,12 @@ async function main() {
     let fallbackOccurred = false;
     let fallbackReason: string | undefined = undefined;
 
-    // Check fast paths
-    const isSensitive = /\b(otp|password|token|admin|hack|bypass|refund|invoice|bill|human|agent|support team)\b/i.test(sc.message);
+    // Fast Path 1: Sensitive request / explicit human request / 2 failed attempts
+    const isSecurity = isSecurityRequest(sc.message);
+    const isHuman = isExplicitHumanRequest(sc.message);
+    const isBilling = isBillingRequest(sc.message);
 
-    if (isSensitive) {
+    if (isSecurity || isHuman || isBilling) {
       // Deterministic safety override directly triggered
       hybridDecision = {
         issueType: rulesRes.issueType,
@@ -200,7 +261,7 @@ async function main() {
         needsHuman: rulesRes.needsHuman,
         decisionLayer: "rules",
         fallbackOccurred: false,
-        fallbackReason: "Safety fast-path triggered: sensitive request handled deterministically",
+        fallbackReason: "Safety fast-path triggered: sensitive/human request handled deterministically",
         latencyMs: rulesRes.latencyMs || 0,
       };
     } else if (layaRes.success && layaRes.issueType) {
@@ -211,7 +272,7 @@ async function main() {
         needsHuman: layaRes.needsHuman ?? false,
         route: layaRes.needsHuman ? "human_handoff" : "rules_playbook",
         confidence: layaRes.confidence ?? 0.5,
-        rationale: `Laya live decision (model=${layaRes.modelId}, tokens=${tokens})`,
+        rationale: `Laya live decision (model=${layaRes.modelId || "laya"}, tokens=${tokens})`,
       };
 
       const val = validateModelOutput(raw, { message: sc.message });
@@ -287,8 +348,10 @@ async function main() {
     results.push(row);
     console.log(`DONE (${layaRes.latencyMs}ms, ${tokens} tokens, raw=${layaRes.issueType || "fail"}, hybrid=${hybridDecision.issueType}, layer=${hybridDecision.decisionLayer})`);
 
-    // Polite pause between requests (300ms) to prevent burst limits
-    await new Promise((r) => setTimeout(r, 300));
+    // Polite pause between requests if calling live API
+    if (!isCached) {
+      await new Promise((r) => setTimeout(r, 300));
+    }
   }
 
   // Summary and Comparison Table
@@ -342,9 +405,6 @@ async function main() {
   console.log("================================================================================\n");
 
   // Save audit log to docs/audits/laya_smoke_test_results.json
-  const auditDir = resolve(currentDir, "../docs/audits");
-  mkdirSync(auditDir, { recursive: true });
-  const auditFile = resolve(auditDir, "laya_smoke_test_results.json");
   writeFileSync(
     auditFile,
     JSON.stringify(

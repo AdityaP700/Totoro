@@ -53,13 +53,29 @@ async function runSuite() {
   const rulesAdapter = new RulesReasoningAdapter();
   const hybridAdapter = new HybridLayaReasoningAdapter();
 
-  const caseOutputs: Array<{
+  const layerCounts = { rules: 0, laya: 0, fallback: 0 };
+
+  const caseOutputMap = new Map<string, {
     caseId: string;
     expected: {
       issueType: string;
       urgency: string;
       route: string;
       needsHuman: boolean;
+    };
+    rulesPrediction: {
+      issueType: string;
+      urgency: string;
+      route: string;
+      needsHuman: boolean;
+    };
+    guardedDecision: {
+      issueType: string;
+      urgency: string;
+      route: string;
+      needsHuman: boolean;
+      decisionLayer: string;
+      rationale: string;
     };
     predicted: {
       issueType: string;
@@ -74,23 +90,39 @@ async function runSuite() {
     isCorrectUrgency: boolean;
     isCorrectNeedsHuman: boolean;
     latencyMs: number;
-  }> = [];
+  }>();
 
   const predictor = (c: typeof evalCases[0]): TriageResult => {
+    const rulesRes = rulesAdapter.triage({ message: c.user_message });
     let res: TriageResult;
+
     if (mode === "rules") {
-      res = rulesAdapter.triage({ message: c.user_message });
+      res = rulesRes;
     } else {
       res = hybridAdapter.triage({ message: c.user_message });
     }
 
-    caseOutputs.push({
+    const outputEntry = {
       caseId: c.case_id,
       expected: {
         issueType: c.issue_type,
         urgency: c.urgency,
         route: c.expected_route,
         needsHuman: c.needs_human,
+      },
+      rulesPrediction: {
+        issueType: rulesRes.issueType,
+        urgency: rulesRes.urgency,
+        route: rulesRes.route,
+        needsHuman: rulesRes.needsHuman,
+      },
+      guardedDecision: {
+        issueType: res.issueType,
+        urgency: res.urgency,
+        route: res.route,
+        needsHuman: res.needsHuman,
+        decisionLayer: res.decisionLayer || "rules",
+        rationale: res.rationale,
       },
       predicted: {
         issueType: res.issueType,
@@ -105,19 +137,36 @@ async function runSuite() {
       isCorrectUrgency: res.urgency === c.urgency,
       isCorrectNeedsHuman: res.needsHuman === c.needs_human,
       latencyMs: res.latencyMs || 0,
-    });
+    };
+
+    caseOutputMap.set(c.case_id, outputEntry);
 
     return res;
   };
 
   const metrics = scoreCases(evalCases, predictor);
   const scorecard = scorecardRows(metrics);
+  const caseOutputs = Array.from(caseOutputMap.values());
+
+  for (const co of caseOutputs) {
+    const layer = (co.guardedDecision.decisionLayer as keyof typeof layerCounts) || "rules";
+    if (layerCounts[layer] !== undefined) {
+      layerCounts[layer]++;
+    }
+  }
 
   console.log("\n=================== EVALUATION SCORECARD ===================");
   for (const row of scorecard) {
     console.log(`${row.metric.padEnd(30)} : ${row.result.padEnd(20)} [${row.notes}]`);
   }
   console.log("============================================================\n");
+
+  if (mode === "hybrid") {
+    console.log("Decision Layer Distribution (Hybrid Execution):");
+    console.log(`- Rules Fast-Path / Overrides: ${layerCounts.rules} / ${evalCases.length} (${((layerCounts.rules / evalCases.length) * 100).toFixed(1)}%)`);
+    console.log(`- Laya Classifier Decision:    ${layerCounts.laya} / ${evalCases.length} (${((layerCounts.laya / evalCases.length) * 100).toFixed(1)}%)`);
+    console.log(`- Fallback to Rules Baseline:  ${layerCounts.fallback} / ${evalCases.length} (${((layerCounts.fallback / evalCases.length) * 100).toFixed(1)}%)\n`);
+  }
 
   console.log("Per-Issue Class Breakdown (Macro-F1 & Support):");
   for (const [issue, stats] of Object.entries(metrics.perIssue)) {

@@ -120,8 +120,9 @@ npm run cli -- --message "The template says rejected, but dashboard doesn't show
 
 # Repeatable evaluation benchmarks
 npm run eval:rules   # 105 iteration cases (deterministic baseline)
-npm run eval:hybrid  # 105 iteration cases (guarded hybrid)
+npm run eval:hybrid  # 105 iteration cases (guarded hybrid with rules vs guarded separation)
 npm run eval:smoke   # 8-case bounded live inference smoke test against Hosted Laya
+npx tsx tools/run_laya_smoke.ts --cached # Replay 8 benchmark cases offline with cached telemetry (zero credits consumed)
 ```
 
 ---

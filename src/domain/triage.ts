@@ -617,3 +617,18 @@ export function triageMessage(
     missingInformation: hit.missingInformation ?? [],
   };
 }
+
+/** Check whether user message matches deterministic security, credentials, or access patterns */
+export function isSecurityRequest(message: string): boolean {
+  return SECURITY.patterns.some((re) => re.test(message));
+}
+
+/** Check whether user message matches an explicit request for human assistance */
+export function isExplicitHumanRequest(message: string): boolean {
+  return HUMAN_REQUEST.patterns.some((re) => re.test(message));
+}
+
+/** Check whether user message matches billing, refund, invoice, or credit patterns */
+export function isBillingRequest(message: string): boolean {
+  return BILLING.patterns.some((re) => re.test(message));
+}

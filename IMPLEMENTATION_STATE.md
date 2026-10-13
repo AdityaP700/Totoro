@@ -68,3 +68,13 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Phase 3 gate: PASSED (commit `0d6d36b`).
 - Phase 4 gate: PASSED (all tests, build, audits clean; deliverables, handoffs, and hybrid adapter complete).
 - Backend-First Experiment gate: PASSED (live hosted Laya inference verified 200 OK, credit budget bounded at 2,653/5,481 tokens, CLI entry point working with structured JSON and verification guard, 43/43 tests passing, build clean).
+- Hybrid Decision Precedence & Regression Guardrails gate: PASSED (CR-133 and CR-107 root-caused and fixed; deterministic safety precedence strictly enforced; 6 new regression tests added; 49/49 tests passing; build clean; cached smoke replay demonstrates 8/8 100% guarded hybrid accuracy with 0 live credits consumed).
+
+## Exact next command / task
+
+Ready for final report or further bounded evaluations if requested by the user. Zero live credit burn during regression fixes. Commands available:
+- `npm test`: run full 49-test suite (includes T1-T15, 170-case evaluation benchmark, Laya client, CLI, and decision precedence regressions).
+- `npm run build`: verify static production build (`tsc -b && vite build`).
+- `npx tsx tools/run_laya_smoke.ts --cached`: replay 8-case smoke evaluation against cached telemetry (8/8 100% hybrid accuracy, 0 tokens spent).
+- `npm run eval:rules`: evaluate deterministic rules across 170-case dataset.
+- `npm run eval:hybrid`: evaluate guarded hybrid across 170-case dataset (reporting rules and guarded decisions separately).

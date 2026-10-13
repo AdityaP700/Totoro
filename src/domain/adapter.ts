@@ -6,7 +6,12 @@ import type {
   TriageResult,
   Urgency,
 } from "./types";
-import { triageMessage } from "./triage";
+import {
+  triageMessage,
+  isSecurityRequest,
+  isExplicitHumanRequest,
+  isBillingRequest,
+} from "./triage";
 
 export interface ReasoningContext {
   message: string;
@@ -118,19 +123,20 @@ export function validateModelOutput(
     ? obj.missingInformation.filter((x): x is string => typeof x === "string")
     : [];
 
-  // Deterministic safety check (Safety rules outrank model decision)
-  const isSecurity =
-    /\b(otp|password|api[_ -]?key|token|admin|bypass|ownership|cross[- ]tenant|delete all|hacked|compromised|payment link|destination url)\b/i.test(
-      ctx.message,
+  // --- Hallucination / Semantic Intent Check (Fix for CR-107) ---
+  // A model cannot classify as human_requested unless the user message actually contains an explicit human request
+  if (issueType === "human_requested" && !isExplicitHumanRequest(ctx.message)) {
+    reasons.push(
+      "Model classified as 'human_requested' without an explicit human request in user message (urgency or vague message does not justify human_requested)",
     );
-  const isHumanRequested =
-    /\b(talk to (a )?human|speak to (someone|an? agent)|human agent|support team|customer support)\b/i.test(
-      ctx.message,
-    );
-  const isBilling =
-    /\b(refund|invoice|charge|billed|credit card|payment deduction)\b/i.test(
-      ctx.message,
-    );
+    return { valid: false, reasons };
+  }
+
+  // --- Deterministic Safety Interceptor (Safety rules outrank model decision) ---
+  const isSecurity = isSecurityRequest(ctx.message);
+  const isHuman = isExplicitHumanRequest(ctx.message);
+  const isBilling = isBillingRequest(ctx.message);
+  const attemptsExceeded = (ctx.previousAttempts ?? 0) >= 2;
 
   let finalNeedsHuman = needsHuman;
   let finalRoute = route;
@@ -143,22 +149,34 @@ export function validateModelOutput(
     finalUrgency = "critical";
     finalIssueType = "security_identity_access";
     rationale = "Safety override: Security, credentials, and identity requests require human verification.";
-  } else if (isHumanRequested) {
+  } else if (isHuman) {
+    // Fix for CR-133: Explicit human request ALWAYS routes to human handoff regardless of model prediction
     finalNeedsHuman = true;
     finalRoute = "human_handoff";
+    finalUrgency = finalUrgency === "critical" ? "critical" : "medium";
     finalIssueType = "human_requested";
     rationale = "Safety override: User explicitly requested human assistance.";
   } else if (isBilling) {
     finalNeedsHuman = true;
     finalRoute = "human_handoff";
+    finalUrgency = finalUrgency === "critical" ? "critical" : "high";
     finalIssueType = "billing_refund";
     rationale = "Safety override: Financial and billing inquiries require human handling.";
+  } else if (attemptsExceeded) {
+    finalNeedsHuman = true;
+    finalRoute = "human_handoff";
+    rationale = "Safety override: Two previous attempts failed; escalated with case file (G8).";
   }
 
   // Confidence gating: low confidence cannot route directly to playbook
   if (confidence < 0.70 && finalRoute === "rules_playbook") {
     finalRoute = "clarify_once";
     rationale += " (Confidence below 0.70 threshold; routed to clarification)";
+  }
+
+  // Ensure needsHuman consistency: if human required, route must be human_handoff
+  if (finalNeedsHuman && finalRoute !== "human_handoff") {
+    finalRoute = "human_handoff";
   }
 
   const band: ConfidenceBand =
@@ -200,6 +218,16 @@ export class RulesReasoningAdapter implements ReasoningAdapter {
       reasonCode: ctx.templateSnapshot?.reasonCode ?? null,
       stateStatus: ctx.templateSnapshot?.status,
     });
+    if ((ctx.previousAttempts ?? 0) >= 2) {
+      return {
+        ...result,
+        needsHuman: true,
+        route: "human_handoff",
+        rationale: "Safety override: Two previous attempts failed; escalated with case file (G8).",
+        decisionLayer: "rules",
+        latencyMs: Date.now() - start,
+      };
+    }
     return {
       ...result,
       decisionLayer: "rules",
@@ -244,7 +272,22 @@ export class HybridLayaReasoningAdapter implements ReasoningAdapter {
   triage(ctx: ReasoningContext): TriageResult {
     const start = Date.now();
 
-    // --- Fast Path 1: Known rejection code on template fixture ---
+    // --- Fast Path 1: Sensitive request / explicit human request / 2 failed attempts (Safety overrides model) ---
+    const isSecurity = isSecurityRequest(ctx.message);
+    const isHuman = isExplicitHumanRequest(ctx.message);
+    const isBilling = isBillingRequest(ctx.message);
+    const attemptsExceeded = (ctx.previousAttempts ?? 0) >= 2;
+
+    if (isSecurity || isHuman || isBilling || attemptsExceeded) {
+      const res = this.rulesAdapter.triage(ctx);
+      return {
+        ...res,
+        decisionLayer: "rules",
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    // --- Fast Path 2: Known rejection code on template fixture ---
     const knownReason = ctx.templateSnapshot?.reasonCode;
     if (
       knownReason &&
@@ -257,20 +300,6 @@ export class HybridLayaReasoningAdapter implements ReasoningAdapter {
         ...res,
         decisionLayer: "rules",
         rationale: `Rules fast-path: template rejected with known verified condition (${knownReason}).`,
-        latencyMs: Date.now() - start,
-      };
-    }
-
-    // --- Fast Path 2: Sensitive request / explicit human request ---
-    const isSensitive =
-      /\b(otp|password|token|admin|hack|bypass|refund|invoice|bill|human|agent|support team)\b/i.test(
-        ctx.message,
-      );
-    if (isSensitive) {
-      const res = this.rulesAdapter.triage(ctx);
-      return {
-        ...res,
-        decisionLayer: "rules",
         latencyMs: Date.now() - start,
       };
     }
@@ -308,7 +337,22 @@ export class HybridLayaReasoningAdapter implements ReasoningAdapter {
   async triageAsync(ctx: ReasoningContext): Promise<TriageResult> {
     const start = Date.now();
 
-    // Fast Path 1: Known rejection code on template fixture
+    // Fast Path 1: Sensitive request / explicit human request / 2 failed attempts
+    const isSecurity = isSecurityRequest(ctx.message);
+    const isHuman = isExplicitHumanRequest(ctx.message);
+    const isBilling = isBillingRequest(ctx.message);
+    const attemptsExceeded = (ctx.previousAttempts ?? 0) >= 2;
+
+    if (isSecurity || isHuman || isBilling || attemptsExceeded) {
+      const res = this.rulesAdapter.triage(ctx);
+      return {
+        ...res,
+        decisionLayer: "rules",
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    // Fast Path 2: Known rejection code on template fixture
     const knownReason = ctx.templateSnapshot?.reasonCode;
     if (
       knownReason &&
@@ -321,20 +365,6 @@ export class HybridLayaReasoningAdapter implements ReasoningAdapter {
         ...res,
         decisionLayer: "rules",
         rationale: `Rules fast-path: template rejected with known verified condition (${knownReason}).`,
-        latencyMs: Date.now() - start,
-      };
-    }
-
-    // Fast Path 2: Sensitive request / explicit human request
-    const isSensitive =
-      /\b(otp|password|token|admin|hack|bypass|refund|invoice|bill|human|agent|support team)\b/i.test(
-        ctx.message,
-      );
-    if (isSensitive) {
-      const res = this.rulesAdapter.triage(ctx);
-      return {
-        ...res,
-        decisionLayer: "rules",
         latencyMs: Date.now() - start,
       };
     }

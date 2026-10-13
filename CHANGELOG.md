@@ -74,3 +74,14 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Added evaluation suite runner (`tools/evaluate_suite.ts`) for repeatable commands: `npm run eval:rules`, `npm run eval:hybrid`, `npm run eval:smoke`.
 - Added unit tests for Laya client (`tests/layaClient.test.ts`) and CLI (`tests/cli.test.ts`), bringing the full test suite to 43/43 passing tests.
 - Authored comprehensive `README.md` and updated all continuity files.
+
+## 2026-10-13 — Hybrid Decision Precedence & Regression Guardrails (CR-133 & CR-107 Fixes)
+
+- Enforced strict decision precedence across `src/domain/adapter.ts`, `src/domain/triage.ts`, and `src/cli/resolveCli.ts`: deterministic safety rules strictly outrank model predictions and known template codes.
+- Fixed CR-133: Explicit human requests ("I already tried once: Can a person review this rejection?") deterministically fast-path and override raw model outputs to `human_requested` and `route: "human_handoff"`.
+- Fixed CR-107: Urgent or vague messages ("Help please, urgent.") are blocked from being classified as `human_requested` based on urgency alone; semantic intent validation rejects hallucinated escalations and safely falls back to `ambiguous_or_missing_context` / `clarify_once`.
+- Added two-failed-attempts guardrail enforcement (G8) in `RulesReasoningAdapter` and `validateModelOutput` (`previousAttempts >= 2` forces human handoff).
+- Added 6 regression tests in `tests/adapter.test.ts`, expanding the test suite to 49/49 passing tests.
+- Added `--cached` / `--offline` flag to `tools/run_laya_smoke.ts`: replayed 8 benchmark cases against saved telemetry with 0 live tokens charged, demonstrating 100% (8/8) Guarded Hybrid accuracy vs 87.5% (7/8) Rules baseline and 75% (6/8) Raw Laya.
+- Updated `tools/evaluate_suite.ts` to report rules baseline predictions and guarded final decisions separately with decision layer distribution metrics.
+

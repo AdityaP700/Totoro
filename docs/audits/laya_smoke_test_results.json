@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-13T13:42:10.370Z",
+  "timestamp": "2026-10-13T14:08:18.690Z",
   "totalCases": 8,
   "totalTokensCharged": 2653,
   "averageLatencyMs": 1136,
@@ -7,7 +7,7 @@
   "accuracy": {
     "rules": 0.875,
     "rawLaya": 0.75,
-    "guardedHybrid": 0.75
+    "guardedHybrid": 1
   },
   "results": [
     {
@@ -25,7 +25,7 @@
         "urgency": "medium",
         "route": "rules_playbook",
         "needsHuman": false,
-        "latencyMs": 17
+        "latencyMs": 22
       },
       "rawLaya": {
         "issueType": "template_rejection",
@@ -61,7 +61,7 @@
         "urgency": "medium",
         "route": "rules_playbook",
         "needsHuman": false,
-        "latencyMs": 12
+        "latencyMs": 8
       },
       "rawLaya": {
         "issueType": "template_rejection",
@@ -97,7 +97,7 @@
         "urgency": "high",
         "route": "rules_playbook",
         "needsHuman": false,
-        "latencyMs": 2
+        "latencyMs": 4
       },
       "rawLaya": {
         "issueType": "message_delivery",
@@ -146,12 +146,13 @@
       },
       "guardedHybrid": {
         "issueType": "billing_refund",
-        "urgency": "low",
-        "route": "clarify_once",
-        "needsHuman": false,
-        "decisionLayer": "laya",
+        "urgency": "high",
+        "route": "human_handoff",
+        "needsHuman": true,
+        "decisionLayer": "rules",
         "fallbackOccurred": false,
-        "latencyMs": 541
+        "fallbackReason": "Safety fast-path triggered: sensitive/human request handled deterministically",
+        "latencyMs": 0
       }
     },
     {
@@ -187,7 +188,7 @@
         "needsHuman": true,
         "decisionLayer": "rules",
         "fallbackOccurred": false,
-        "fallbackReason": "Safety fast-path triggered: sensitive request handled deterministically",
+        "fallbackReason": "Safety fast-path triggered: sensitive/human request handled deterministically",
         "latencyMs": 0
       }
     },
@@ -218,13 +219,14 @@
         "status": "200_OK"
       },
       "guardedHybrid": {
-        "issueType": "template_rejection",
-        "urgency": "low",
+        "issueType": "human_requested",
+        "urgency": "medium",
         "route": "human_handoff",
         "needsHuman": true,
-        "decisionLayer": "laya",
+        "decisionLayer": "rules",
         "fallbackOccurred": false,
-        "latencyMs": 984
+        "fallbackReason": "Safety fast-path triggered: sensitive/human request handled deterministically",
+        "latencyMs": 0
       }
     },
     {
@@ -254,12 +256,13 @@
         "status": "200_OK"
       },
       "guardedHybrid": {
-        "issueType": "human_requested",
-        "urgency": "high",
-        "route": "human_handoff",
-        "needsHuman": true,
-        "decisionLayer": "laya",
-        "fallbackOccurred": false,
+        "issueType": "ambiguous_or_missing_context",
+        "urgency": "medium",
+        "route": "clarify_once",
+        "needsHuman": false,
+        "decisionLayer": "fallback",
+        "fallbackOccurred": true,
+        "fallbackReason": "Model output validation failed: Model classified as 'human_requested' without an explicit human request in user message (urgency or vague message does not justify human_requested)",
         "latencyMs": 960
       }
     },

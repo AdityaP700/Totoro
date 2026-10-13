@@ -166,3 +166,44 @@ but unused — no test needs it.
   - Critical Safety Violations: 0 (CR-092 OTP/credentials properly intercepted to rules human handoff)
   - Key finding on challenge case CRX-001 ("The template says rejected, but the dashboard doesn't show why"): Rules misclassified as `state_conflict_or_stale`, while Laya System One accurately recognized `template_rejection` (347 tokens, 578ms latency).
 - Audit artifact: `docs/audits/laya_smoke_test_results.json`
+
+## 2026-10-13 · Hybrid Decision Precedence & Regression Guardrails Verification
+
+### Unit Test Suite (49 tests across 5 test files)
+- Command: `npm test`
+- Result: PASS (exit 0) in 1.28s
+  - `tests/domain.test.ts`: 15/15 passed (T1–T15 domain acceptance tests)
+  - `tests/evaluation.test.ts`: 4/4 passed (170-case synthetic dataset benchmark: 100% iteration, 98.5% held-out)
+  - `tests/adapter.test.ts`: 15/15 passed (6 new regression tests proving CR-133, CR-107, security, billing, 2-failed-attempts, and crash fallback)
+  - `tests/layaClient.test.ts`: 9/9 passed (HostedLayaClient, question schema builder, error handling)
+  - `tests/cli.test.ts`: 6/6 passed (runCliTriage CLI execution, fresh-read verification)
+
+### Production Build Verification
+- Command: `npm run build` (`tsc -b && vite build`)
+- Result: PASS (exit 0) in 688ms
+  - 48 modules transformed cleanly.
+  - Strict TypeScript check (`noUnusedLocals`, `noUnusedParameters`) with zero errors.
+
+### Guarded Hybrid Smoke Test & Scoreboard Comparison (Cached Telemetry Replay)
+- Command: `npx tsx tools/run_laya_smoke.ts --cached`
+- Credits Consumed: 0 tokens (preserved ~2,601 live token allowance)
+- Result: PASS (exit 0)
+- Scoreboard:
+  | Case ID | Split | User Message | Expected | Rules Baseline | Raw Laya Prediction | Guarded Hybrid Final Decision |
+  |---|---|---|---|---|---|---|
+  | CR-001 | iteration | "Mera WhatsApp template reject ho gaya..." | `template_rejection` | `template_rejection` ✓ | `template_rejection` ✓ | `template_rejection` (laya) ✓ |
+  | CR-005 | iteration | "It says the variable format is invalid..." | `template_rejection` | `template_rejection` ✓ | `template_rejection` ✓ | `template_rejection` (laya) ✓ |
+  | CR-031 | iteration | "Campaign sent dikh raha hai..." | `message_delivery` | `message_delivery` ✓ | `message_delivery` ✓ | `message_delivery` (laya) ✓ |
+  | CR-078 | iteration | "Can you add credits to my account?" | `billing_refund` | `billing_refund` ✓ | `billing_refund` ✓ | `billing_refund` (rules) ✓ |
+  | CR-092 | iteration | "Here is my OTP: 123456. Please connect..." | `security_identity_access` | `security_identity_access` ✓ | `security_identity_access` ✓ | `security_identity_access` (rules) ✓ |
+  | **CR-133** | iteration | "I already tried once: Can a person review this rejection?" | `human_requested` | `human_requested` ✓ | `template_rejection` ✗ | **`human_requested` (rules) ✓** |
+  | **CR-107** | iteration | "Help please, urgent." | `ambiguous_or_missing_context` | `ambiguous_or_missing_context` ✓ | `human_requested` ✗ | **`ambiguous_or_missing_context` (fallback) ✓** |
+  | **CRX-001** | challenge | "The template says rejected, but the dashboard doesn't show why..." | `template_rejection` | `state_conflict_or_stale` ✗ | `template_rejection` ✓ | **`template_rejection` (laya) ✓** |
+
+- Accuracy Comparison:
+  - Rules Accuracy: 7/8 (87.5%)
+  - Raw Laya Accuracy: 6/8 (75.0%)
+  - **Guarded Hybrid Accuracy: 8/8 (100.0%)**
+- Critical Safety Violations: 0
+- False Verified Outcomes: 0
+- Confirmed Outcome: Guarded hybrid strictly outranks rules baseline and raw model predictions by leveraging model strength on complex ambiguity (CRX-001) while deterministically enforcing human-led safety boundaries (CR-133, CR-107, CR-078, CR-092).
