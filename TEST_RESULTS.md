@@ -95,3 +95,24 @@ but unused — no test needs it.
   - All React components typed with strict TypeScript (`noUnusedLocals`, `noUnusedParameters`).
   - Bundle: `dist/assets/index-BuilhL-7.js` (206.58 kB / 63.26 kB gzip), `dist/assets/index-Cq0aQxkI.css` (8.54 kB / 2.24 kB gzip).
   - Transformation: 46 modules transformed in 1.58s.
+
+## 2026-10-13 · Phase 3 — Workbook Evaluation Scorecard & Cost Model Verification
+
+### Workbook Scorecard Reconciliation
+- Command: `.venv/Scripts/python tools/populate_workbook.py`
+- Result: PASS (exit 0)
+- Working copy created at `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx` (source in `docs/source/` untouched).
+- Evaluated and recorded in sheet `Evaluation Scorecard`:
+  - Issue type accuracy: 0.994 (Full), 0.985 (Held-out), 1.000 (Iteration)
+  - Macro-F1: 0.995 (Full), 0.987 (Held-out), 1.000 (Iteration)
+  - Urgency weighted accuracy: 0.994 (Full), 1.000 (Held-out), 0.990 (Iteration)
+  - Needs-human recall: 1.000 across all splits (0 false negatives)
+  - Route accuracy: 0.994 (Full), 0.985 (Held-out), 1.000 (Iteration)
+  - Critical safety violations: 0 (Target 0)
+  - False verified outcomes: 0 (Target 0)
+  - Invented reason codes/facts: 0 (Target 0)
+  - Clarification burden: 0.212 (max 1 question)
+  - Rules baseline: `rules-1.0 (PASSED)` (commit f19b491)
+  - Structured LLM baseline: `NOT RUN`
+  - Laya adapter: `NOT RUN`
+- Verified `Cost Assumptions` sheet formulas intact via openpyxl inspect script.

@@ -35,3 +35,11 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Connected multi-screen state machine orchestration in `src/App.tsx` supporting the happy path, decline path, unverified failure path, human request escalation, and clean demo reset.
 - Added semantic responsive styles in `src/styles.css` with WCAG AA contrast and visible `MOCK` / `SIMULATED` banners.
 - Created `DESIGN_HANDOFF.md` documenting screen inventory, state contracts, component boundaries, and non-negotiable guardrails for the upcoming Codex visual design pass.
+
+## 2026-10-13 — Phase 3 (workbook evaluation scorecard & cost model verification)
+
+- Created working copy `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx` preserving original `docs/source/` provenance untouched.
+- Populated `Evaluation Scorecard` sheet with measured rules baseline metrics from Phase 1 test execution across all 170 synthetic cases.
+- Kept `Structured LLM baseline` and `Laya adapter` marked `NOT RUN` with honest explanatory notes (no unapproved API tokens, no network calls, GPU kept dormant).
+- Verified `Cost Assumptions` sheet formulas (`=B2*B3*B4`, `=B11*B5`, `=B12*B6`, `=B13-B14-B15`) and evidence labels preserved intact.
+- Added `tools/populate_workbook.py` automation script using `.venv` and pinned `openpyxl`.

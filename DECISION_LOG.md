@@ -96,3 +96,12 @@ authentication fails, keep the local commit, record the blocker, and retry per
 phase. No force-push, no credential exposure.
 
 - Evidence label: REPORTED (git output).
+
+## D-011 · 2026-10-13 · Workbook Evaluation Scorecard population & model adapters NOT RUN
+
+In Phase 3, populated `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx` sheet `Evaluation Scorecard` with actual measured results from Phase 1 test execution on the 170-case synthetic dataset.
+- Rules baseline: 99.4% issue accuracy (Full), 98.5% (Held-out), 100% (Iteration); 100% needs-human recall (0 false negatives); 99.4% route accuracy; 0 critical safety violations; 0 false verified outcomes; 0 invented reason codes.
+- Structured LLM & Laya: marked `NOT RUN` with explanatory notes (no unapproved API credentials or network calls per AGENTS.md rule 1 and ADR-0001; GPU kept dormant per AGENTS.md rule 9; model weights not downloaded).
+- Cost Assumptions formulas (`=B2*B3*B4`, `=B11*B5`, `=B12*B6`, `=B13-B14-B15`) strictly preserved.
+- Alternatives rejected: fabricating LLM/Laya metrics (forbidden); modifying source workbook in `docs/source/` (forbidden by provenance rules).
+- Evidence label: DOCUMENTED (test execution logs in TEST_RESULTS.md) + SYNTHETIC (170-case synthetic evaluation set).
