@@ -99,3 +99,15 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - **CLI Enhancements (`src/cli/resolveCli.ts`)**: Added customer-facing explanations and complete audit trails to stdout JSON output; added `--provider <laya|groq>` selection flag.
 - **Expanded Test Suite**: Added 29 new tests across 6 new test files (`conversational.test.ts`, `playbooks.test.ts`, `uncertainty.test.ts`, `templateDrafter.test.ts`, `evidenceTrail.test.ts`, `groqClient.test.ts`), bringing total passing test suite to 78/78 tests in 11 test files. Strict build (`npm run build`) clean.
 
+## 2026-10-14 — End-to-End Execution Reality Check & Six-Case Matrix
+
+- **Active Pipeline Integration (`src/cli/resolveCli.ts`)**: Connected previously standalone modules into the authoritative terminal recovery pipeline:
+  - Uncertainty assessment actively gates routing (`MISSING_EVIDENCE_CLARIFIABLE` -> `clarify`, `CONFLICTING_EVIDENCE_INVESTIGATE` -> `human_handoff`, `UNSAFE_OR_SENSITIVE_HUMAN_REVIEW` -> `human_handoff`, `SUFFICIENT_TO_PROCEED` -> `safe_playbook`).
+  - Active evaluation of playbook preconditions (`category == UTILITY`, `status == REJECTED`) from `defaultPlaybookRegistry`.
+  - Failed fresh-read verification (Case F) dynamically triggers escalation to human support with clear explanation.
+  - Conversational explanations and structured audit trails emitted on all terminal executions.
+- **New Mock Fixtures (`src/data/templates.ts`)**: Added `TPL-1004` (rejected template with missing reason code on dashboard) and `TPL-1005` (approved template for testing status conflict handling).
+- **End-to-End Matrix Test Suite (`tests/e2eMatrix.test.ts`)**: Authored 7 tests validating the 6 realistic operational categories (Cases A–F) against the CLI entry point. All 7 passed. Total test suite expanded to 85/85 tests across 12 files.
+- **Audit Report (`docs/audits/end_to_end_execution_matrix.md`)**: Fully documented the end-to-end execution paths, component interactions, runtime traces, guardrail decisions, playbook evaluations, and fresh-read outcomes with zero fabricated output.
+
+

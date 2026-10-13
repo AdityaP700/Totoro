@@ -58,6 +58,32 @@ export const MOCK_TEMPLATES: MockTemplate[] = [
     // exercising the "Could not verify" failure path (T7).
     simulatedResubmitOutcome: "no_change",
   },
+  {
+    id: "TPL-1004",
+    name: "missing_reason_alert",
+    language: "en",
+    category: "UTILITY",
+    text: "Your security code is {{1}}. Do not share it with anyone.",
+    status: "REJECTED",
+    reasonCode: null, // Missing provider reason code on dashboard (Case C)
+    reasonCodeProvenance: "FIXTURE_CODE_NOT_ASSERTED_AS_OFFICIAL",
+    lastUpdated: "2026-10-12T14:15:00Z",
+    sourceLabel: "MOCK",
+    simulatedResubmitOutcome: "pending",
+  },
+  {
+    id: "TPL-1005",
+    name: "welcome_onboarding",
+    language: "en",
+    category: "UTILITY",
+    text: "Welcome to Cheerio, {{1}}! Your account is active.",
+    status: "APPROVED", // Approved status for conflicting state tests (Case C)
+    reasonCode: null,
+    reasonCodeProvenance: "FIXTURE_CODE_NOT_ASSERTED_AS_OFFICIAL",
+    lastUpdated: "2026-10-12T15:00:00Z",
+    sourceLabel: "MOCK",
+    simulatedResubmitOutcome: "pending",
+  },
 ];
 
 /** Playbook match targets for the fixtures above (kept beside the data). */

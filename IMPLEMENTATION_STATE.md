@@ -67,7 +67,13 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Phase 5 (Evidence trail & audit): Structured lifecycle audit logs in `src/domain/evidenceTrail.ts`.
   - Phase 6 (Provider comparison): `GroqClient` in `src/domain/groqClient.ts` (`openai/gpt-oss-120b`). Multi-provider benchmark in `tools/compare_providers.ts` proving Guarded Hybrid achieves 100% (8/8) accuracy with 0 safety violations.
   - CLI updated (`src/cli/resolveCli.ts`) to return customer explanations, evidence trails, and support `--provider <laya|groq>`.
-  - Full test suite passes: 78/78 tests across 11 test files. Strict build passes (`tsc -b && vite build`).
+- **End-to-End Execution Reality Check & Six-Case Matrix (Completed):**
+  - Integrated all expansion modules into the active CLI runtime (`src/cli/resolveCli.ts`): active uncertainty gating, playbook precondition enforcement, failed verification escalation (Case F), conversational response routing, and structured audit trails.
+  - Added new mock fixtures (`TPL-1004` missing reason code, `TPL-1005` approved status) in `src/data/templates.ts`.
+  - Authored comprehensive test suite `tests/e2eMatrix.test.ts` (7/7 tests passing) verifying Cases A, B, C1, C2, D, E, F.
+  - Executed all 6 cases live through terminal CLI entry point (`npx tsx src/cli/resolveCli.ts`) with zero fabricated output, capturing complete JSON outputs and telemetry.
+  - Generated audit report: `docs/audits/end_to_end_execution_matrix.md`.
+  - Full test suite passes: 85/85 tests across 12 test files. Strict build passes (`tsc -b && vite build`).
 
 ## Acceptance status
 
@@ -79,11 +85,12 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Backend-First Experiment gate: PASSED (live hosted Laya inference verified 200 OK, credit budget bounded at 2,653/5,481 tokens, CLI entry point working with structured JSON and verification guard, 43/43 tests passing, build clean).
 - Hybrid Decision Precedence & Regression Guardrails gate: PASSED (CR-133 and CR-107 root-caused and fixed; deterministic safety precedence strictly enforced; 6 new regression tests added; 49/49 tests passing; build clean; cached smoke replay demonstrates 8/8 100% guarded hybrid accuracy with 0 live credits consumed).
 - Product Capability Expansion (Phases 1–6) gate: PASSED (Conversational response, playbook registry, uncertainty assessment, template drafter, evidence trail, Groq integration, and multi-provider benchmark complete; 78/78 tests passing; strict build clean; Guarded Hybrid scores 8/8 100% with 0 safety violations).
+- End-to-End Execution Reality Check gate: PASSED (All 6 execution categories verified live on real CLI; 85/85 tests passing across 12 test files; strict build clean; comprehensive audit matrix authored in `docs/audits/end_to_end_execution_matrix.md`).
 
 ## Exact next command / task
 
-Product capability expansion is fully implemented, verified, and benchmarked. Commands available:
-- `npm test`: run full 78-test suite across 11 test files.
+End-to-End execution matrix is fully verified and documented. Commands available:
+- `npm test`: run full 85-test suite across 12 test files.
 - `npm run build`: verify static production build (`tsc -b && vite build`).
-- `npx tsx tools/compare_providers.ts`: run multi-provider benchmark (Rules vs Hosted Laya vs Groq vs Guarded Hybrid).
+- `npx vitest run tests/e2eMatrix.test.ts`: run the 7-case end-to-end reality check matrix tests.
 - `npx tsx src/cli/resolveCli.ts --message "<message>" [--template-id <id>] [--rules-only] [--provider laya|groq] [--execute]`: run CLI recovery agent.

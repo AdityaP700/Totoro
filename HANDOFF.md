@@ -78,10 +78,20 @@ tests/
   domain.test.ts          Vitest acceptance tests covering T1–T15
   evaluation.test.ts      Vitest benchmark runner for the 170 synthetic cases
   adapter.test.ts         Vitest unit tests for ReasoningAdapter & Hybrid architecture
+  layaClient.test.ts      Vitest tests for HostedLayaClient integration & error handling
+  groqClient.test.ts      Vitest tests for GroqClient integration & error handling
+  cli.test.ts             Vitest tests for CLI recovery runner
+  conversational.test.ts  Vitest tests for plain-language conversational explanations
+  playbooks.test.ts       Vitest tests for RecoveryPlaybook registry & preconditions
+  uncertainty.test.ts     Vitest tests for uncertainty assessment & reliability gating
+  templateDrafter.test.ts Vitest tests for constrained template drafting
+  evidenceTrail.test.ts   Vitest tests for CaseAuditTrail compilation
+  e2eMatrix.test.ts       Vitest end-to-end reality check matrix (Cases A–F)
 
 tools/
   audit_dataset.py        Dataset structural validation tool
   populate_workbook.py    Openpyxl automation script to fill Evaluation Scorecard
+  compare_providers.ts    Multi-provider benchmark (Rules vs Laya vs Groq vs Guarded Hybrid)
 ```
 
 ---
@@ -94,10 +104,21 @@ npm run dev
 # Opens Vite dev server at http://localhost:5173
 ```
 
-### Full Test Suite (19 tests)
+### Full Test Suite (85 tests across 12 files)
 ```powershell
 npm test
-# Runs vitest covering T1-T15 domain tests and 170-case eval benchmark
+# Runs vitest covering all 85 tests across 12 test files
+```
+
+### End-to-End Reality Check Matrix (7 tests)
+```powershell
+npx vitest run tests/e2eMatrix.test.ts
+# Runs the 7 reality check tests covering Cases A through F
+```
+
+### CLI Recovery Agent (Interactive / Terminal)
+```powershell
+npx tsx src/cli/resolveCli.ts --message "<message>" [--template-id <id>] [--rules-only] [--provider laya|groq] [--execute]
 ```
 
 ### Static Production Build

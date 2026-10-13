@@ -31,6 +31,9 @@ export interface ConversationalContext {
   templateSnapshot?: MockTemplate | null;
   verification?: VerificationResult | null;
   previousAttempts?: number;
+  uncertaintyStatus?: string;
+  hasStateConflict?: boolean;
+  clarifyingQuestion?: string;
 }
 
 /**
@@ -53,6 +56,23 @@ export function generateCustomerFacingResponse(
       requiresConfirmation: false,
       canAutomate: false,
       statusLabel: "Verified & Resolved",
+    };
+  }
+
+  // --- 0b. Fresh-read verification failed (Case F) ---
+  if (verification && !verification.verified) {
+    return {
+      headline: "Recovery Verification Failed",
+      whatIsWrong:
+        "An automated resubmission was attempted, but the template status remained REJECTED upon fresh inspection.",
+      evidenceExplanation:
+        verification.statement ||
+        "Fresh state verification failed: observed status does not match the expected post-action status.",
+      nextSteps:
+        "Because the automated recovery did not succeed, your case file has been escalated to human support for direct review.",
+      requiresConfirmation: false,
+      canAutomate: false,
+      statusLabel: "Verification Failed — Escalated to Support",
     };
   }
 
@@ -120,7 +140,7 @@ export function generateCustomerFacingResponse(
   }
 
   // --- 5. State Conflict or Stale Cache (G12) ---
-  if (issueType === "state_conflict_or_stale") {
+  if (issueType === "state_conflict_or_stale" || ctx.hasStateConflict) {
     return {
       headline: "Status Discrepancy Detected",
       whatIsWrong:
@@ -136,11 +156,19 @@ export function generateCustomerFacingResponse(
   }
 
   // --- 6. Ambiguous or Missing Context (G9) ---
-  if (issueType === "ambiguous_or_missing_context" || triage.route === "clarify_once") {
+  if (
+    issueType === "ambiguous_or_missing_context" ||
+    triage.route === "clarify_once" ||
+    (triage.route as string) === "clarify" ||
+    ctx.uncertaintyStatus === "MISSING_EVIDENCE_CLARIFIABLE"
+  ) {
     const singleQuestion =
-      triage.missingInformation && triage.missingInformation.length > 0
-        ? triage.missingInformation[0]
-        : "Could you share the specific template name, campaign, or error message you are seeing?";
+      ctx.clarifyingQuestion ||
+      (triage.missingInformation && triage.missingInformation.length > 0
+        ? (triage.missingInformation[0] === "template_id"
+            ? "Which template name or ID is experiencing the issue?"
+            : triage.missingInformation[0])
+        : "Could you share the specific template name, campaign, or error message you are seeing?");
 
     return {
       headline: "More Information Needed",

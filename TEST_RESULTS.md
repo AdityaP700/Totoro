@@ -243,3 +243,39 @@ but unused — no test needs it.
   | Token Consumption | 0 tokens | ~331 tokens/query | ~575 tokens/query | ~575 tokens/query |
   | Cost / 1k queries | $0.00 | Hosted Credit Plan | ~$0.15 - $0.60 | ~$0.15 - $0.60 |
 - Audit Artifact: `docs/audits/provider_comparison.json`
+
+## 2026-10-14 · End-to-End Execution Reality Check & Six-Case Matrix
+
+### Unit & End-to-End Test Suite (85 tests across 12 test files)
+- Command: `npm test`
+- Result: PASS (exit 0) in 2.08s
+  - `tests/domain.test.ts`: 15/15 passed (T1–T15 domain acceptance tests)
+  - `tests/evaluation.test.ts`: 4/4 passed (170-case synthetic dataset benchmark: 100% iteration, 98.5% held-out)
+  - `tests/adapter.test.ts`: 15/15 passed (ReasoningAdapter, safety interceptor, schema validation, CR-133/CR-107 regressions)
+  - `tests/layaClient.test.ts`: 9/9 passed (HostedLayaClient, schema, mock network faults, timeout, fallback)
+  - `tests/groqClient.test.ts`: 4/4 passed (GroqClient, structured mode, auth failure, rate limit 429, timeout fallback)
+  - `tests/cli.test.ts`: 6/6 passed (runCliTriage CLI execution, fresh-read verification, groq/laya flags)
+  - `tests/conversational.test.ts`: 6/6 passed (Plain-language conversational explanations, zero leaked codes, max 1 question)
+  - `tests/playbooks.test.ts`: 5/5 passed (RecoveryPlaybook registry, entry conditions, missing evidence, preconditions)
+  - `tests/uncertainty.test.ts`: 6/6 passed (Recovery uncertainty assessment, calibrated reliability, state conflicts)
+  - `tests/templateDrafter.test.ts`: 6/6 passed (Constrained template drafting, sequential {{1}} validator, customerConfirmed: false)
+  - `tests/evidenceTrail.test.ts`: 2/2 passed (CaseAuditTrail compilation, complete regulatory evidence trail)
+  - `tests/e2eMatrix.test.ts`: 7/7 passed (End-to-End Six-Case Reality Matrix: Cases A, B, C1, C2, D, E, F)
+
+### Live CLI Terminal Executions Across Six Realistic Categories
+- Command: `npx tsx src/cli/resolveCli.ts --message "<message>" [options]`
+- Outputs Captured & Verified in `docs/audits/end_to_end_execution_matrix.md`:
+  - **Case A (Clearest possible)**: `TPL-1001` promo in utility -> PB-001 -> explicit confirmation -> simulated edit -> fresh-read verified (`is_verified: true`, `status: PENDING`, headline: "Recovery Successfully Verified").
+  - **Case B (Vague complaint)**: "My template isn't working" -> `MISSING_EVIDENCE_CLARIFIABLE` -> single question ("Which template name or ID is experiencing the issue?"), zero speculative action.
+  - **Case C1 (Missing evidence)**: `TPL-1004` rejected with null reason code -> policy prohibits guessing -> `human_handoff` for provider log inspection ("Template Rejection Reason Unverified").
+  - **Case C2 (Conflicting evidence)**: `TPL-1005` approved while user reports rejection -> `CONFLICTING_EVIDENCE_INVESTIGATE` -> `human_handoff` ("Status Discrepancy Detected"). Groq predicted `needs_human: false` (0.97 conf); deterministic safety interceptor overrode it.
+  - **Case D (Explicit human request)**: "Can a person review it?" -> `human_requested` -> immediate `human_handoff` ("Connecting You to a Human Agent"), `--execute` flag ignored.
+  - **Case E (Sensitive billing)**: "Charged twice. Refund immediately." -> `billing_refund` -> `human_handoff` ("Billing & Payment Inquiry"), zero automated writes.
+  - **Case F (Unverified recovery attempt)**: `TPL-1003` tag mismatch -> simulated execution runs -> fresh read remains `REJECTED` -> `is_verified: false` -> auto-escalates to `human_handoff` ("Recovery Verification Failed — Escalated to Support").
+
+### Production Build Verification
+- Command: `npm run build` (`tsc -b && vite build`)
+- Result: PASS (exit 0) in 2.02s
+  - 48 modules transformed cleanly.
+  - Strict TypeScript check with zero errors.
+

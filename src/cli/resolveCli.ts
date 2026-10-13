@@ -2,7 +2,6 @@ import { createMockStore } from "../domain/mockStore";
 import { RulesReasoningAdapter, validateModelOutput } from "../domain/adapter";
 import { HostedLayaClient } from "../domain/layaClient";
 import { GroqClient } from "../domain/groqClient";
-import { findPlaybook } from "../data/playbooks";
 import { defaultPlaybookRegistry } from "../domain/playbookRegistry";
 import { expectedStatusAfter, verifyAgainstFreshRead } from "../domain/verification";
 import { generateCustomerFacingResponse, type CustomerFacingResponse } from "../domain/conversationalResponse";
@@ -229,89 +228,7 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     };
   }
 
-  // 5. Normalized Route Mapping
-  let mappedRoute: "clarify" | "safe_playbook" | "human_handoff";
-  if (guardedDecision.route === "human_handoff" || guardedDecision.needs_human) {
-    mappedRoute = "human_handoff";
-  } else if (guardedDecision.route === "clarify_once") {
-    mappedRoute = "clarify";
-  } else {
-    mappedRoute = "safe_playbook";
-  }
-
-  // 6. Action Proposal and Confirmation Requirements
-  let recommendedAction = "";
-  let confirmationRequired = false;
-  let isVerified = false;
-  let verificationResult: VerificationResult | null = null;
-
-  if (mappedRoute === "human_handoff") {
-    recommendedAction = "Handoff to human support team with context case file";
-    confirmationRequired = false;
-  } else if (mappedRoute === "clarify") {
-    recommendedAction = "Ask one clarifying question to identify affected component";
-    confirmationRequired = false;
-  } else {
-    // Safe playbook route
-    const playbook = findPlaybook(templateSnapshot?.reasonCode ?? null);
-    if (playbook.proposedAction) {
-      recommendedAction = playbook.proposedAction.description;
-      confirmationRequired = true; // Guardrail G1: Never write before explicit confirmation
-
-      // Optional simulated execution if requested
-      if (options.execute && templateSnapshot) {
-        const changes: ProposedChange[] = playbook.proposedAction.buildChanges(templateSnapshot);
-        const exactBefore = JSON.stringify({ text: templateSnapshot.text, category: templateSnapshot.category });
-        const exactAfterObj: Record<string, string> = { text: templateSnapshot.text, category: templateSnapshot.category };
-        for (const c of changes) exactAfterObj[c.field] = c.after;
-        const exactAfter = JSON.stringify(exactAfterObj);
-
-        const applyRes = store.applyApprovedChange({
-          operation: "resubmit_template",
-          targetId: templateSnapshot.id,
-          changes,
-          confirmation: {
-            approvedAt: new Date().toISOString(),
-            exactBefore,
-            exactAfter,
-            idempotencyKey: `CLI:${templateSnapshot.id}:${Date.now()}`,
-          },
-        });
-
-        if (applyRes.ok) {
-          const expected = expectedStatusAfter("resubmit_template");
-          if (expected) {
-            const fresh = store.getTemplate(templateSnapshot.id)!;
-            const ver = verifyAgainstFreshRead(fresh, expected);
-            isVerified = ver.verified;
-            verificationResult = ver;
-          }
-        }
-      }
-    } else {
-      recommendedAction = "Review template rejection explanation; no automated edit available";
-      confirmationRequired = false;
-    }
-  }
-
-  // 7. Customer Facing Explanation (Phase 1)
-  const customerExplanation = generateCustomerFacingResponse({
-    triage: {
-      issueType: guardedDecision.issue_type as any,
-      urgency: guardedDecision.urgency as any,
-      route: guardedDecision.route as any,
-      needsHuman: guardedDecision.needs_human,
-      confidence: 1.0,
-      confidenceBand: "high",
-      rationale: guardedDecision.rationale,
-      missingInformation: [],
-    },
-    templateSnapshot,
-    verification: verificationResult,
-    previousAttempts: 0,
-  });
-
-  // 8. Uncertainty Assessment (Phase 3)
+  // 5. Uncertainty Assessment (Phase 3 Active Gating)
   const rawModelPrediction = rawLayaPrediction ? {
     issueType: rawLayaPrediction.issue_type as any,
     urgency: rawLayaPrediction.urgency as any,
@@ -330,24 +247,155 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     previousAttempts: 0,
   });
 
-  const guardedTriageResult: TriageResult = {
-    issueType: guardedDecision.issue_type as any,
-    urgency: guardedDecision.urgency as any,
-    route: guardedDecision.route as any,
-    needsHuman: guardedDecision.needs_human,
-    confidence: 1.0,
-    confidenceBand: "high",
-    rationale: guardedDecision.rationale,
-    missingInformation: [],
-    decisionLayer: guardedDecision.decision_layer,
-  };
+  // 6. Active Route Resolution: Uncertainty strictly governs decision boundary
+  let mappedRoute: "clarify" | "safe_playbook" | "human_handoff";
+  let recommendedAction = "";
+  let confirmationRequired = false;
+  let isVerified = false;
+  let verificationResult: VerificationResult | null = null;
 
+  if (uncertainty.status === "UNSAFE_OR_SENSITIVE_HUMAN_REVIEW") {
+    mappedRoute = "human_handoff";
+    recommendedAction = "Handoff to human support team with context case file";
+  } else if (uncertainty.status === "CONFLICTING_EVIDENCE_INVESTIGATE") {
+    mappedRoute = "human_handoff";
+    recommendedAction = "Escalate to human support specialist for conflicting evidence investigation";
+  } else if (uncertainty.status === "MISSING_EVIDENCE_CLARIFIABLE") {
+    mappedRoute = "clarify";
+    recommendedAction = uncertainty.clarifyingQuestion
+      ? `Ask clarifying question: ${uncertainty.clarifyingQuestion}`
+      : "Ask one clarifying question to identify affected component";
+  } else if (guardedDecision.route === "human_handoff" || guardedDecision.needs_human) {
+    mappedRoute = "human_handoff";
+    recommendedAction = "Handoff to human support team with context case file";
+  } else if (guardedDecision.route === "clarify_once") {
+    mappedRoute = "clarify";
+    recommendedAction = "Ask one clarifying question to identify affected component";
+  } else {
+    mappedRoute = "safe_playbook";
+  }
+
+  // 7. Playbook Selection & Precondition Verification (Phase 2 Active Gating)
   const playbook = defaultPlaybookRegistry.findForContext({
     reasonCode: templateSnapshot?.reasonCode,
     issueType: guardedDecision.issue_type as any,
+    templateSnapshot,
+  });
+
+  if (mappedRoute === "safe_playbook") {
+    const actionDef = playbook.permittedActions[0];
+    if (actionDef && actionDef.operation === "resubmit_template" && templateSnapshot) {
+      // Evaluate playbook preconditions
+      let preconditionsMet = true;
+      let failedPreconditionReason = "";
+
+      for (const cond of actionDef.preconditions) {
+        if (cond === "category == UTILITY" && templateSnapshot.category !== "UTILITY") {
+          preconditionsMet = false;
+          failedPreconditionReason = `Precondition failed: template category is "${templateSnapshot.category}", expected "UTILITY".`;
+          break;
+        }
+        if (cond === "category == MARKETING" && templateSnapshot.category !== "MARKETING") {
+          preconditionsMet = false;
+          failedPreconditionReason = `Precondition failed: template category is "${templateSnapshot.category}", expected "MARKETING".`;
+          break;
+        }
+        if (cond === "status == REJECTED" && templateSnapshot.status !== "REJECTED") {
+          preconditionsMet = false;
+          failedPreconditionReason = `Precondition failed: template status is "${templateSnapshot.status}", expected "REJECTED".`;
+          break;
+        }
+      }
+
+      if (!preconditionsMet) {
+        recommendedAction = failedPreconditionReason;
+        confirmationRequired = false;
+        mappedRoute = "human_handoff";
+      } else {
+        recommendedAction = actionDef.description;
+        confirmationRequired = actionDef.requiresConfirmation; // Guardrail G1: Never write before explicit confirmation
+
+        // Simulated action execution only when explicitly requested
+        if (options.execute) {
+          const changes: ProposedChange[] = actionDef.buildChanges
+            ? actionDef.buildChanges(templateSnapshot)
+            : [];
+          const exactBefore = JSON.stringify({ text: templateSnapshot.text, category: templateSnapshot.category });
+          const exactAfterObj: Record<string, string> = { text: templateSnapshot.text, category: templateSnapshot.category };
+          for (const c of changes) exactAfterObj[c.field] = c.after;
+          const exactAfter = JSON.stringify(exactAfterObj);
+
+          const applyRes = store.applyApprovedChange({
+            operation: "resubmit_template",
+            targetId: templateSnapshot.id,
+            changes,
+            confirmation: {
+              approvedAt: new Date().toISOString(),
+              exactBefore,
+              exactAfter,
+              idempotencyKey: `CLI:${templateSnapshot.id}:${Date.now()}`,
+            },
+          });
+
+          if (applyRes.ok) {
+            const expected = expectedStatusAfter("resubmit_template");
+            if (expected) {
+              const fresh = store.getTemplate(templateSnapshot.id)!;
+              const ver = verifyAgainstFreshRead(fresh, expected);
+              isVerified = ver.verified;
+              verificationResult = ver;
+
+              // If fresh-read verification failed (Case F): do NOT claim verified; escalate to human
+              if (!ver.verified) {
+                mappedRoute = "human_handoff";
+                recommendedAction = "Handoff to human support team: simulated resubmission failed fresh-read verification";
+              }
+            }
+          }
+        }
+      }
+    } else {
+      recommendedAction = "Review template rejection explanation; no automated edit available";
+      confirmationRequired = false;
+      if (!templateSnapshot?.reasonCode) {
+        mappedRoute = "human_handoff";
+      }
+    }
+  }
+
+  // 8. Customer Facing Explanation (Phase 1)
+  const customerExplanation = generateCustomerFacingResponse({
+    triage: {
+      issueType: guardedDecision.issue_type as any,
+      urgency: guardedDecision.urgency as any,
+      route: mappedRoute as any,
+      needsHuman: mappedRoute === "human_handoff",
+      confidence: 1.0,
+      confidenceBand: "high",
+      rationale: guardedDecision.rationale,
+      missingInformation: uncertainty.signals.missingEvidenceFields,
+    },
+    templateSnapshot,
+    verification: verificationResult,
+    previousAttempts: 0,
+    uncertaintyStatus: uncertainty.status,
+    hasStateConflict: uncertainty.signals.hasStateConflict,
+    clarifyingQuestion: uncertainty.clarifyingQuestion,
   });
 
   // 9. Case Audit Trail (Phase 5)
+  const guardedTriageResult: TriageResult = {
+    issueType: guardedDecision.issue_type as any,
+    urgency: guardedDecision.urgency as any,
+    route: mappedRoute as any,
+    needsHuman: mappedRoute === "human_handoff",
+    confidence: 1.0,
+    confidenceBand: "high",
+    rationale: guardedDecision.rationale,
+    missingInformation: uncertainty.signals.missingEvidenceFields,
+    decisionLayer: guardedDecision.decision_layer,
+  };
+
   const auditTrail = buildCaseAuditTrail({
     caseId: `CLI-${Date.now()}`,
     correlationId: `CORR-${Date.now()}`,
@@ -367,7 +415,7 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     playbook,
     customerConfirmed: options.execute ?? false,
     actionExecuted: options.execute ?? false,
-    mockResult: isVerified ? "SIMULATED_PENDING_REVIEW" : null,
+    mockResult: isVerified ? "SIMULATED_PENDING_REVIEW" : (verificationResult && !verificationResult.verified ? "SIMULATED_FAILED_VERIFICATION" : null),
     verification: verificationResult,
     totalLatencyMs: modelLatencyMs ?? 0,
   });

@@ -151,3 +151,20 @@ Expanded Cheerio Resolve into a non-technical-user-friendly recovery agent acros
 5. **Case Audit Trail (`src/domain/evidenceTrail.ts`)**: Complete structured audit trail (`CaseAuditTrail`) capturing original request, evidence, rules vs model triage, guardrail outcome, proposed action, mock result, fresh-read verification, resolution, and telemetry.
 6. **Multi-Provider Integration & Benchmark (`src/domain/groqClient.ts`, `tools/compare_providers.ts`)**: Connected Groq provider (`openai/gpt-oss-120b`) via structured JSON mode alongside Hosted Laya System One (`laya-rl-agent`). Benchmark comparison on identical 8-case suite proved that Guarded Hybrid achieved 100% (8/8) decision accuracy with 0 critical safety violations, outperforming all raw standalone models.
 - Evidence label: DOCUMENTED (Guardrails G1–G15, ADR-0001) + REPORTED (live inference benchmarks in docs/audits/provider_comparison.json).
+
+## D-016 · 2026-10-14 · End-to-End Execution Reality Check, Pipeline Wiring, and Six-Case Audit Matrix
+
+Closed integration gaps between independently tested modules and the primary CLI entry point (`src/cli/resolveCli.ts`):
+1. **Active Uncertainty Gating**: `assessRecoveryUncertainty` was elevated from advisory metadata to the active governing authority of routing. `UNSAFE_OR_SENSITIVE_HUMAN_REVIEW` and `CONFLICTING_EVIDENCE_INVESTIGATE` deterministically route to `human_handoff`; `MISSING_EVIDENCE_CLARIFIABLE` routes to `clarify` with the exact single question; `SUFFICIENT_TO_PROCEED` is mandatory before evaluating playbooks.
+2. **Playbook Precondition Gating**: Action execution actively evaluates playbook preconditions (`category == UTILITY`, `status == REJECTED`, etc.) from `defaultPlaybookRegistry`. Precondition failures abort execution and route to human escalation.
+3. **Failed Verification Escalation (Case F)**: When simulated action executes but post-action fresh-state verification fails (`freshReadVerified: false`), the CLI automatically transitions the active route to `human_handoff` with an honest, non-technical explanation ("Recovery Verification Failed"), preventing false resolution claims (G5).
+4. **End-to-End Six-Case Reality Matrix**: Tested and verified 6 realistic operational categories (Cases A–F) live via `npx tsx src/cli/resolveCli.ts`:
+   - Case A: Known rejection (`TPL-1001`) -> explicit confirmation -> simulated execution -> fresh-read verified against `PENDING`.
+   - Case B: Vague complaint ("My template isn't working") -> missing template ID -> single clarifying question, zero speculative action.
+   - Case C1: Missing evidence (`TPL-1004`, rejected, no reason code) -> policy blocks guessing -> human escalation for provider log inspection.
+   - Case C2: Contradictory evidence (`TPL-1005`, user reports rejection, state is `APPROVED`) -> state conflict detected -> human investigation.
+   - Case D: Explicit human request ("Can a person review it?") -> immediate human handoff, ignores `--execute` flag.
+   - Case E: Sensitive financial refund ("charged twice") -> billing policy enforced, zero automated writes, immediate human handoff.
+   - Case F: Unverified recovery (`TPL-1003`, simulated resubmit yields no change) -> fresh read remains `REJECTED` -> verified: false, escalated to support.
+5. **Report & Test Coverage**: Authored `docs/audits/end_to_end_execution_matrix.md` and `tests/e2eMatrix.test.ts` (7/7 tests passing; overall test suite: 85/85 passing across 12 files).
+- Evidence label: DOCUMENTED (Guardrails G1–G15, D1–D11) + REPORTED (CLI execution traces in docs/audits/end_to_end_execution_matrix.md).

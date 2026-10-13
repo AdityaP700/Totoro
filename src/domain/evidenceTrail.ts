@@ -155,7 +155,11 @@ export function buildCaseAuditTrail(params: {
   let resolution: CaseAuditTrail["resolution"] = "PENDING_REVIEW";
   if (guardedDecision.route === "human_handoff" || guardedDecision.needsHuman) {
     resolution = "HANDOFF_ESCALATED";
-  } else if (guardedDecision.route === "clarify_once") {
+  } else if (
+    guardedDecision.route === "clarify_once" ||
+    (guardedDecision.route as string) === "clarify" ||
+    uncertainty.status === "MISSING_EVIDENCE_CLARIFIABLE"
+  ) {
     resolution = "CLARIFYING";
   } else if (verification) {
     resolution = verification.verified ? "VERIFIED" : "HANDOFF_ESCALATED";
