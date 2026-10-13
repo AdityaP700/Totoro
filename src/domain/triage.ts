@@ -146,14 +146,17 @@ const INTEGRATION_CONNECTED_BUT_NOT_FLOWING: Rule = {
 const STATE_CONFLICT: Rule = {
   name: "state_conflict_or_stale",
   patterns: [
-    i(/(says|shows|page says|screen says|record says|status says)[^.;!?]*\bbut\b/),
+    i(/(page says|screen says|record says|status says|case says)\b[^.;!?]*\bbut\b/),
+    i(/\b(says|shows)\s+(connected|rejected|approved|pending|active)\b[^.;!?]*\bbut\b/),
+    i(/\breason code says\b[^.;!?]*\bbut\b/),
+    i(/\bsays (approved|resolved|connected|active)\b[^.;!?]*\bbut\b/),
     i(/\b(approved|resolved|connected)[^.;!?]*\b(yesterday|earlier|before)[^.;!?]*\b(now|pending|rejected|fail)/),
     i(/\bhasn'?t (been )?updated\b/),
     i(/\bnot updated in \d+ days?\b/),
     i(/\bno recent sync\b/),
     i(/\b(timed? ?out|timeout)[^.;!?]{0,40}\b(work|successful|hua)\b|\bdid it (actually )?work\b|\bactually successful\b/),
     i(/\bchanged after (i|we) approved\b/),
-    i(/\b(action history|action log|audit log|event log)\b[^.;!?]{0,30}\b(missing|don'?t see|no |not there)\b/),
+    i(/\b(action history|action log|audit log|event log)\b[^.;!?]{0,30}\b(missing|don'?t see|no |not there)\b|\b(missing|don'?t see|no |not seeing|cannot see|can'?t see)\b[^.;!?]{0,30}\b(action history|action log|audit log|event log)\b/),
     i(/\b(clicked|pressed) (retry|resubmit|confirm),? but\b/),
     i(/\breturned success but\b/),
     i(/\bfresh read\b/),
@@ -208,7 +211,7 @@ const AMB_SPECIFIC: Rule[] = [
     name: "ambiguous_disable_production",
     patterns: [i(/\b(disable|turn off|shut down)\b[^\n]{0,30}\b(production|integration)\b/)],
     hit: {
-      issueType: "ambiguous_or_missing_context",
+      issueType: "integration_webhook",
       urgency: "medium",
       needsHuman: false,
       route: "clarify_once",
@@ -392,7 +395,7 @@ const WABA: Rule = {
     i(/\bwaba\b/),
     i(/\bdisplay name\b/),
     i(/\bwhatsapp number\b/),
-    i(/\b(number|no\.)[^\n]{0,30}(connect|verif|otp|code|workspace)\b/),
+    i(/\b(number|no\.)[^\n]{0,30}(connect\w*|verif\w*|otp|code|workspace)\b/),
     i(/\bconnect[^\n]{0,20}(number|workspace)\b/),
     i(/\b(connect nahi|connect kaise|nahi ho raha|can'?t connect|not connecting)\b/),
     i(/\b(connect|connecting)[^\n]{0,20}(number|account|workspace)\b/),
@@ -455,7 +458,7 @@ const CLARIFY_TRANSFORMS: {
   },
   {
     name: "less_promotional_keep_offer",
-    patterns: [i(/\bless promotional\b/), i(/\bpasses? as utility\b/)],
+    patterns: [i(/\bless promotional\b/), i(/\bkeep the same offer\b/)],
     missing: ["the template's actual message purpose"],
     rationale:
       "The request could disguise promotional content as Utility. The system asks what the message is truly for and offers only a truthful category or content correction.",
@@ -512,7 +515,6 @@ const AMBIGUOUS: Rule = {
     rationale:
       "The message does not identify an affected feature. The system asks one concise question (or offers a human) instead of guessing the issue type.",
     missingInformation: ["which feature is affected"],
-    allowAlreadyTriedDowngrade: true,
   },
 };
 
@@ -525,11 +527,11 @@ const RULES_IN_ORDER: Rule[] = [
   ...AMB_SPECIFIC,
   BULK_SEND,
   DUPLICATE_EVENTS,
+  TEMPLATE,
   INTEGRATION,
-  DELIVERY,
   CHATBOT,
   WABA,
-  TEMPLATE,
+  DELIVERY,
   AMBIGUOUS,
 ];
 
@@ -548,7 +550,7 @@ function band(confidence: number): ConfidenceBand {
 
 /** Hinglish/en guess — only en and hinglish are supported (D11). Coarse by design. */
 export function guessLanguage(message: string): "en" | "hinglish" {
-  return /(nahi|karo|karu|kya|mera|hai|gaya|chahiye|karun|raha|bhai|milna)/i.test(message)
+  return /\b(nahi|karo|karu|kya|mera|hai|gaya|chahiye|karun|raha|bhai|milna)\b/i.test(message)
     ? "hinglish"
     : "en";
 }
@@ -559,7 +561,7 @@ export function guessLanguage(message: string): "en" | "hinglish" {
  */
 export function triageMessage(
   message: string,
-  context?: { reasonCode?: string | null; stateStatus?: string },
+  _context?: { reasonCode?: string | null; stateStatus?: string },
 ): TriageResult {
   const text = message.trim();
   const matched = firstMatch(text);
@@ -574,7 +576,7 @@ export function triageMessage(
 
   // Duplicate-delivery rule: choose the issue type from surrounding keywords.
   if (matched?.rule.name === "duplicate_delivery") {
-    if (/(webhooks?|integration|events?)/i.test(text)) {
+    if (/\b(webhooks?|integration|events?)\b/i.test(text)) {
       hit = {
         ...hit,
         issueType: "integration_webhook",
@@ -602,22 +604,7 @@ export function triageMessage(
     }
   }
 
-  // Unknown/absent reason code on a template case: never guess (T3, D10).
-  if (
-    hit.issueType === "template_rejection" &&
-    context &&
-    context.reasonCode === null &&
-    hit.route === "rules_playbook"
-  ) {
-    hit = {
-      ...hit,
-      route: "clarify_once",
-      confidence: 0.5,
-      rationale:
-        "A template issue is indicated but no usable reason code is recorded. The cause cannot be verified, so the system asks for the record or offers human review.",
-      missingInformation: ["the recorded rejection reason"],
-    };
-  }
+
 
   return {
     issueType: hit.issueType,

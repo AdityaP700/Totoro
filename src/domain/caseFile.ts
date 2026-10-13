@@ -1,4 +1,4 @@
-import type { CaseState, MockTemplate, ProposedChange, Proposal, TriageResult } from "./types";
+import type { CaseState, ProposedChange } from "./types";
 import { MOCK_WORKSPACE } from "../data/templates";
 import { checksRunFromEvents } from "./eventLog";
 

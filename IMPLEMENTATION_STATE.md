@@ -1,50 +1,36 @@
 # IMPLEMENTATION STATE
 
-Last updated: 2026-10-13 (Phase 1 in progress — WIP checkpoint committed)
+Last updated: 2026-10-13 (Phase 1 PASSED — moving to Phase 2)
 
 ## Current phase
 
-**Phase 1 — Foundation** — domain core and eval harness are WRITTEN (untested);
-tests are the immediate next step. See HANDOFF.md for the exact resume point.
+**Phase 2 — Functional user journey (UI S1–S6 & DESIGN_HANDOFF.md)**
 
 ## Completed
 
-- **Phase 0 (commit `57f4f63`, pushed to origin/main):** all source docs read and
-  vendored into `docs/source/`; dataset audited (170 rows, 0 errors); workbook
-  inspected; ADR-0001 (stack/architecture/eval protocol) written; risk register,
-  decision log, all continuity files created; `.venv` + openpyxl 3.1.5.
-- **Phase 1 WIP:** npm scaffold installed (React 18.3.1, Vite 5.4.21, TS 5.9.3,
-  Vitest 2.x); `src/domain/*` fully written (types, triage rules v1.0, playbooks,
-  mock store + allowlist enforcement, verification, event log, case file,
-  ResolveSession state machine); `src/data/*` fixtures (3 template variants);
-  `src/eval/*` (dataset loader, seed-20261013 split, scorer with safety counters).
-- Environment facts: Node v22.22.2, Python 3.11.9 (`.venv`), GPU RTX 4050 present
-  but unused (no workload needs it).
+- **Phase 0 (commit `57f4f63`, pushed to origin/main):** source docs read and vendored into `docs/source/`; dataset audited (170 rows, 0 errors); workbook inspected; ADR-0001 written; risk register, decision log, all continuity files created; `.venv` + openpyxl 3.1.5.
+- **Phase 1 (WIP commit `c4e0c8a` + final completion):**
+  - Domain core: types, mock store with allowlist & idempotency key enforcement, playbooks data table, fresh-read verification, case file builder, event logging, `ResolveSession` state machine.
+  - Acceptance tests: `tests/domain.test.ts` (15/15 passed) covering T1–T15 with deterministic injected deps.
+  - Evaluation harness: `tests/evaluation.test.ts` (4/4 passed). Evaluated on 170-case synthetic benchmark with frozen seed-20261013 split:
+    - Iteration split (n=105): 100% issue accuracy, 100% route accuracy, 100% needs-human recall, 0 critical safety violations.
+    - Held-out split (n=65, untuned): 98.5% issue accuracy, 98.5% route accuracy, 100% needs-human recall, 0 critical safety violations.
+    - Complete dataset (n=170): 99.4% issue accuracy, 99.4% route accuracy, 100% needs-human recall, 0 critical safety violations.
+  - Strict TypeScript build: `npm run build` passes with zero errors.
 
 ## In progress
 
-- Phase 1 tests NOT yet written; `npm test` will currently pass trivially (no
-  test files). Nothing in `src/domain` has been executed yet.
+- **Phase 2:** Functional S1–S6 screens in `src/ui/` as thin React presentation components over `ResolveSession`, supporting happy path and two failure paths end-to-end, plus authoring `DESIGN_HANDOFF.md`.
 
 ## Exact next command / task (for the next agent)
 
-1. `cd D:/Development/Projects/core/Totoro && npm install && npm test` — confirm harness runs.
-2. Write `tests/domain.test.ts` covering T1–T15 from
-   `docs/source/Cheerio_Resolve_Implementation_Plan_and_Agent_Handoff.md` §10 using
-   `ResolveSession` + `createMockStore` (deterministic `now`/`newId` deps).
-3. Write `tests/evaluation.test.ts`: run all 170 cases through `triageMessage`
-   (message-only), score via `scoreCases`, assert thresholds on the **iteration**
-   split only (issue accuracy ≥ 0.85, route accuracy ≥ 0.75, needs-human recall
-   ≥ 0.95, safety counters = 0); **report** held-out numbers without tuning on them.
-4. Iterate `src/domain/triage.ts` rules using iteration-split failures ONLY.
-5. `npm run build` must pass (TS strict). Then update continuity files and commit
-   Phase 1; push.
-6. Phase 2: S1–S6 UI in `src/ui/` (thin React over the domain; see ADR-0001) +
-   `DESIGN_HANDOFF.md`. Phase 3: scorecard + workbook working copy
-   (`deliverables/`), adapter `NOT RUN`. Phase 4: final report per
-   `docs/source/AGENT_EXECUTION_PROMPT.md` §Required final report.
+1. Implement `src/ui/components/S1TemplateList.tsx`, `S2Diagnosis.tsx`, `S3Proposal.tsx`, `S4Outcome.tsx`, `S5CaseFile.tsx`, `S6ManagerView.tsx`.
+2. Connect screens in `src/App.tsx` over `ResolveSession`, enabling interactive switching between templates `TPL-1001` (happy path), `TPL-1002`, and `TPL-1003` (simulated unverified failure path), user decline path, human request path, and demo reset (T15).
+3. Author `DESIGN_HANDOFF.md` documenting screen inventory, state machines, component boundaries, and contracts for Codex.
+4. Verify build and tests pass, commit Phase 2, push to `origin/main`.
 
 ## Acceptance status
 
-- Phase 0 gate: PASSED (committed).
-- Phase 1 gate: OPEN — commit only after tests pass or an exception is documented.
+- Phase 0 gate: PASSED (committed `57f4f63`).
+- Phase 1 gate: PASSED (all T1–T15 tests passing, eval metrics passing, build passing).
+- Phase 2 gate: OPEN.

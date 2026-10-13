@@ -13,4 +13,11 @@ User-visible changes. (Internal engineering notes live in the other continuity f
   Vite + React + Vitest stack and the pure-domain-core architecture.
 - Added risk register, decision log and all continuity files; added `.gitignore` and
   pinned Python sidecar requirements (openpyxl only).
-- No product behaviour exists yet — implementation starts in Phase 1.
+## 2026-10-13 — Phase 1 (foundation domain core, acceptance tests, evaluation harness)
+
+- Implemented pure TypeScript domain core: `ResolveSession` state machine, deterministic rules triage v1.0, playbooks data table, in-memory mock store with narrow allowlist and idempotency enforcement, fresh-read state verification, and audit event logging.
+- Added comprehensive domain acceptance test suite `tests/domain.test.ts` implementing and passing scenarios T1 through T15.
+- Added 170-case synthetic dataset evaluation test suite `tests/evaluation.test.ts` running seed-20261013 deterministic iteration/held-out splits:
+  - Iteration split achieved 100% issue accuracy, 100% route accuracy, 100% needs-human recall, and 0 critical safety violations.
+  - Held-out split achieved 98.5% issue accuracy, 98.5% route accuracy, 100% needs-human recall, and 0 critical safety violations.
+- Verified TypeScript strict build (`tsc -b && vite build`) passes cleanly with zero errors.

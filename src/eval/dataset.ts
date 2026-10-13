@@ -31,9 +31,10 @@ let cache: EvalCase[] | null = null;
 export function loadDataset(): EvalCase[] {
   if (cache) return cache;
   const text = readFileSync(DATASET_PATH, "utf-8");
-  cache = text
+  const loaded: EvalCase[] = text
     .split(/\r?\n/)
-    .filter((l) => l.trim())
-    .map((l) => JSON.parse(l) as EvalCase);
-  return cache;
+    .filter((l: string) => l.trim().length > 0)
+    .map((l: string) => JSON.parse(l) as EvalCase);
+  cache = loaded;
+  return loaded;
 }

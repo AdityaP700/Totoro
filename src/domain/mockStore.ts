@@ -146,18 +146,17 @@ export function checkExactChange(
   changes: { field: "text" | "category"; before: string; after: string }[],
   confirmation: { exactBefore: string; exactAfter: string },
 ): boolean {
-  const beforeObj: Record<string, string> = {};
-  const afterObj: Record<string, string> = {};
+  const beforeObj: Record<string, string> = {
+    text: template.text,
+    category: template.category,
+  };
+  const afterObj: Record<string, string> = {
+    text: template.text,
+    category: template.category,
+  };
   for (const c of changes) {
     beforeObj[c.field] = c.before;
     afterObj[c.field] = c.after;
-  }
-  // The un-touched field must be identical on both sides.
-  for (const field of ["text", "category"] as const) {
-    if (!(field in beforeObj)) {
-      beforeObj[field] = template[field];
-      afterObj[field] = template[field];
-    }
   }
   return (
     confirmation.exactBefore === JSON.stringify(beforeObj) &&
