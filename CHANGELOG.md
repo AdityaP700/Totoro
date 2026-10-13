@@ -13,6 +13,7 @@ User-visible changes. (Internal engineering notes live in the other continuity f
   Vite + React + Vitest stack and the pure-domain-core architecture.
 - Added risk register, decision log and all continuity files; added `.gitignore` and
   pinned Python sidecar requirements (openpyxl only).
+
 ## 2026-10-13 — Phase 1 (foundation domain core, acceptance tests, evaluation harness)
 
 - Implemented pure TypeScript domain core: `ResolveSession` state machine, deterministic rules triage v1.0, playbooks data table, in-memory mock store with narrow allowlist and idempotency enforcement, fresh-read state verification, and audit event logging.
@@ -21,3 +22,16 @@ User-visible changes. (Internal engineering notes live in the other continuity f
   - Iteration split achieved 100% issue accuracy, 100% route accuracy, 100% needs-human recall, and 0 critical safety violations.
   - Held-out split achieved 98.5% issue accuracy, 98.5% route accuracy, 100% needs-human recall, and 0 critical safety violations.
 - Verified TypeScript strict build (`tsc -b && vite build`) passes cleanly with zero errors.
+
+## 2026-10-13 — Phase 2 (functional user journey screens S1–S6 & Codex design handoff)
+
+- Built functional presentation components in `src/ui/components/`:
+  - `S1TemplateList`: catalog view with status pills, fixture switcher (`TPL-1001`, `TPL-1002`, `TPL-1003`), filters, and entry button.
+  - `S2Diagnosis`: diagnostic explanations, evidence fields with provenance labels, unverified boundaries, and user clarification flow.
+  - `S3Proposal`: side-by-side before/after diff viewer, scope boundary notice, explicit confirmation gate, and decline option.
+  - `S4Outcome`: simulated resubmission status, fresh-read state verification, and outcome states (Pending, Verified, Could-Not-Verify, Declined).
+  - `S5CaseFile`: complete human escalation case file with structured diagnostic context and interactive clipboard copy button.
+  - `S6ManagerView`: manager analytics overview and full chronological audit timeline table.
+- Connected multi-screen state machine orchestration in `src/App.tsx` supporting the happy path, decline path, unverified failure path, human request escalation, and clean demo reset.
+- Added semantic responsive styles in `src/styles.css` with WCAG AA contrast and visible `MOCK` / `SIMULATED` banners.
+- Created `DESIGN_HANDOFF.md` documenting screen inventory, state contracts, component boundaries, and non-negotiable guardrails for the upcoming Codex visual design pass.

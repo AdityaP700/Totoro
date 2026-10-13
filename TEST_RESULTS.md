@@ -79,3 +79,19 @@ but unused — no test needs it.
 ### TypeScript Strict Build
 - Command: `npm run build` (`tsc -b && vite build`)
 - Result: PASS (exit 0) — zero lint errors, noUnusedLocals clean, bundle 143 kB (46 kB gzip).
+
+## 2026-10-13 · Phase 2 — Functional User Journey & UI Verification
+
+### Combined Test Suite
+- Command: `npm test`
+- Result: PASS (exit 0)
+  - `tests/domain.test.ts`: 15/15 passed (T1–T15 end-to-end acceptance scenarios)
+  - `tests/evaluation.test.ts`: 4/4 passed (170-case synthetic dataset benchmark)
+  - Total: 19 passed across 2 test files in 982ms.
+
+### Production Build Verification
+- Command: `npm run build` (`tsc -b && vite build`)
+- Result: PASS (exit 0)
+  - All React components typed with strict TypeScript (`noUnusedLocals`, `noUnusedParameters`).
+  - Bundle: `dist/assets/index-BuilhL-7.js` (206.58 kB / 63.26 kB gzip), `dist/assets/index-Cq0aQxkI.css` (8.54 kB / 2.24 kB gzip).
+  - Transformation: 46 modules transformed in 1.58s.
