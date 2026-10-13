@@ -207,3 +207,39 @@ but unused — no test needs it.
 - Critical Safety Violations: 0
 - False Verified Outcomes: 0
 - Confirmed Outcome: Guarded hybrid strictly outranks rules baseline and raw model predictions by leveraging model strength on complex ambiguity (CRX-001) while deterministically enforcing human-led safety boundaries (CR-133, CR-107, CR-078, CR-092).
+
+## 2026-10-13 · Product Capability Expansion (Phases 1–6) & Provider Comparison Verification
+
+### Unit Test Suite (78 tests across 11 test files)
+- Command: `npm test`
+- Result: PASS (exit 0) in 1.79s
+  - `tests/domain.test.ts`: 15/15 passed (T1–T15 domain acceptance tests)
+  - `tests/evaluation.test.ts`: 4/4 passed (170-case synthetic dataset benchmark: 100% iteration, 98.5% held-out)
+  - `tests/adapter.test.ts`: 15/15 passed (ReasoningAdapter, safety interceptor, schema validation, CR-133/CR-107 regressions)
+  - `tests/layaClient.test.ts`: 9/9 passed (HostedLayaClient, schema, mock network faults, timeout, fallback)
+  - `tests/groqClient.test.ts`: 4/4 passed (GroqClient, structured mode, auth failure, rate limit 429, timeout fallback)
+  - `tests/cli.test.ts`: 6/6 passed (runCliTriage CLI execution, fresh-read verification, groq/laya flags)
+  - `tests/conversational.test.ts`: 6/6 passed (Plain-language conversational explanations, zero leaked codes, max 1 question, security/billing/2-failed-attempt human explanations)
+  - `tests/playbooks.test.ts`: 5/5 passed (RecoveryPlaybook registry, entry conditions, missing evidence, preconditions, confirmation flags)
+  - `tests/uncertainty.test.ts`: 6/6 passed (Recovery uncertainty assessment, calibrated reliability, state conflicts, sensitive human reviews)
+  - `tests/templateDrafter.test.ts`: 6/6 passed (Constrained template drafting, sequential {{1}} validator, promotional-in-utility blocker, credential blocker, customerConfirmed: false)
+  - `tests/evidenceTrail.test.ts`: 2/2 passed (CaseAuditTrail compilation, complete regulatory evidence trail, telemetry capture)
+
+### Production Build Verification
+- Command: `npm run build` (`tsc -b && vite build`)
+- Result: PASS (exit 0) in 1.10s
+  - 48 modules transformed cleanly.
+  - Strict TypeScript check (`noUnusedLocals`, `noUnusedParameters`) with zero errors.
+
+### Provider Comparison (Rules vs Hosted Laya System One vs Groq openai/gpt-oss-120b)
+- Command: `npx tsx tools/compare_providers.ts`
+- Benchmark: 8 identical benchmark cases (CR-001, CR-005, CR-031, CR-078, CR-092, CR-133, CR-107, CRX-001)
+- Telemetry & Results:
+  | Metric | Rules Baseline | Hosted Laya (laya-rl-agent) | Groq (openai/gpt-oss-120b) | Guarded Hybrid (Groq) |
+  |---|---|---|---|---|
+  | Correct Decisions | 7/8 (87.5%) | 6/8 (75.0%) | 7/8 (87.5%) | **8/8 (100.0%)** |
+  | Critical Safety Violations | 0 | 0 | 0 | **0** |
+  | Avg Latency | ~1 ms | 1,136 ms | 1,598 ms | 1,599 ms |
+  | Token Consumption | 0 tokens | ~331 tokens/query | ~575 tokens/query | ~575 tokens/query |
+  | Cost / 1k queries | $0.00 | Hosted Credit Plan | ~$0.15 - $0.60 | ~$0.15 - $0.60 |
+- Audit Artifact: `docs/audits/provider_comparison.json`

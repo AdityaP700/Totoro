@@ -55,7 +55,7 @@ export interface TriageResult {
   confidenceBand: ConfidenceBand;
   rationale: string;
   missingInformation: string[];
-  decisionLayer?: "rules" | "laya" | "fallback";
+  decisionLayer?: "rules" | "laya" | "groq" | "fallback";
   latencyMs?: number;
 }
 

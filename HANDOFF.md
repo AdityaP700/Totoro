@@ -51,6 +51,12 @@ src/
     eventLog.ts           Session audit event append logger
     stateMachine.ts       ResolveSession orchestrator and state transitions
     adapter.ts            ReasoningAdapter interface, Rules adapter & Hybrid Laya adapter
+    conversationalResponse.ts Customer-facing plain-language explanation generator (Phase 1)
+    playbookRegistry.ts   Typed extensible recovery playbook registry (Phase 2)
+    uncertainty.ts        Uncertainty-aware recovery decision layer (Phase 3)
+    templateDrafter.ts    Constrained template drafting validator & proposals (Phase 4)
+    evidenceTrail.ts      Complete structured lifecycle audit trail compiler (Phase 5)
+    groqClient.ts         Groq LLM client (openai/gpt-oss-120b) with structured mode (Phase 6)
   data/                   Mock fixtures and playbook data tables
     templates.ts          TPL-1001, TPL-1002, TPL-1003 mock fixtures
     playbooks.ts          PB-001 through PB-004 + unknown reason playbooks

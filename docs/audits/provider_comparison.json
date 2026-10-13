@@ -1,0 +1,285 @@
+{
+  "timestamp": "2026-10-13T15:21:50.447Z",
+  "caseCount": 8,
+  "metrics": {
+    "rulesAccuracy": 0.875,
+    "layaAccuracy": 0.75,
+    "groqAccuracy": 0.875,
+    "guardedHybridGroqAccuracy": 1,
+    "groqAvgLatencyMs": 1598,
+    "groqTotalTokens": 4603,
+    "groqSuccessCount": 7
+  },
+  "rows": [
+    {
+      "caseId": "CR-001",
+      "message": "Mera WhatsApp template reject ho gaya. Kya change karna chahiye?",
+      "expected": {
+        "issueType": "template_rejection",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 12,
+        "match": true
+      },
+      "laya": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 2045,
+        "tokens": 347,
+        "match": true
+      },
+      "groq": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 1294,
+        "tokens": 684,
+        "match": true
+      },
+      "guardedHybridGroq": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "decisionLayer": "groq",
+        "match": true
+      }
+    },
+    {
+      "caseId": "CR-005",
+      "message": "It says the variable format is invalid. Fix it for me.",
+      "expected": {
+        "issueType": "template_rejection",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 4,
+        "match": true
+      },
+      "laya": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 1280,
+        "tokens": 329,
+        "match": true
+      },
+      "groq": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 1588,
+        "tokens": 637,
+        "match": true
+      },
+      "guardedHybridGroq": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "decisionLayer": "groq",
+        "match": true
+      }
+    },
+    {
+      "caseId": "CR-031",
+      "message": "Campaign sent dikh raha hai, lekin customers ko message nahi mila.",
+      "expected": {
+        "issueType": "message_delivery",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "message_delivery",
+        "needsHuman": false,
+        "latencyMs": 4,
+        "match": true
+      },
+      "laya": {
+        "issueType": "message_delivery",
+        "needsHuman": false,
+        "latencyMs": 1456,
+        "tokens": 350,
+        "match": true
+      },
+      "groq": {
+        "issueType": "message_delivery",
+        "needsHuman": false,
+        "latencyMs": 660,
+        "tokens": 649,
+        "match": true
+      },
+      "guardedHybridGroq": {
+        "issueType": "message_delivery",
+        "needsHuman": false,
+        "decisionLayer": "groq",
+        "match": true
+      }
+    },
+    {
+      "caseId": "CR-078",
+      "message": "Can you add credits to my account?",
+      "expected": {
+        "issueType": "billing_refund",
+        "needsHuman": true
+      },
+      "rules": {
+        "issueType": "billing_refund",
+        "needsHuman": true,
+        "latencyMs": 0,
+        "match": true
+      },
+      "laya": {
+        "issueType": "billing_refund",
+        "needsHuman": false,
+        "latencyMs": 541,
+        "tokens": 314,
+        "match": true
+      },
+      "groq": {
+        "issueType": "billing_refund",
+        "needsHuman": true,
+        "latencyMs": 1327,
+        "tokens": 661,
+        "match": true
+      },
+      "guardedHybridGroq": {
+        "issueType": "billing_refund",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "match": true
+      }
+    },
+    {
+      "caseId": "CR-092",
+      "message": "Here is my OTP: 123456. Please connect my number.",
+      "expected": {
+        "issueType": "security_identity_access",
+        "needsHuman": true
+      },
+      "rules": {
+        "issueType": "security_identity_access",
+        "needsHuman": true,
+        "latencyMs": 0,
+        "match": true
+      },
+      "laya": {
+        "issueType": "security_identity_access",
+        "needsHuman": false,
+        "latencyMs": 1243,
+        "tokens": 335,
+        "match": true
+      },
+      "groq": {
+        "issueType": "security_identity_access",
+        "needsHuman": true,
+        "latencyMs": 813,
+        "tokens": 648,
+        "match": true
+      },
+      "guardedHybridGroq": {
+        "issueType": "security_identity_access",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "match": true
+      }
+    },
+    {
+      "caseId": "CR-133",
+      "message": "I already tried once: Can a person review this rejection?",
+      "expected": {
+        "issueType": "human_requested",
+        "needsHuman": true
+      },
+      "rules": {
+        "issueType": "human_requested",
+        "needsHuman": true,
+        "latencyMs": 0,
+        "match": true
+      },
+      "laya": {
+        "issueType": "template_rejection",
+        "needsHuman": true,
+        "latencyMs": 984,
+        "tokens": 326,
+        "match": false
+      },
+      "groq": {
+        "latencyMs": 1281,
+        "tokens": 0,
+        "match": false
+      },
+      "guardedHybridGroq": {
+        "issueType": "human_requested",
+        "needsHuman": true,
+        "decisionLayer": "rules",
+        "match": true
+      }
+    },
+    {
+      "caseId": "CR-107",
+      "message": "Help please, urgent.",
+      "expected": {
+        "issueType": "ambiguous_or_missing_context",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "ambiguous_or_missing_context",
+        "needsHuman": false,
+        "latencyMs": 4,
+        "match": true
+      },
+      "laya": {
+        "issueType": "human_requested",
+        "needsHuman": true,
+        "latencyMs": 960,
+        "tokens": 305,
+        "match": false
+      },
+      "groq": {
+        "issueType": "ambiguous_or_missing_context",
+        "needsHuman": false,
+        "latencyMs": 3391,
+        "tokens": 657,
+        "match": true
+      },
+      "guardedHybridGroq": {
+        "issueType": "ambiguous_or_missing_context",
+        "needsHuman": false,
+        "decisionLayer": "groq",
+        "match": true
+      }
+    },
+    {
+      "caseId": "CRX-001",
+      "message": "The template says rejected, but the dashboard doesn't show why. Can you fix the wording?",
+      "expected": {
+        "issueType": "template_rejection",
+        "needsHuman": false
+      },
+      "rules": {
+        "issueType": "state_conflict_or_stale",
+        "needsHuman": true,
+        "latencyMs": 0,
+        "match": false
+      },
+      "laya": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 578,
+        "tokens": 347,
+        "match": true
+      },
+      "groq": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "latencyMs": 2429,
+        "tokens": 667,
+        "match": true
+      },
+      "guardedHybridGroq": {
+        "issueType": "template_rejection",
+        "needsHuman": false,
+        "decisionLayer": "groq",
+        "match": true
+      }
+    }
+  ]
+}

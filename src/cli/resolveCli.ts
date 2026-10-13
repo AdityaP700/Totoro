@@ -1,10 +1,14 @@
-#!/usr/bin/env node
 import { createMockStore } from "../domain/mockStore";
 import { RulesReasoningAdapter, validateModelOutput } from "../domain/adapter";
 import { HostedLayaClient } from "../domain/layaClient";
+import { GroqClient } from "../domain/groqClient";
 import { findPlaybook } from "../data/playbooks";
+import { defaultPlaybookRegistry } from "../domain/playbookRegistry";
 import { expectedStatusAfter, verifyAgainstFreshRead } from "../domain/verification";
-import type { MockTemplate, ProposedChange } from "../domain/types";
+import { generateCustomerFacingResponse, type CustomerFacingResponse } from "../domain/conversationalResponse";
+import { assessRecoveryUncertainty } from "../domain/uncertainty";
+import { buildCaseAuditTrail, type CaseAuditTrail } from "../domain/evidenceTrail";
+import type { MockTemplate, ProposedChange, TriageResult, VerificationResult } from "../domain/types";
 
 // Load .env if present in Node environment
 try {
@@ -37,7 +41,7 @@ export interface CliOutput {
     urgency: string;
     route: string;
     needs_human: boolean;
-    decision_layer: "rules" | "laya" | "fallback";
+    decision_layer: "rules" | "laya" | "groq" | "fallback";
     rationale: string;
   };
   route: "clarify" | "safe_playbook" | "human_handoff";
@@ -50,6 +54,8 @@ export interface CliOutput {
     output_tokens?: number;
   } | null;
   is_verified: boolean;
+  customer_explanation?: CustomerFacingResponse;
+  audit_trail?: CaseAuditTrail;
 }
 
 export interface CliOptions {
@@ -59,6 +65,7 @@ export interface CliOptions {
   execute?: boolean;
   rulesOnly?: boolean;
   apiKey?: string;
+  provider?: "laya" | "groq";
 }
 
 export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
@@ -111,35 +118,63 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     needs_human: rulesRes.needsHuman,
   };
 
-  // 3. Raw Laya Prediction (Direct API query if enabled & configured)
+  // 3. Raw Model Prediction (Direct API query if enabled & configured)
   let rawLayaPrediction: CliOutput["raw_laya_prediction"] = null;
   let modelLatencyMs: number | null = null;
   let requestStatus = "not_invoked";
   let tokenUsage: CliOutput["reported_token_usage"] = null;
   let layaClient: HostedLayaClient | null = null;
+  let groqClient: GroqClient | null = null;
+  const provider = options.provider || "laya";
 
   if (!options.rulesOnly) {
-    layaClient = new HostedLayaClient(options.apiKey ? { apiKey: options.apiKey } : {});
-    if (layaClient.isConfigured) {
-      const apiRes = await layaClient.triage(options.message);
-      modelLatencyMs = apiRes.latencyMs;
+    if (provider === "groq") {
+      groqClient = new GroqClient(options.apiKey ? { apiKey: options.apiKey } : {});
+      if (groqClient.isConfigured) {
+        const apiRes = await groqClient.triage(options.message);
+        modelLatencyMs = apiRes.latencyMs;
 
-      if (apiRes.success && apiRes.issueType) {
-        requestStatus = "success";
-        rawLayaPrediction = {
-          issue_type: apiRes.issueType,
-          urgency: apiRes.urgency,
-          needs_human: apiRes.needsHuman,
-          confidence: apiRes.confidence,
-        };
-        tokenUsage = {
-          input_tokens: apiRes.inputTokens ?? 0,
-        };
+        if (apiRes.success && apiRes.issueType) {
+          requestStatus = "success";
+          rawLayaPrediction = {
+            issue_type: apiRes.issueType,
+            urgency: apiRes.urgency,
+            needs_human: apiRes.needsHuman,
+            confidence: apiRes.confidence,
+          };
+          tokenUsage = {
+            input_tokens: apiRes.inputTokens ?? 0,
+            output_tokens: apiRes.outputTokens ?? 0,
+          };
+        } else {
+          requestStatus = apiRes.error ? `error_${apiRes.error.code}` : "error";
+        }
       } else {
-        requestStatus = apiRes.error ? `error_${apiRes.error.code}` : "error";
+        requestStatus = "api_key_not_configured";
       }
     } else {
-      requestStatus = "api_key_not_configured";
+      layaClient = new HostedLayaClient(options.apiKey ? { apiKey: options.apiKey } : {});
+      if (layaClient.isConfigured) {
+        const apiRes = await layaClient.triage(options.message);
+        modelLatencyMs = apiRes.latencyMs;
+
+        if (apiRes.success && apiRes.issueType) {
+          requestStatus = "success";
+          rawLayaPrediction = {
+            issue_type: apiRes.issueType,
+            urgency: apiRes.urgency,
+            needs_human: apiRes.needsHuman,
+            confidence: apiRes.confidence,
+          };
+          tokenUsage = {
+            input_tokens: apiRes.inputTokens ?? 0,
+          };
+        } else {
+          requestStatus = apiRes.error ? `error_${apiRes.error.code}` : "error";
+        }
+      } else {
+        requestStatus = "api_key_not_configured";
+      }
     }
   }
 
@@ -154,7 +189,7 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
       needsHuman: rawLayaPrediction.needs_human ?? false,
       route: rawLayaPrediction.needs_human ? "human_handoff" : "rules_playbook",
       confidence: rawLayaPrediction.confidence ?? 0.5,
-      rationale: `Laya decision inference (input_tokens=${tokenUsage?.input_tokens ?? 0})`,
+      rationale: `${provider.toUpperCase()} decision inference (input_tokens=${tokenUsage?.input_tokens ?? 0})`,
     };
 
     const validated = validateModelOutput(rawObj, {
@@ -168,7 +203,7 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
         urgency: validated.sanitized.urgency,
         route: validated.sanitized.route,
         needs_human: validated.sanitized.needsHuman,
-        decision_layer: "laya",
+        decision_layer: provider === "groq" ? "groq" : "laya",
         rationale: validated.sanitized.rationale,
       };
     } else {
@@ -208,6 +243,7 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
   let recommendedAction = "";
   let confirmationRequired = false;
   let isVerified = false;
+  let verificationResult: VerificationResult | null = null;
 
   if (mappedRoute === "human_handoff") {
     recommendedAction = "Handoff to human support team with context case file";
@@ -248,6 +284,7 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
             const fresh = store.getTemplate(templateSnapshot.id)!;
             const ver = verifyAgainstFreshRead(fresh, expected);
             isVerified = ver.verified;
+            verificationResult = ver;
           }
         }
       }
@@ -256,6 +293,84 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
       confirmationRequired = false;
     }
   }
+
+  // 7. Customer Facing Explanation (Phase 1)
+  const customerExplanation = generateCustomerFacingResponse({
+    triage: {
+      issueType: guardedDecision.issue_type as any,
+      urgency: guardedDecision.urgency as any,
+      route: guardedDecision.route as any,
+      needsHuman: guardedDecision.needs_human,
+      confidence: 1.0,
+      confidenceBand: "high",
+      rationale: guardedDecision.rationale,
+      missingInformation: [],
+    },
+    templateSnapshot,
+    verification: verificationResult,
+    previousAttempts: 0,
+  });
+
+  // 8. Uncertainty Assessment (Phase 3)
+  const rawModelPrediction = rawLayaPrediction ? {
+    issueType: rawLayaPrediction.issue_type as any,
+    urgency: rawLayaPrediction.urgency as any,
+    needsHuman: rawLayaPrediction.needs_human ?? false,
+    route: (rawLayaPrediction.needs_human ? "human_handoff" : "rules_playbook") as any,
+    confidence: rawLayaPrediction.confidence ?? 0.5,
+    rationale: `${provider.toUpperCase()} decision inference`,
+  } : null;
+
+  const uncertainty = assessRecoveryUncertainty({
+    message: options.message,
+    rulesResult: rulesRes,
+    modelResult: rawModelPrediction,
+    templateSnapshot,
+    validationErrors: rawLayaPrediction && guardedDecision.decision_layer === "fallback" ? ["Validation failed"] : [],
+    previousAttempts: 0,
+  });
+
+  const guardedTriageResult: TriageResult = {
+    issueType: guardedDecision.issue_type as any,
+    urgency: guardedDecision.urgency as any,
+    route: guardedDecision.route as any,
+    needsHuman: guardedDecision.needs_human,
+    confidence: 1.0,
+    confidenceBand: "high",
+    rationale: guardedDecision.rationale,
+    missingInformation: [],
+    decisionLayer: guardedDecision.decision_layer,
+  };
+
+  const playbook = defaultPlaybookRegistry.findForContext({
+    reasonCode: templateSnapshot?.reasonCode,
+    issueType: guardedDecision.issue_type as any,
+  });
+
+  // 9. Case Audit Trail (Phase 5)
+  const auditTrail = buildCaseAuditTrail({
+    caseId: `CLI-${Date.now()}`,
+    correlationId: `CORR-${Date.now()}`,
+    originalMessage: options.message,
+    templateSnapshot,
+    rulesResult: rulesRes,
+    modelResult: rawModelPrediction ? {
+      modelId: options.provider || "laya",
+      issueType: rawModelPrediction.issueType,
+      urgency: rawModelPrediction.urgency,
+      confidence: rawModelPrediction.confidence,
+      latencyMs: modelLatencyMs ?? undefined,
+      tokensCharged: tokenUsage?.input_tokens,
+    } : null,
+    guardedDecision: guardedTriageResult,
+    uncertainty,
+    playbook,
+    customerConfirmed: options.execute ?? false,
+    actionExecuted: options.execute ?? false,
+    mockResult: isVerified ? "SIMULATED_PENDING_REVIEW" : null,
+    verification: verificationResult,
+    totalLatencyMs: modelLatencyMs ?? 0,
+  });
 
   return {
     issue_type: guardedDecision.issue_type,
@@ -272,6 +387,8 @@ export async function runCliTriage(options: CliOptions): Promise<CliOutput> {
     request_status: requestStatus,
     reported_token_usage: tokenUsage,
     is_verified: isVerified,
+    customer_explanation: customerExplanation,
+    audit_trail: auditTrail,
   };
 }
 
@@ -291,6 +408,7 @@ Options:
   -t, --template-id <id>     Mock template ID (e.g. TPL-1001, TPL-1002, TPL-1003)
   --state <json>             Raw mock template state JSON
   --rules-only               Run deterministic rules baseline only (skip hosted API)
+  --provider <laya|groq>     Reasoning provider (default: laya)
   --execute                  Simulate user confirmation & perform fresh-read verification
   -h, --help                 Display this help message
 
@@ -305,6 +423,7 @@ Output:
   let stateJson: string | undefined;
   let execute = false;
   let rulesOnly = false;
+  let provider: "laya" | "groq" | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -318,6 +437,11 @@ Output:
       execute = true;
     } else if (arg === "--rules-only") {
       rulesOnly = true;
+    } else if (arg === "--provider") {
+      const p = args[++i];
+      if (p === "groq" || p === "laya") {
+        provider = p;
+      }
     } else if (!message && !arg.startsWith("-")) {
       message = arg;
     }
@@ -348,6 +472,7 @@ Output:
       stateJson,
       execute,
       rulesOnly,
+      provider,
     });
 
     console.log(JSON.stringify(result, null, 2));

@@ -59,6 +59,15 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Repeatable evaluation suite (`tools/evaluate_suite.ts`) added: `npm run eval:rules`, `npm run eval:hybrid`, `npm run eval:smoke`.
   - Comprehensive documentation: created `README.md`, updated `DECISION_LOG.md` (D-013), `TEST_RESULTS.md`, `CHANGELOG.md`, `HANDOFF.md`.
   - Full test suite passes: 43/43 tests passing in vitest across 5 test files. Strict build passes (`tsc -b && vite build`).
+- **Product Capability Expansion (Phases 1–6 Completed):**
+  - Phase 1 (Conversational recovery): Plain-language explanations in `src/domain/conversationalResponse.ts` covering all issue types, zero leaked codes, max 1 question.
+  - Phase 2 (Reusable recovery playbooks): Typed registry in `src/domain/playbookRegistry.ts` (`PB-001` - `PB-004`, delivery, webhook, security, billing, human, ambiguous).
+  - Phase 3 (Uncertainty-aware recovery): Conservative decision layer in `src/domain/uncertainty.ts` with calibrated reliability tracking.
+  - Phase 4 (Constrained template drafting): Validator in `src/domain/templateDrafter.ts` enforcing sequential `{{1}}` variables, promotional keyword exclusion in utility, and mandatory unconfirmed proposals.
+  - Phase 5 (Evidence trail & audit): Structured lifecycle audit logs in `src/domain/evidenceTrail.ts`.
+  - Phase 6 (Provider comparison): `GroqClient` in `src/domain/groqClient.ts` (`openai/gpt-oss-120b`). Multi-provider benchmark in `tools/compare_providers.ts` proving Guarded Hybrid achieves 100% (8/8) accuracy with 0 safety violations.
+  - CLI updated (`src/cli/resolveCli.ts`) to return customer explanations, evidence trails, and support `--provider <laya|groq>`.
+  - Full test suite passes: 78/78 tests across 11 test files. Strict build passes (`tsc -b && vite build`).
 
 ## Acceptance status
 
@@ -69,12 +78,12 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Phase 4 gate: PASSED (all tests, build, audits clean; deliverables, handoffs, and hybrid adapter complete).
 - Backend-First Experiment gate: PASSED (live hosted Laya inference verified 200 OK, credit budget bounded at 2,653/5,481 tokens, CLI entry point working with structured JSON and verification guard, 43/43 tests passing, build clean).
 - Hybrid Decision Precedence & Regression Guardrails gate: PASSED (CR-133 and CR-107 root-caused and fixed; deterministic safety precedence strictly enforced; 6 new regression tests added; 49/49 tests passing; build clean; cached smoke replay demonstrates 8/8 100% guarded hybrid accuracy with 0 live credits consumed).
+- Product Capability Expansion (Phases 1–6) gate: PASSED (Conversational response, playbook registry, uncertainty assessment, template drafter, evidence trail, Groq integration, and multi-provider benchmark complete; 78/78 tests passing; strict build clean; Guarded Hybrid scores 8/8 100% with 0 safety violations).
 
 ## Exact next command / task
 
-Ready for final report or further bounded evaluations if requested by the user. Zero live credit burn during regression fixes. Commands available:
-- `npm test`: run full 49-test suite (includes T1-T15, 170-case evaluation benchmark, Laya client, CLI, and decision precedence regressions).
+Product capability expansion is fully implemented, verified, and benchmarked. Commands available:
+- `npm test`: run full 78-test suite across 11 test files.
 - `npm run build`: verify static production build (`tsc -b && vite build`).
-- `npx tsx tools/run_laya_smoke.ts --cached`: replay 8-case smoke evaluation against cached telemetry (8/8 100% hybrid accuracy, 0 tokens spent).
-- `npm run eval:rules`: evaluate deterministic rules across 170-case dataset.
-- `npm run eval:hybrid`: evaluate guarded hybrid across 170-case dataset (reporting rules and guarded decisions separately).
+- `npx tsx tools/compare_providers.ts`: run multi-provider benchmark (Rules vs Hosted Laya vs Groq vs Guarded Hybrid).
+- `npx tsx src/cli/resolveCli.ts --message "<message>" [--template-id <id>] [--rules-only] [--provider laya|groq] [--execute]`: run CLI recovery agent.

@@ -85,3 +85,17 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Added `--cached` / `--offline` flag to `tools/run_laya_smoke.ts`: replayed 8 benchmark cases against saved telemetry with 0 live tokens charged, demonstrating 100% (8/8) Guarded Hybrid accuracy vs 87.5% (7/8) Rules baseline and 75% (6/8) Raw Laya.
 - Updated `tools/evaluate_suite.ts` to report rules baseline predictions and guarded final decisions separately with decision layer distribution metrics.
 
+## 2026-10-13 — Product Capability Expansion (Phases 1–6) & Provider Comparison
+
+- **Conversational Recovery (`src/domain/conversationalResponse.ts`)**: Built plain-language response layer converting internal machine-readable triage, mock template states, and verification records into clear customer explanations (`headline`, `whatIsWrong`, `evidenceExplanation`, `nextSteps`). Zero provider reason codes leaked, zero fabricated policies or approval claims, max 1 single question for ambiguous cases, transparent reasons for transfers (security, billing, 2 failed attempts).
+- **Reusable Playbook Registry (`src/domain/playbookRegistry.ts`)**: Implemented typed, extensible recovery playbooks with explicit entry conditions, required/conflicting evidence handling, permitted mock actions, confirmation requirements (`customerConfirmed: false`), expected post-action states, fresh-read verification rules, and handoff triggers for known issues (PB-001 through PB-004, delivery delay, webhook failure, security, billing, human requested, ambiguous).
+- **Uncertainty-Aware Decision Layer (`src/domain/uncertainty.ts`)**: Added conservative evaluation layer categorizing operational evidence into `SUFFICIENT_TO_PROCEED`, `MISSING_EVIDENCE_CLARIFIABLE`, `CONFLICTING_EVIDENCE_INVESTIGATE`, and `UNSAFE_OR_SENSITIVE_HUMAN_REVIEW`. Raw model confidence is treated strictly as uncalibrated (flagged if model/rules disagree or evidence is missing).
+- **Constrained Template Drafting (`src/domain/templateDrafter.ts`)**: Added drafting validator with deterministic syntactic checks: sequential variable numbering (`{{1}}`, `{{2}}`), category rules (promotional text blocked in utility), secrets/credentials blocked, length limits. Creates unconfirmed proposals; model cannot self-approve.
+- **Structured Case Audit Trail (`src/domain/evidenceTrail.ts`)**: Added comprehensive audit logging (`CaseAuditTrail`) capturing the entire lifecycle: original request, evidence signals, rules vs model triage, guardrail outcomes, playbook actions, simulated executions, fresh-read verification results, and telemetry.
+- **Multi-Provider Comparison (`src/domain/groqClient.ts`, `tools/compare_providers.ts`)**:
+  - Integrated Groq LLM API (`openai/gpt-oss-120b`) with structured JSON mode and timeout/error handling.
+  - Benchmarked Rules baseline, Hosted Laya System One (`laya-rl-agent`), Groq, and Guarded Hybrid on identical 8-case suite.
+  - Guarded Hybrid achieved 100% (8/8) accuracy with 0 critical safety violations, outperforming all raw standalone models.
+- **CLI Enhancements (`src/cli/resolveCli.ts`)**: Added customer-facing explanations and complete audit trails to stdout JSON output; added `--provider <laya|groq>` selection flag.
+- **Expanded Test Suite**: Added 29 new tests across 6 new test files (`conversational.test.ts`, `playbooks.test.ts`, `uncertainty.test.ts`, `templateDrafter.test.ts`, `evidenceTrail.test.ts`, `groqClient.test.ts`), bringing total passing test suite to 78/78 tests in 11 test files. Strict build (`npm run build`) clean.
+
