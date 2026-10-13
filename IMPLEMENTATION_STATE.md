@@ -44,10 +44,11 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Verified `Cost Assumptions` formulas (`=B2*B3*B4`, `=B11*B5`, `=B12*B6`, `=B13-B14-B15`) and evidence labels preserved intact.
   - Tooling created in `tools/populate_workbook.py`.
 - **Phase 4 (completed):**
-  - Clean test verification: `npm test` passed (19/19 in 1.16s).
-  - Clean build verification: `npm run build` passed (`tsc -b && vite build` in 1.41s).
+  - Clean test verification: `npm test` passed (28/28 in 0.97s).
+  - Clean build verification: `npm run build` passed (`tsc -b && vite build` in 1.63s).
   - Clean dataset audit: `.venv/Scripts/python tools/audit_dataset.py` passed (170/170 rows valid, 0 errors).
-  - Authored `SUBMISSION_DRAFT.md` (assignment reconciliation, screenshot checklist, demo walkthrough script, AI usage log).
+  - Reasoning Adapter Extension: Added `ReasoningAdapter` interface (`src/domain/adapter.ts`), `RulesReasoningAdapter`, `HybridLayaReasoningAdapter`, schema validation with deterministic safety interceptor, and comprehensive test suite (`tests/adapter.test.ts`).
+  - Authored `SUBMISSION_DRAFT.md` (hybrid architecture breakdown, assignment reconciliation, screenshot checklist, demo walkthrough script, AI usage log).
   - Updated `HANDOFF.md` with full reviewer guide and commands.
   - All acceptance gates passed.
 
@@ -57,4 +58,4 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Phase 1 gate: PASSED (commit `40a2326`).
 - Phase 2 gate: PASSED (commit `f19b491`).
 - Phase 3 gate: PASSED (commit `0d6d36b`).
-- Phase 4 gate: PASSED (all tests, build, audits clean; deliverables and handoffs complete).
+- Phase 4 gate: PASSED (all tests, build, audits clean; deliverables, handoffs, and hybrid adapter complete).

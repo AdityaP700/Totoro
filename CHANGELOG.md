@@ -51,3 +51,15 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Ran automated dataset audit (`tools/audit_dataset.py`) confirming 170/170 rows valid with zero schema or label errors.
 - Authored `SUBMISSION_DRAFT.md` featuring assignment reconciliation matrix, reviewer screenshot checklist, demo walkthrough script, unresolved risks, and transparent AI usage disclosure.
 - Updated `HANDOFF.md` with comprehensive instructions, architecture map, and verification commands.
+
+## 2026-10-13 — Hybrid Reasoning Architecture & Laya Decision Adapter Extension
+
+- Added `ReasoningAdapter` interface (`src/domain/adapter.ts`) decoupling the decision layer from UI and action execution.
+- Implemented `RulesReasoningAdapter` for deterministic rules triage with zero latency and zero cost.
+- Implemented `HybridLayaReasoningAdapter`:
+  - Known template rejections fast-path to deterministic rules.
+  - Sensitive requests (billing, security, identity, explicit human requests) fast-path to human handoff.
+  - Complex and ambiguous queries query Laya structured classifier with safe rules fallback.
+  - Added strict JSON schema validation, deterministic safety interceptor, and confidence gating (<0.70 routes to clarification or handoff).
+- Connected interactive reasoning engine switcher into `src/App.tsx` topbar.
+- Added comprehensive unit test suite `tests/adapter.test.ts` (9 tests passing).

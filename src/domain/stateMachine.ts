@@ -12,11 +12,14 @@ import { findPlaybook } from "../data/playbooks";
 import { triageMessage, guessLanguage } from "./triage";
 import { appendEvent } from "./eventLog";
 import { expectedStatusAfter, verifyAgainstFreshRead } from "./verification";
+import type { ReasoningAdapter } from "./adapter";
+import { RulesReasoningAdapter } from "./adapter";
 
 export interface SessionDeps {
   store: MockStore;
   now(): string;
   newId(prefix: string): string;
+  reasoningAdapter?: ReasoningAdapter;
 }
 
 export interface StartOptions {
@@ -87,15 +90,18 @@ export class ResolveSession {
   }
 
   private runTriage(): void {
-    const t: TriageResult = triageMessage(this.state.originalMessage, {
-      reasonCode: this.state.templateSnapshot?.reasonCode ?? null,
-      stateStatus: this.state.templateSnapshot?.status,
+    const adapter = this.deps.reasoningAdapter ?? new RulesReasoningAdapter();
+    const t: TriageResult = adapter.triage({
+      message: this.state.originalMessage,
+      templateSnapshot: this.state.templateSnapshot,
+      previousAttempts: this.state.attemptsFailed,
     });
     this.state.triage = t;
+    const layer = t.decisionLayer ?? "rules";
     this.append(
       "TRIAGED",
-      `issue=${t.issueType}, urgency=${t.urgency}, needsHuman=${t.needsHuman}, route=${t.route} (rules, no model)`,
-      { ruleVersion: "rules-1.0", route: t.route },
+      `issue=${t.issueType}, urgency=${t.urgency}, needsHuman=${t.needsHuman}, route=${t.route} (adapter=${adapter.name}, layer=${layer})`,
+      { adapter: adapter.name, version: adapter.version, decisionLayer: layer, route: t.route, latencyMs: t.latencyMs },
     );
     this.state.stage = "TRIAGE";
   }

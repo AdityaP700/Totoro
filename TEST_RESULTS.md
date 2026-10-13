@@ -116,3 +116,18 @@ but unused — no test needs it.
   - Structured LLM baseline: `NOT RUN`
   - Laya adapter: `NOT RUN`
 - Verified `Cost Assumptions` sheet formulas intact via openpyxl inspect script.
+
+## 2026-10-13 · Reasoning Adapter & Hybrid Architecture Verification
+
+### Combined Test Suite (28 tests across 3 test files)
+- Command: `npm test`
+- Result: PASS (exit 0) in 968ms
+  - `tests/domain.test.ts`: 15/15 passed (T1–T15 acceptance tests)
+  - `tests/evaluation.test.ts`: 4/4 passed (170-case synthetic dataset benchmark)
+  - `tests/adapter.test.ts`: 9/9 passed (ReasoningAdapter, schema validation, safety interceptor, confidence gating, fallback, and held-out comparison)
+
+### Production Build Verification
+- Command: `npm run build` (`tsc -b && vite build`)
+- Result: PASS (exit 0) in 1.63s
+  - 47 modules transformed cleanly.
+  - Zero TypeScript errors in strict mode (`noUnusedLocals`, `noUnusedParameters`).

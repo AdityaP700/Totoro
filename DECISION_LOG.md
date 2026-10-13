@@ -105,3 +105,14 @@ In Phase 3, populated `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx`
 - Cost Assumptions formulas (`=B2*B3*B4`, `=B11*B5`, `=B12*B6`, `=B13-B14-B15`) strictly preserved.
 - Alternatives rejected: fabricating LLM/Laya metrics (forbidden); modifying source workbook in `docs/source/` (forbidden by provenance rules).
 - Evidence label: DOCUMENTED (test execution logs in TEST_RESULTS.md) + SYNTHETIC (170-case synthetic evaluation set).
+
+## D-012 · 2026-10-13 · Hybrid Reasoning Architecture & Laya Decision Adapter
+
+Implemented a focused, modular extension to the decision layer via `ReasoningAdapter` interface (`src/domain/adapter.ts`):
+- **Fast-path routing**: Known template rejection reason codes route to deterministic rules (`PB-001`–`PB-004`).
+- **Safety routing**: Sensitive requests (billing, refunds, security, credentials, admin access, account takeovers, explicit human requests) route deterministically to human handoff.
+- **Complex / Ambiguous routing**: Routed to `HybridLayaReasoningAdapter` for structured classification.
+- **Model Output Validation**: Structured output is strictly checked against schema enums (`IssueType`, `Urgency`, `Route`). A deterministic safety interceptor enforces human handoff for security/billing even if the model attempts automated routing. Confidence below 0.70 is gated to `clarify_once` or `human_handoff`.
+- **Safe Fallback**: Any model failure, timeout, or invalid output safely falls back to rules triage with an explicit audit event annotation.
+- **Evaluation Gate**: On the synthetic dataset (n=170), rules baseline achieves 99.4% accuracy (98.5% held-out) with 0ms model latency and \$0 cost. Hybrid Laya matches 100% human-handoff recall and 0 safety violations, establishing a clean foundation for future real-world multi-symptom traces.
+- Evidence label: DOCUMENTED (design brief D5, "Where Jev and Laya fit") + SYNTHETIC (170-case synthetic benchmark).

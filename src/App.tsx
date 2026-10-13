@@ -9,6 +9,7 @@ import { S3Proposal } from "./ui/components/S3Proposal";
 import { S4Outcome } from "./ui/components/S4Outcome";
 import { S5CaseFile } from "./ui/components/S5CaseFile";
 import { S6ManagerView } from "./ui/components/S6ManagerView";
+import { HybridLayaReasoningAdapter, RulesReasoningAdapter } from "./domain/adapter";
 
 type Screen = "S1" | "S2" | "S3" | "S4" | "S5" | "S6";
 
@@ -20,6 +21,7 @@ export default function App() {
   const [previousScreen, setPreviousScreen] = React.useState<Screen>("S1");
   const [session, setSession] = React.useState<ResolveSession | null>(null);
   const [allEvents, setAllEvents] = React.useState<AuditEvent[]>([]);
+  const [reasoningMode, setReasoningMode] = React.useState<"rules" | "hybrid-laya">("rules");
 
   // Dependency injector for ResolveSession
   const deps: SessionDeps = React.useMemo(() => {
@@ -28,8 +30,12 @@ export default function App() {
       store,
       now: () => new Date().toISOString(),
       newId: (prefix: string) => `${prefix}-${String(idCounter++).padStart(4, "0")}`,
+      reasoningAdapter:
+        reasoningMode === "hybrid-laya"
+          ? new HybridLayaReasoningAdapter()
+          : new RulesReasoningAdapter(),
     };
-  }, [store]);
+  }, [store, reasoningMode]);
 
   const refreshState = (newSession?: ResolveSession) => {
     setTemplates(store.listTemplates());
@@ -126,7 +132,21 @@ export default function App() {
         </div>
         <div className="topbar-mock-badge">
           <span className="badge badge-mock">SIMULATED / MOCK ENVIRONMENT</span>
-          <span className="topbar-subtext">Zero external Meta/Cheerio calls · Deterministic rules core</span>
+          <span className="topbar-subtext">Zero external Meta/Cheerio calls</span>
+          <div style={{ marginTop: "4px", display: "flex", gap: "6px", alignItems: "center" }}>
+            <span className="tag-provenance" style={{ fontSize: "11px" }}>
+              Engine: <strong>{reasoningMode === "rules" ? "Rules Baseline (v1.0)" : "Hybrid Laya (Provisional)"}</strong>
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline"
+              style={{ padding: "2px 6px", fontSize: "11px" }}
+              onClick={() => setReasoningMode((m) => (m === "rules" ? "hybrid-laya" : "rules"))}
+              title="Toggle between deterministic rules baseline and hybrid decision adapter"
+            >
+              Switch to {reasoningMode === "rules" ? "Hybrid Laya" : "Rules Baseline"}
+            </button>
+          </div>
         </div>
         <nav aria-label="Breadcrumb navigation" className="screen-nav">
           <button

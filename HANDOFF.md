@@ -50,6 +50,7 @@ src/
     caseFile.ts           Support escalation dossier builder & Markdown formatter
     eventLog.ts           Session audit event append logger
     stateMachine.ts       ResolveSession orchestrator and state transitions
+    adapter.ts            ReasoningAdapter interface, Rules adapter & Hybrid Laya adapter
   data/                   Mock fixtures and playbook data tables
     templates.ts          TPL-1001, TPL-1002, TPL-1003 mock fixtures
     playbooks.ts          PB-001 through PB-004 + unknown reason playbooks
@@ -64,12 +65,13 @@ src/
     S4Outcome.tsx         Simulated submission, fresh-read verification check
     S5CaseFile.tsx        Support escalation file with clipboard copy button
     S6ManagerView.tsx     Manager analytics KPI cards and full audit event table
-  App.tsx                 Screen navigation and ResolveSession state bindings
+  App.tsx                 Screen navigation, ResolveSession bindings, and engine switch
   styles.css              Accessible semantic styles, WCAG AA contrast, mock banners
 
 tests/
   domain.test.ts          Vitest acceptance tests covering T1–T15
   evaluation.test.ts      Vitest benchmark runner for the 170 synthetic cases
+  adapter.test.ts         Vitest unit tests for ReasoningAdapter & Hybrid architecture
 
 tools/
   audit_dataset.py        Dataset structural validation tool

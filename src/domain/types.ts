@@ -55,6 +55,8 @@ export interface TriageResult {
   confidenceBand: ConfidenceBand;
   rationale: string;
   missingInformation: string[];
+  decisionLayer?: "rules" | "laya" | "fallback";
+  latencyMs?: number;
 }
 
 /** The single allowlisted write-like operation (G2/D8). */

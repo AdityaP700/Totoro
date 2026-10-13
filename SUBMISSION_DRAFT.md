@@ -19,7 +19,26 @@ When a marketing or transactional template is rejected by Meta's automated moder
 
 ---
 
-## 2. Assignment Requirements Reconciliation Matrix
+## 2. Hybrid Support-Recovery Architecture: Where Rules, Models, and Humans Fit
+
+Rather than treating an LLM as the whole product or falling back to a purely static tool, Cheerio Resolve implements a **hybrid architecture** that pairs deterministic safety rules with an optional reasoning adapter (`ReasoningAdapter` in `src/domain/adapter.ts`).
+
+### Decision-Layer Task Allocation:
+
+| Task / Problem Type | Preferred Approach | Rationale |
+|---|---|---|
+| **Known template rejection reason** | **Deterministic Rules** | Known provider error codes or template attributes map directly to verified playbooks with 0ms latency and \$0 cost. |
+| **Billing, account ownership, security, credentials** | **Human Handoff** | High-risk, sensitive operations must never be automated; deterministic safety interceptor forces human escalation. |
+| **Multiple symptoms across a conversation** | **Laya-Assisted Classification** | Disentangles competing complaints into structured issue classifications (`IssueType`, `Urgency`, `needsHuman`). |
+| **User describes an unfamiliar error in plain language** | **Laya-Assisted Interpretation + Validation** | Maps colloquial Hinglish/English descriptions to candidate categories, strictly validated against allowlisted enums. |
+| **Explain a verified diagnosis in simpler language** | **Laya-Assisted Explanation** | Generates jargon-free, friendly explanations of technical template formatting rules. |
+| **Execute a change or resubmit a template** | **Deterministic Application Logic + User Confirmation** | The model **never** executes mutations. Only allowlisted mock operations can run, gated by explicit user diff confirmation. |
+
+> **The Essential Boundary:** Laya can help interpret ambiguous problems and draft user-friendly copy, but it **cannot invent missing evidence**, **cannot fabricate reason codes**, and **cannot decide that a risky action is permitted**.
+
+---
+
+## 3. Assignment Requirements Reconciliation Matrix
 
 | Requirement (Assignment A) | Cheerio Resolve Implementation | Verification / Evidence | Status |
 |---|---|---|---|
