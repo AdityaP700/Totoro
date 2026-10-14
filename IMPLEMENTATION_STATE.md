@@ -2,6 +2,13 @@
 
 Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 
+## 2026-10-15 addendum — Persistent demo workspace foundation
+
+- Next.js now persists workspace-scoped cases, conversation turns, preferences, mock state snapshots, and evidence metadata via SQLite.
+- A signed HttpOnly demo cookie supplies the workspace scope; this is explicitly not authentication.
+- The initial evidence attachment control accepts CSV, XLSX, TXT, Markdown, and DOCX only after bounded defensive validation. Storage is non-public under `TOTORO_DATA_DIR`.
+- Next step: extend the initial source profile into confirmed mappings and deterministic report cards before representing advanced analytics as available.
+
 ## Current phase
 
 **Phase 4 — Complete (Production Verification, Continuity Finalized, and Report Rendered)**

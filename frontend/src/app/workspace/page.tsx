@@ -35,11 +35,14 @@ function WorkspacePageContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTechnical, setShowTechnical] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
+  const [sourcesLibrary, setSourcesLibrary] = useState<Array<{ id: string; originalName: string; status: string; sizeBytes: number; profile: Record<string, unknown> }>>([]);
+  const [uploading, setUploading] = useState(false);
 
   const [resolveData, setResolveData] = useState<ResolveResponse | null>(null);
   const [actionData, setActionData] = useState<ActionResponse | null>(null);
 
   useEffect(() => {
+    void fetch("/api/preferences").then((response) => response.ok ? response.json() : null).then((data) => { if (data?.profile?.role) setUserRole(data.profile.role); }).catch(() => undefined);
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("totoro_onboarding_profile");
@@ -97,6 +100,25 @@ function WorkspacePageContent() {
       setLoading(false);
     }
   };
+
+  const loadSources = async (caseId?: string) => {
+    const res = await fetch(`/api/evidence${caseId ? `?caseId=${encodeURIComponent(caseId)}` : ""}`);
+    if (res.ok) { const data = await res.json(); setSourcesLibrary(data.sources || []); }
+  };
+
+  const handleUpload = async (file: File) => {
+    if (!resolveData?.caseId) return;
+    setUploading(true); setErrorMessage(null);
+    try {
+      const data = new FormData(); data.set("file", file); data.set("caseId", resolveData.caseId);
+      const res = await fetch("/api/evidence", { method: "POST", body: data });
+      if (!res.ok) { const body = await res.json(); throw new Error(body.error || "Upload failed."); }
+      await loadSources(resolveData.caseId);
+    } catch (error) { setErrorMessage(error instanceof Error ? error.message : "Upload failed."); }
+    finally { setUploading(false); }
+  };
+
+  useEffect(() => { if (resolveData?.caseId) void loadSources(resolveData.caseId); }, [resolveData?.caseId]);
 
   const handleClarifySubmit = async () => {
     if (!clarificationInput.trim() || !sessionId) return;
@@ -631,7 +653,24 @@ function WorkspacePageContent() {
                       </span>
                       <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-600">{evidence}</p>
                     </div>
+                    {resolveData?.caseId && (
+                      <label className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
+                        {uploading ? "Processing source..." : "Attach source"}
+                        <input className="sr-only" type="file" accept=".csv,.xlsx,.txt,.md,.markdown,.docx" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleUpload(file); event.currentTarget.value = ""; }} />
+                      </label>
+                    )}
                   </div>
+
+                  {sourcesLibrary.length > 0 && (
+                    <div className="mt-5 space-y-2" aria-label="Case-linked evidence">
+                      {sourcesLibrary.map((source) => (
+                        <div key={source.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs">
+                          <div><span className="font-semibold text-zinc-900">{source.originalName}</span><span className="ml-2 font-mono text-zinc-500">{source.status} · {Math.ceil(source.sizeBytes / 1024)} KB</span></div>
+                          <span className="font-mono text-[10px] uppercase text-zinc-500">{String(source.profile.kind || "document")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
                     {[

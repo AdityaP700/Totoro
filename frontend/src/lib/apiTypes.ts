@@ -3,7 +3,6 @@ import type {
   Diagnosis,
   MockTemplate,
   Proposal,
-  ProposedChange,
   Stage,
   TriageResult,
   VerificationResult,

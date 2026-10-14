@@ -2,6 +2,13 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Persistent demo workspace foundation
+
+- Added a SQLite migration-backed persistence layer for demo workspaces, onboarding preferences, cases, conversation turns, and evidence metadata.
+- Added a signed HttpOnly demo-workspace cookie, durable case restoration, and workspace-scoped history APIs.
+- Added case-linked, non-public CSV/TXT/Markdown/XLSX/DOCX evidence uploads with file-type, ZIP/XML, path, encryption, macro, and size safety checks.
+- Added deployment documentation for persistent single-instance SQLite storage.
+
 ## 2026-10-13 — Phase 0 (inspection & decisions)
 
 - Added the full source pack to `docs/source/` (design brief, implementation handoff,

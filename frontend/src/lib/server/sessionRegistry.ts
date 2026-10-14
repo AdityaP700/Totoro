@@ -18,8 +18,10 @@ import { buildCaseAuditTrail } from "../../../../src/domain/evidenceTrail";
 import { assessRecoveryUncertainty } from "../../../../src/domain/uncertainty";
 import { defaultPlaybookRegistry } from "../../../../src/domain/playbookRegistry";
 import type { SessionSummary, ResolveResponse } from "../apiTypes";
+import { repositories, type StoredCase } from "./persistence";
 
 export interface ActiveSessionRecord {
+  workspaceId: string;
   sessionId: string;
   caseId: string;
   session: ResolveSession;
@@ -54,7 +56,7 @@ function autoDetectTemplateId(message: string, fallbackId: string = "TPL-1001"):
   return fallbackId;
 }
 
-export function createNewSession(options: {
+export function createNewSession(workspaceId: string, options: {
   message: string;
   templateId?: string;
   userRole?: string;
@@ -79,6 +81,7 @@ export function createNewSession(options: {
 
   const nowStr = deps.now();
   const record: ActiveSessionRecord = {
+    workspaceId,
     sessionId,
     caseId: session.state.caseId,
     session,
@@ -93,24 +96,38 @@ export function createNewSession(options: {
   };
 
   registry.set(sessionId, record);
+  persist(record);
   return record;
 }
 
-export function getSession(sessionId: string): ActiveSessionRecord | undefined {
+export function getSession(sessionId: string): ActiveSessionRecord | undefined;
+export function getSession(workspaceId: string, sessionId: string): ActiveSessionRecord | undefined;
+export function getSession(workspaceOrSessionId: string, maybeSessionId?: string): ActiveSessionRecord | undefined {
+  const workspaceId = maybeSessionId ? workspaceOrSessionId : undefined;
+  const sessionId = maybeSessionId || workspaceOrSessionId;
   const record = registry.get(sessionId);
-  if (record) {
+  if (record && (!workspaceId || record.workspaceId === workspaceId)) {
     record.lastActive = Date.now();
+    return record;
   }
-  return record;
+  if (!workspaceId) return undefined;
+  const stored = repositories.getCase(workspaceId, sessionId);
+  if (!stored) return undefined;
+  const restored = hydrate(stored);
+  registry.set(sessionId, restored);
+  return restored;
 }
 
-export function deleteSession(sessionId: string): boolean {
-  return registry.delete(sessionId);
+export function deleteSession(workspaceId: string, sessionId: string): boolean {
+  if (registry.get(sessionId)?.workspaceId === workspaceId) registry.delete(sessionId);
+  return repositories.deleteCase(workspaceId, sessionId);
 }
 
-export function listSessions(): SessionSummary[] {
+export function listSessions(workspaceId: string): SessionSummary[] {
   const summaries: SessionSummary[] = [];
-  for (const record of registry.values()) {
+  for (const stored of repositories.listCases(workspaceId)) {
+    const cached = registry.get(stored.sessionId);
+    const record = cached?.workspaceId === workspaceId ? cached : hydrate(stored);
     const s = record.session.state;
     let statusBadge = "Diagnosing";
     if (s.stage === "PENDING" && s.verification?.verified) {
@@ -142,6 +159,28 @@ export function listSessions(): SessionSummary[] {
 
 export function resetAllSessions(): void {
   registry.clear();
+  // Kept for the legacy integration suite; never exposed as a product route.
+  repositories.clearWorkspaceForTest("test-demo-workspace");
+}
+
+export function persist(record: ActiveSessionRecord): void {
+  record.updatedAt = new Date().toISOString();
+  repositories.saveCase({ id: record.caseId, workspaceId: record.workspaceId, sessionId: record.sessionId,
+    title: record.originalMessage.slice(0, 100), templateId: record.templateId, originalMessage: record.originalMessage,
+    state: record.session.state, templates: record.store.listTemplates(), createdAt: record.createdAt,
+    updatedAt: record.updatedAt, messages: record.messages });
+}
+
+function hydrate(stored: StoredCase): ActiveSessionRecord {
+  const store = createMockStore();
+  (stored.templates as Array<Record<string, unknown>>).forEach((template) => store.updateTemplate(String(template.id), (target) => Object.assign(target, template)));
+  let id = 0;
+  const deps: SessionDeps = { store, now: () => new Date().toISOString(), newId: (prefix) => `${prefix}-${id++}`, reasoningAdapter: new RulesReasoningAdapter() };
+  const session = new ResolveSession(deps, { templateId: stored.templateId || "TPL-1001", message: stored.originalMessage });
+  Object.assign(session.state, stored.state);
+  return { workspaceId: stored.workspaceId, sessionId: stored.sessionId, caseId: stored.id, session, store,
+    templateId: stored.templateId, originalMessage: stored.originalMessage, messages: stored.messages,
+    createdAt: stored.createdAt, updatedAt: stored.updatedAt, lastActive: Date.now() };
 }
 
 /**

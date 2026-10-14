@@ -122,6 +122,7 @@ function layaApiProxy(): Plugin {
 
 export default defineConfig({
   plugins: [react(), layaApiProxy()],
+  ssr: { external: ["node:sqlite"] },
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],

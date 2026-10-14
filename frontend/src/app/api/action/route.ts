@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getSession } from "../../../lib/server/sessionRegistry";
+import { getSession, persist } from "../../../lib/server/sessionRegistry";
+import { getWorkspaceId } from "../../../lib/server/workspace";
 import { generateCustomerFacingResponse } from "../../../../../src/domain/conversationalResponse";
 import { buildCaseAuditTrail } from "../../../../../src/domain/evidenceTrail";
 import { assessRecoveryUncertainty } from "../../../../../src/domain/uncertainty";
@@ -10,6 +11,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const workspaceId = await getWorkspaceId();
     let body: ActionRequest;
     try {
       body = await req.json();
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const record = getSession(body.sessionId);
+    const record = getSession(workspaceId, body.sessionId);
     if (!record) {
       return NextResponse.json(
         { error: `Session not found or expired: '${body.sessionId}'.` },
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
       }
       session.declineProposal();
       record.updatedAt = new Date().toISOString();
+      persist(record);
 
       const explanation = generateCustomerFacingResponse({
         triage: session.state.triage!,
@@ -81,6 +84,7 @@ export async function POST(req: Request) {
       const reason = body.customReason || "The user requested human support.";
       session.requestHuman(reason);
       record.updatedAt = new Date().toISOString();
+      persist(record);
 
       const explanation = generateCustomerFacingResponse({
         triage: session.state.triage!,
@@ -197,6 +201,7 @@ export async function POST(req: Request) {
     }
 
     if (execOutcome.blocked) {
+      persist(record);
       return NextResponse.json<ActionResponse>({
         sessionId: record.sessionId,
         caseId: session.state.caseId,
@@ -217,6 +222,7 @@ export async function POST(req: Request) {
     }
 
     const templateAfter = store.getTemplate(proposal.targetId);
+    persist(record);
     const isVerified = session.state.verification?.verified ?? false;
 
     const uncertainty = assessRecoveryUncertainty({

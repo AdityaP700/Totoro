@@ -4,6 +4,7 @@ import {
   deleteSession,
   buildResolveResponse,
 } from "../../../lib/server/sessionRegistry";
+import { getWorkspaceId } from "../../../lib/server/workspace";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
     );
   }
 
-  const record = getSession(sessionId);
+  const record = getSession(await getWorkspaceId(), sessionId);
   if (!record) {
     return NextResponse.json(
       { error: `Session '${sessionId}' not found.` },
@@ -40,7 +41,7 @@ export async function DELETE(req: Request) {
     );
   }
 
-  const deleted = deleteSession(sessionId);
+  const deleted = deleteSession(await getWorkspaceId(), sessionId);
   if (!deleted) {
     return NextResponse.json(
       { error: `Session '${sessionId}' not found or already deleted.` },

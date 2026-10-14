@@ -1,5 +1,12 @@
 # TEST RESULTS
 
+## 2026-10-15 — Persistent workspace foundation
+
+- `npm test`: passed — 14 test files, 133 tests, including API integration, domain, adversarial, and 170-case evaluation suites.
+- `npm run build`: passed — TypeScript and Vite production build.
+- `npm --prefix frontend run build`: passed — Next.js production compilation and type check.
+- Note: Node 22 emits its standard experimental warning for the built-in `node:sqlite` module.
+
 Environment: Windows 10.0.26200 x64 · Git Bash · Node v22.22.2 · npm 10.9.7 ·
 Python 3.11.9 (project `.venv`) · openpyxl 3.1.5. GPU present (RTX 4050, CUDA 12.1)
 but unused — no test needs it.

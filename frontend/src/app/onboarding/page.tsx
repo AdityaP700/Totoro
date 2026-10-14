@@ -66,6 +66,7 @@ function OnboardingContent() {
         // Ignore write error
       }
     }
+    void fetch("/api/preferences", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
     const dest = queryParam ? `/workspace?q=${encodeURIComponent(queryParam)}` : "/workspace";
     router.push(dest);
   };
@@ -78,6 +79,7 @@ function OnboardingContent() {
         // Ignore
       }
     }
+    void fetch("/api/preferences", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
     const dest = queryParam ? `/workspace?q=${encodeURIComponent(queryParam)}` : "/workspace";
     router.push(dest);
   };
