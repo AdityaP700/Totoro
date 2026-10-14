@@ -184,6 +184,7 @@ function WorkspacePageContent() {
 
       const data: ActionResponse = await res.json();
       setActionData(data);
+      setResolveData((previous) => previous ? { ...previous, stage: data.stage, events: data.events } : previous);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Approval execution failed.";
       setErrorMessage(msg);
@@ -214,6 +215,7 @@ function WorkspacePageContent() {
 
       const data: ActionResponse = await res.json();
       setActionData(data);
+      setResolveData((previous) => previous ? { ...previous, stage: data.stage, events: data.events } : previous);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Decline request failed.";
       setErrorMessage(msg);
@@ -245,6 +247,7 @@ function WorkspacePageContent() {
 
       const data: ActionResponse = await res.json();
       setActionData(data);
+      setResolveData((previous) => previous ? { ...previous, stage: data.stage, events: data.events } : previous);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Human handoff request failed.";
       setErrorMessage(msg);
@@ -254,6 +257,7 @@ function WorkspacePageContent() {
   };
 
   useEffect(() => {
+    if (searchParams.get("new") === "1") { handleReset(); return; }
     const q = searchParams.get("q");
     const restoreSessionId = searchParams.get("sessionId");
     if (restoreSessionId) {
@@ -404,7 +408,7 @@ function WorkspacePageContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col gap-6"
+            className="mx-auto flex w-full max-w-[760px] flex-col gap-5 pb-24"
           >
             {/* Header with Title and Reset */}
             <div className="flex flex-col gap-4 border-b border-zinc-200 pb-5 md:flex-row md:items-end md:justify-between">
@@ -452,7 +456,7 @@ function WorkspacePageContent() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+            <div className="grid grid-cols-1 gap-5">
               <main className="flex flex-col gap-6">
                 <section className="rounded-[24px] border border-zinc-200 bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
                   <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Conversation timeline</span>
@@ -465,7 +469,7 @@ function WorkspacePageContent() {
                   </div>
                 </section>
                 {/* 1. Summary / What I Found */}
-                <section className="rounded-[28px] border border-zinc-200 bg-white p-7 shadow-[0_16px_50px_rgba(0,0,0,0.03)] md:p-9">
+                <section className="hidden rounded-[28px] border border-zinc-200 bg-white p-7 shadow-[0_16px_50px_rgba(0,0,0,0.03)] md:p-9">
                   <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
                     Summary / What I found
                   </span>
@@ -650,7 +654,7 @@ function WorkspacePageContent() {
                 </section>
 
                 {/* 3. Recovery Explanation */}
-                <section className="rounded-[24px] border border-zinc-200 bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
+                <section className="hidden rounded-[24px] border border-zinc-200 bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
                   <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
                     Recovery Explanation
                   </span>
@@ -716,7 +720,7 @@ function WorkspacePageContent() {
                 </section>
 
                 {/* 5. Technical Details (Accordion) */}
-                <section className="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
+                <section className="hidden overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
                   <button
                     type="button"
                     onClick={() => setShowTechnical(!showTechnical)}
@@ -774,7 +778,7 @@ function WorkspacePageContent() {
               </main>
 
               {/* Aside: Verification */}
-              <aside className="flex flex-col gap-4">
+              <aside className="hidden flex-col gap-4">
                 <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
                   <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
                     Verification

@@ -10,6 +10,7 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Added deployment documentation for persistent single-instance SQLite storage.
 - Next continuation pipeline: source preview/linking/mapping and deterministic analytics are being completed before case export, rename, reconsider, and final end-to-end validation.
 - Completed UI continuation: linked sources now preview extracted content, confirm detected status mappings, unlink safely, and display deterministic CSV metrics; history restores, renames, and exports persisted investigations; workspace renders ordered messages and audit events with a continuing composer.
+- Refined the active workspace into a focused chat canvas: removed duplicate read-only panels from the primary flow, retained only live recovery cards, evidence, and composer; sidebar search and new-request paths now start real new investigations; action results update the live timeline.
 
 ## 2026-10-13 — Phase 0 (inspection & decisions)
 

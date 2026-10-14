@@ -11,6 +11,7 @@ export default function WorkspaceLayout({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [search, setSearch] = useState("");
   const [userProfile, setUserProfile] = useState<{ name: string; businessName: string; teamName: string; role: string }>({
     name: "Support Lead",
     businessName: "Operations",
@@ -86,7 +87,7 @@ export default function WorkspaceLayout({
           {/* New Request Action Button */}
           {!collapsed ? (
             <Link 
-              href="/workspace" 
+              href="/workspace?new=1" 
               className="flex items-center justify-center gap-1.5 h-11 px-4 bg-zinc-950 hover:bg-zinc-900 text-white rounded-full text-xs font-semibold tracking-wide transition-all shadow-sm"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -94,7 +95,7 @@ export default function WorkspaceLayout({
             </Link>
           ) : (
             <Link 
-              href="/workspace" 
+              href="/workspace?new=1" 
               className="flex items-center justify-center w-11 h-11 mx-auto bg-zinc-950 hover:bg-zinc-900 text-white rounded-full transition-all"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -103,17 +104,19 @@ export default function WorkspaceLayout({
 
           {/* Search box with keyboard shortcut visual */}
           {!collapsed && (
-            <div className="relative">
+            <form className="relative" onSubmit={(event) => { event.preventDefault(); const value = search.trim(); if (value) window.location.assign(`/workspace?q=${encodeURIComponent(value)}&new=1`); }}>
               <svg className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
               <input 
                 type="text" 
                 placeholder="Search workspace..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
                 className="w-full pl-9 pr-10 py-1.5 bg-zinc-100/60 border border-zinc-200/60 rounded-md text-[11px] text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 transition-colors"
               />
               <span className="absolute right-2.5 top-2.5 text-[9px] font-mono text-zinc-400 bg-zinc-200/50 px-1 rounded">⌘K</span>
-            </div>
+            </form>
           )}
 
           {/* Sidebar Sections */}
@@ -130,7 +133,7 @@ export default function WorkspaceLayout({
               ].map((recent) => (
                 <Link
                   key={recent.title}
-                  href={`/workspace?q=${encodeURIComponent(recent.q)}`}
+                  href={`/workspace?q=${encodeURIComponent(recent.q)}&new=1`}
                   className="flex items-center gap-2.5 px-3.5 py-2 rounded-md hover:bg-zinc-200/40 text-left transition-colors group font-sans font-medium text-[14px] text-zinc-600 hover:text-zinc-950"
                 >
                   <svg className="text-zinc-400 group-hover:text-zinc-700 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
