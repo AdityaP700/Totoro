@@ -326,4 +326,35 @@ but unused — no test needs it.
 - Result: PASS (exit 0) in 1.30s — **48 modules transformed, zero type errors**.
 - Audit Artifact: `docs/audits/adversarial_stress_test.md`
 
+## 2026-10-15 · UI API Integration & Recovery Engine Connection
+
+### Next.js Route Handlers Integration Test Suite
+- Command: `npm test tests/apiIntegration.test.ts`
+- Result: PASS (12/12 passed in 109ms)
+- Scenarios Verified:
+  1. Normal customer query: returns structured diagnosis, playbook matching, and proposal.
+  2. Ambiguous query: triggers `CLARIFY_ONCE` with focused question; subsequent clarification resolves to proposal.
+  3. Supported template rejection: constructs exact before/after change for `TPL-1001` (`UTILITY` -> `MARKETING`).
+  4. Explicit human request: immediately routes to `HANDOFF` with full correlation ID and context file.
+  5. Sensitive billing request: strictly enforces human-led zone (`billing_refund`, `needsHuman: true`).
+  6. Approved mock action: applies approved change, executes simulated write, verifies fresh post-action state (`PENDING`).
+  7. State drift rejection: catches concurrent mock state mutations between diagnosis and execution, escalates to `HANDOFF`.
+  8. Idempotency key duplicate protection: blocks re-execution with identical idempotency key (G11).
+  9. Session isolation: verifies two distinct sessions maintain completely isolated mock stores without cross-contamination.
+  10. Verification failure: simulated provider failure (`TPL-1003` `no_change`) halts retries and escalates with evidence (T7).
+  11. Malformed request handling: returns 400 for empty message, non-JSON body, or invalid actions; 404 for missing session.
+  12. Session lifecycle: supports single session GET, deletion via DELETE, and listing in `/api/history`.
+
+### Production Build Verification
+- Command: `npm run frontend:build` (`next build` with Turbopack)
+- Result: PASS (exit 0) in 12.4s compile + 17.3s TypeScript + 872ms static generation.
+- Generated Routes (17 total):
+  - Static: `/`, `/_not-found`, `/onboarding`, `/workspace`, `/workspace/history`, `/workspace/reports`, `/workspace/settings`.
+  - Dynamic API Route Handlers: `/api/resolve`, `/api/action`, `/api/templates`, `/api/history`, `/api/reports`, `/api/session`, `/api/settings/reset`, `/api/health`.
+
+### Full Test Suite Run
+- Command: `npm test` (`vitest run`)
+- Result: PASS (exit 0) in 2.28s — **133 passed across 14 test files (100% passing)**.
+
+
 

@@ -12,7 +12,10 @@
     "cli": "npx tsx src/cli/resolveCli.ts",
     "eval:rules": "npx tsx tools/evaluate_suite.ts --mode rules --split iteration",
     "eval:hybrid": "npx tsx tools/evaluate_suite.ts --mode hybrid --split iteration",
-    "eval:smoke": "npx tsx tools/run_laya_smoke.ts"
+    "eval:smoke": "npx tsx tools/run_laya_smoke.ts",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:start": "npm --prefix frontend run start"
   },
   "dependencies": {
     "react": "^18.3.1",

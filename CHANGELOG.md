@@ -129,5 +129,30 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - **Audit Report (`docs/audits/adversarial_stress_test.md`)**: Fully documented the 20-category audit matrix, failure modes, root causes, remediations, and benchmark metrics.
 - **Test Suite**: Total tests expanded to 121/121 passing tests across 13 test files. Production build (`npm run build`) passes cleanly.
 
+## 2026-10-15 — Next.js UI Integration to Domain Recovery Engine
+
+- **Next.js Route Handlers (`frontend/src/app/api/`)**:
+  - `POST /api/resolve`: Connects chat queries to `ResolveSession` state machine and `createMockStore`; runs triage, evaluates playbooks, checks uncertainty, and supports multi-turn clarification questions.
+  - `POST /api/action`: Enforces explicit user confirmation (G1), allowlist filtering (`resubmit_template`), precondition rechecks (TOCTOU guard), mock store execution, fresh-read verification (`verifyAgainstFreshRead`), and duplicate idempotency key detection (G11).
+  - `GET /api/templates`: Exposes mock template fixtures (`TPL-1001`, `TPL-1002`, `TPL-1003`) for workspace contextual testing.
+  - `GET /api/history`: Returns active session audit files from the server-side session registry.
+  - `GET /api/reports`: Returns real recorded evaluation scorecard metrics (100% rules baseline accuracy, 170 synthetic test cases, 100% human-led zone enforcement) and session audit dossiers.
+  - `GET` & `DELETE /api/session`: Retrieves session details and implements safe in-memory deletion.
+  - `POST /api/settings/reset`: Restores mock fixtures to pristine state and clears active sessions.
+- **In-Memory Server-Side Session Registry (`frontend/src/lib/server/sessionRegistry.ts`)**:
+  - Maintains isolated `MockStore` instances per session to prevent cross-session contamination.
+  - Transparently documents volatile in-memory storage model (local demo scope) versus production distributed persistence requirements.
+- **Frontend Workspace & Navigation (`frontend/src/app/workspace/`)**:
+  - Replaced static `getRecoveryProfile` in `workspace/page.tsx` with live `fetch('/api/resolve')` and `fetch('/api/action')`.
+  - Added interactive before/after diff table with approve/decline/human buttons.
+  - Added dedicated clarification response box for `CLARIFY_ONCE` stages.
+  - Preserved 100% of the existing visual layout, typography, animations, styling, and video assets.
+  - Connected `history/page.tsx`, `reports/page.tsx`, and `settings/page.tsx` to real backend endpoints.
+- **Integration Test Suite (`tests/apiIntegration.test.ts`)**:
+  - 12 comprehensive tests validating normal query, clarification, template rejection, human request, sensitive billing, mock execution + verification, state drift rejection, duplicate idempotency keys, session isolation, provider failure, and malformed requests.
+  - All 133 tests pass across 14 test suites (`npm test`).
+  - Next.js Turbopack production build compiles cleanly (`npm run frontend:build`).
+
+
 
 

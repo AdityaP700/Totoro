@@ -185,3 +185,27 @@ Conducted hostile stress testing across 20 threat categories and edge scenarios 
 4. **Test & Build Verification**: Expanded test suite to 121 tests across 13 test files (100% passing). Strict build passes (`tsc -b && vite build` in 1.30s). Authored audit report `docs/audits/adversarial_stress_test.md`.
 - Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/adversarial.test.ts, report in docs/audits/adversarial_stress_test.md).
 
+## D-018 · 2026-10-15 · Next.js Route Handlers, In-Memory Session Registry, and UI Integration
+
+Connected the adapted Next.js UI (`frontend/src/app/`) to Totoro's pure TypeScript domain engine (`src/domain/`):
+1. **Next.js App Router API Layer (`frontend/src/app/api/`)**:
+   - `POST /api/resolve`: Handles customer input, runs `ResolveSession` with injected `MockStore`, evaluates playbooks and uncertainty, returns structured response with customer explanation and audit trail.
+   - `POST /api/action`: Enforces explicit confirmation (G1), allowlist filtering (`resubmit_template`), precondition rechecks (TOCTOU guard), mock store execution, fresh-read verification (`verifyAgainstFreshRead`), and duplicate idempotency key detection (G11).
+   - `GET /api/templates`, `GET /api/history`, `GET /api/reports`, `GET` & `DELETE /api/session`, `POST /api/settings/reset`.
+2. **Server-Side In-Memory Session Registry (`frontend/src/lib/server/sessionRegistry.ts`)**:
+   - Maintains an isolated `MockStore` instance per session to guarantee zero cross-session data contamination.
+   - Supports multi-turn clarification: sessions in `CLARIFY_ONCE` accept follow-up user messages and re-triage deterministically.
+   - Storage Disclosure: Volatile in-memory map scoped to local Node process. Documented that production multi-instance deployments require distributed persistence (e.g., Redis, Postgres).
+3. **Frontend Connection & UI Preservation (`frontend/src/app/workspace/`)**:
+   - Replaced static `getRecoveryProfile` in `workspace/page.tsx` with live `fetch('/api/resolve')` and `fetch('/api/action')`.
+   - Preserved 100% of the visual layout, typography, animations, styling, and video assets.
+   - Implemented real before/after diff table with approve/decline/human buttons.
+   - Implemented dedicated single-question clarification input box for `CLARIFY_ONCE`.
+   - Connected `history/page.tsx` (view and delete past sessions), `reports/page.tsx` (real benchmark scorecard and session audit records), and `settings/page.tsx` (guardrail disclosures and mock fixture reset).
+4. **Verification**:
+   - Added comprehensive integration test suite `tests/apiIntegration.test.ts` (12/12 passing).
+   - Total test suite expanded to 133/133 passing tests across 14 test files (`npm test`).
+   - Production Turbopack build succeeds with 17 static and dynamic routes (`npm run frontend:build`).
+- Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/apiIntegration.test.ts, Turbopack build log).
+
+

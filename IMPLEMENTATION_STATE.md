@@ -80,6 +80,18 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Created and executed concurrency benchmark `tools/concurrency_benchmark.ts` across 5, 10, 20, and 50 concurrent sessions under active fault injection: 0 unhandled crashes, 0 cross-session data contamination events, 0 duplicate executions, p95 latency < 4.3ms.
   - Produced comprehensive audit report: `docs/audits/adversarial_stress_test.md`.
   - Full test suite passes: 121/121 tests across 13 test files. Strict build passes (`tsc -b && vite build` in 1.30s).
+- **UI API Integration Phase (Completed):**
+  - Next.js App Router API endpoints implemented in `frontend/src/app/api/`:
+    - `POST /api/resolve`: runs full diagnosis, evaluates playbooks, handles multi-turn clarification questions.
+    - `POST /api/action`: enforces allowlist, rechecks preconditions, executes mock actions, evaluates fresh-read verification.
+    - `GET /api/templates`: returns mock fixtures (`TPL-1001`, `TPL-1002`, `TPL-1003`).
+    - `GET /api/history`: returns active sessions from in-memory session registry.
+    - `GET /api/reports`: returns deterministic benchmark metrics and audit records.
+    - `GET` & `DELETE /api/session`: single session retrieval and safe deletion.
+    - `POST /api/settings/reset`: restores pristine fixtures and clears in-memory sessions.
+  - Connected Next.js UI (`frontend/src/app/workspace/page.tsx`, `history/page.tsx`, `reports/page.tsx`, `settings/page.tsx`) to real API endpoints while preserving 100% of the visual layout, typography, animations, and styling.
+  - Added comprehensive integration test suite `tests/apiIntegration.test.ts` (12 tests covering normal query, clarification, template rejection, human request, sensitive billing, mock execution + verification, state drift rejection, duplicate idempotency keys, session isolation, provider failure, and malformed requests).
+  - All 133 tests pass across 14 test suites (`npm test`). Next.js Turbopack build succeeds with 17 static and dynamic routes (`npm run frontend:build`).
 
 ## Acceptance status
 
@@ -93,12 +105,13 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Product Capability Expansion (Phases 1–6) gate: PASSED (Conversational response, playbook registry, uncertainty assessment, template drafter, evidence trail, Groq integration, and multi-provider benchmark complete; 78/78 tests passing; strict build clean; Guarded Hybrid scores 8/8 100% with 0 safety violations).
 - End-to-End Execution Reality Check gate: PASSED (All 6 execution categories verified live on real CLI; 85/85 tests passing across 12 test files; strict build clean; comprehensive audit matrix authored in `docs/audits/end_to_end_execution_matrix.md`).
 - Adversarial Stress Test & Reliability Hardening gate: PASSED (All 20 threat categories tested; 36 hostile tests passing; 7 defects remediated; 200 concurrent requests benchmarked with 0 crashes and 0 contamination; strict build clean; audit report in `docs/audits/adversarial_stress_test.md`).
+- UI API Integration & Recovery Engine Connection gate: PASSED (Next.js route handlers connected to domain state machine; workspace, history, reports, and settings functional; 133/133 tests passing; Turbopack production build clean).
 
 ## Exact next command / task
 
-Adversarial stress testing, defect remediation, and reliability benchmark are complete. Commands available:
-- `npm test`: run full 121-test suite across 13 test files.
-- `npm run build`: verify static production build (`tsc -b && vite build`).
-- `npx vitest run tests/adversarial.test.ts`: run the 36-test adversarial stress suite.
-- `npx tsx tools/concurrency_benchmark.ts`: run the concurrency and fault injection benchmark.
-- `npx tsx src/cli/resolveCli.ts --message "<message>" [--template-id <id>] [--rules-only] [--provider laya|groq] [--execute]`: run CLI recovery agent.
+The full UI-to-Engine integration is complete and verified. Commands available:
+- `npm test`: run full 133-test suite across 14 test files.
+- `npm run frontend:dev`: start Next.js frontend on http://localhost:3000.
+- `npm run frontend:build`: build Next.js production bundle with Turbopack.
+- `npm run dev`: run original Vite prototype UI on http://localhost:5173.
+- `npx tsx src/cli/resolveCli.ts --message "<message>"`: run CLI recovery agent.
