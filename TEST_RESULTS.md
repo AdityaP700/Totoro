@@ -7,6 +7,11 @@
 - `npm --prefix frontend run build`: passed — Next.js production compilation and type check.
 - Note: Node 22 emits its standard experimental warning for the built-in `node:sqlite` module.
 
+## 2026-10-15 — Conversation UI hotfix
+
+- `npm --prefix frontend run build`: passed after compact-title, customer-facing timeline, activity-log, proposal, and composer changes.
+- `npm test`: passed — 14 files, 133 tests.
+
 Environment: Windows 10.0.26200 x64 · Git Bash · Node v22.22.2 · npm 10.9.7 ·
 Python 3.11.9 (project `.venv`) · openpyxl 3.1.5. GPU present (RTX 4050, CUDA 12.1)
 but unused — no test needs it.

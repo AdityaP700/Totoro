@@ -11,6 +11,7 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Current continuation pipeline: finish evidence preview/link/unlink/mapping → render deterministic CSV metrics → wire rename/export/history restore and continuous conversation controls → run regressions and update handoff.
 - Completed continuation UI; next required work is manual browser acceptance against uploaded CSV and a restored case, plus tests for mappings/analytics/export before claiming full end-to-end coverage.
 - UI refinement complete. Next validation: exercise sidebar search/new request, clarification, approval, human handoff, source upload/preview/unlink, restore, and export in the browser.
+- Conversation hotfix validated by production frontend build and the 133-test suite. Remaining validation is the targeted browser walkthrough in the hotfix acceptance list.
 
 ## Current phase
 

@@ -12,6 +12,7 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Completed UI continuation: linked sources now preview extracted content, confirm detected status mappings, unlink safely, and display deterministic CSV metrics; history restores, renames, and exports persisted investigations; workspace renders ordered messages and audit events with a continuing composer.
 - Refined the active workspace into a focused chat canvas: removed duplicate read-only panels from the primary flow, retained only live recovery cards, evidence, and composer; sidebar search and new-request paths now start real new investigations; action results update the live timeline.
 - Header-level New Request now uses the same explicit reset route as the sidebar control.
+- Hotfix: case headings now use compact structured titles; the primary stream shows only operator and plain-language assistant messages; internal events are preserved under Activity log; proposal uses amber pending treatment; composer supports multiline text and Enter/Shift+Enter behavior.
 
 ## 2026-10-13 — Phase 0 (inspection & decisions)
 

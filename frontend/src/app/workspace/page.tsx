@@ -21,6 +21,19 @@ const mockTemplates = [
   { id: "TPL-1003", label: "TPL-1003 (payment_reminder_aug — Unverified provider failure)" },
 ];
 
+function caseTitle(data: ResolveResponse | null, fallback: string | null) {
+  const issue = data?.triage?.issueType;
+  const titles: Record<string, string> = {
+    template_rejection: "WhatsApp template rejection",
+    billing_refund: "Billing issue",
+    security_identity_access: "Account access issue",
+    integration_webhook: "Webhook investigation",
+    message_delivery: "Message delivery issue",
+    ambiguous_or_missing_context: "Issue investigation",
+  };
+  return titles[issue || ""] || fallback?.slice(0, 72) || "Issue investigation";
+}
+
 function WorkspacePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -436,8 +449,8 @@ function WorkspacePageContent() {
                     </>
                   )}
                 </div>
-                <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-zinc-950 md:text-5xl">
-                  {activeQuery}
+                <h1 className="mt-3 max-w-3xl break-words text-2xl font-semibold leading-tight tracking-tight text-zinc-950 md:text-[28px]">
+                  {caseTitle(resolveData, activeQuery)}
                 </h1>
               </div>
               <button
@@ -461,9 +474,9 @@ function WorkspacePageContent() {
                 <section className="rounded-[24px] border border-zinc-200 bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
                   <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Conversation timeline</span>
                   <div className="mt-5 space-y-3" aria-live="polite">
-                    {[...(resolveData?.messages || []).map((m) => ({ ...m, kind: "message" as const })), ...(resolveData?.events || []).map((e) => ({ role: "assistant" as const, text: e.outcome, timestamp: e.timestamp, kind: "event" as const, eventType: e.eventType }))].sort((a, b) => a.timestamp.localeCompare(b.timestamp)).map((item, index) => (
-                      <div key={`${item.kind}-${item.timestamp}-${index}`} className={`rounded-xl border p-3 ${item.role === "user" ? "ml-8 border-zinc-300 bg-zinc-950 text-white" : "mr-8 border-zinc-200 bg-zinc-50 text-zinc-800"}`}>
-                        <div className="flex justify-between gap-2 font-mono text-[10px] uppercase tracking-wider opacity-60"><span>{item.kind === "event" ? item.eventType : item.role}</span><time>{new Date(item.timestamp).toLocaleTimeString()}</time></div><p className="mt-1 text-sm leading-6">{item.text}</p>
+                    {(resolveData?.messages || []).map((item, index) => (
+                      <div key={`${item.role}-${item.timestamp}-${index}`} className={`rounded-xl border p-4 ${item.role === "user" ? "ml-8 border-zinc-300 bg-zinc-950 text-white" : "mr-8 border-zinc-200 bg-zinc-50 text-zinc-800"}`}>
+                        <div className="flex justify-between gap-2 text-[11px] font-medium opacity-60"><span>{item.role === "user" ? "You" : "Totoro"}</span><time>{new Date(item.timestamp).toLocaleTimeString()}</time></div><p className="mt-1 break-words text-[15px] leading-6">{item.text}</p>
                       </div>
                     ))}
                   </div>
@@ -500,7 +513,7 @@ function WorkspacePageContent() {
                       ? "border-rose-300/60 bg-rose-50/50"
                       : resolveData?.stage === "CLARIFY_ONCE"
                       ? "border-amber-300/60 bg-amber-50/50"
-                      : "border-emerald-400/30 bg-emerald-50/40"
+                      : "border-amber-300 bg-amber-50/40"
                   }`}
                 >
                   <span
@@ -720,16 +733,16 @@ function WorkspacePageContent() {
                 </section>
 
                 {/* 5. Technical Details (Accordion) */}
-                <section className="hidden overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
+                <section className="overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-sm">
                   <button
                     type="button"
                     onClick={() => setShowTechnical(!showTechnical)}
                     className="flex w-full items-center justify-between px-6 py-5 text-left transition-colors hover:bg-zinc-50"
                   >
                     <span>
-                      <span className="block text-sm font-semibold text-zinc-950">Technical details</span>
+                      <span className="block text-sm font-semibold text-zinc-950">Activity log</span>
                       <span className="mt-1 block text-xs text-zinc-500">
-                        Rule evaluation trace, inspected mock fixtures, and triage reasoning.
+                        Internal audit events, rule checks, and mock-state references.
                       </span>
                     </span>
                     <span className="font-mono text-sm text-zinc-400">{showTechnical ? "-" : "+"}</span>
@@ -773,7 +786,7 @@ function WorkspacePageContent() {
                   </AnimatePresence>
                 </section>
                 <form onSubmit={(event) => { event.preventDefault(); if (followUp.trim()) { void handleRunQuery(followUp); setFollowUp(""); } }} className="sticky bottom-3 rounded-2xl border border-zinc-200 bg-white p-3 shadow-lg">
-                  <label htmlFor="follow-up" className="sr-only">Continue this investigation</label><div className="flex gap-2"><input id="follow-up" value={followUp} onChange={(event) => setFollowUp(event.target.value)} placeholder="Ask a follow-up or add context…" className="min-w-0 flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-500" /><button type="submit" disabled={loading || !followUp.trim()} className="rounded-xl bg-zinc-950 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">Send</button></div>
+                  <label htmlFor="follow-up" className="sr-only">Continue this investigation</label><div className="flex items-end gap-2"><textarea id="follow-up" rows={1} value={followUp} onChange={(event) => setFollowUp(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Ask a follow-up or add context…" className="max-h-28 min-w-0 flex-1 resize-y rounded-xl border border-zinc-200 px-3 py-2 text-sm leading-6 outline-none focus:border-zinc-500" /><button type="submit" disabled={loading || !followUp.trim()} className="rounded-xl bg-zinc-950 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40">{loading ? "Thinking…" : "Send"}</button></div>
                 </form>
               </main>
 
