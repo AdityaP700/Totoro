@@ -72,9 +72,11 @@ export async function POST(req: Request) {
       });
     }
 
-    persist(record);
     const latencyMs = Math.max(8, Date.now() - start);
-    const response = buildResolveResponse(record, latencyMs);
+    let response = buildResolveResponse(record, latencyMs);
+    record.messages.push({ role: "assistant", text: response.customerExplanation.whatIsWrong, timestamp: new Date().toISOString() });
+    persist(record);
+    response = buildResolveResponse(record, latencyMs);
 
     return NextResponse.json(response, { status: 200 });
   } catch (err: unknown) {

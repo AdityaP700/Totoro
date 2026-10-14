@@ -9,6 +9,7 @@ User-visible changes. (Internal engineering notes live in the other continuity f
 - Added case-linked, non-public CSV/TXT/Markdown/XLSX/DOCX evidence uploads with file-type, ZIP/XML, path, encryption, macro, and size safety checks.
 - Added deployment documentation for persistent single-instance SQLite storage.
 - Next continuation pipeline: source preview/linking/mapping and deterministic analytics are being completed before case export, rename, reconsider, and final end-to-end validation.
+- Completed UI continuation: linked sources now preview extracted content, confirm detected status mappings, unlink safely, and display deterministic CSV metrics; history restores, renames, and exports persisted investigations; workspace renders ordered messages and audit events with a continuing composer.
 
 ## 2026-10-13 — Phase 0 (inspection & decisions)
 

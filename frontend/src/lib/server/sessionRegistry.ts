@@ -311,5 +311,6 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     guardrails: s.triage?.needsHuman ? "Human-Led Escalation" : "Guarded",
     contextEvaluated: `Mock state (${record.templateId})`,
     verificationStatus: s.verification?.verified ? "Verified read (MOCK)" : s.stage === "HANDOFF" ? "Handoff dossier" : "Inspection complete",
+    messages: record.messages,
   };
 }

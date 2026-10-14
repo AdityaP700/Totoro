@@ -32,6 +32,7 @@ function WorkspacePageContent() {
   const [actionLoading, setActionLoading] = useState(false);
   const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
   const [clarificationInput, setClarificationInput] = useState("");
+  const [followUp, setFollowUp] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTechnical, setShowTechnical] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
@@ -68,7 +69,7 @@ function WorkspacePageContent() {
   const handleRunQuery = async (text: string, templateOverride?: string) => {
     if (!text.trim()) return;
     const targetText = text.trim();
-    setActiveQuery(targetText);
+    if (!activeQuery) setActiveQuery(targetText);
     setLoading(true);
     setErrorMessage(null);
     setActionData(null);
@@ -453,6 +454,16 @@ function WorkspacePageContent() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
               <main className="flex flex-col gap-6">
+                <section className="rounded-[24px] border border-zinc-200 bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.025)]">
+                  <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Conversation timeline</span>
+                  <div className="mt-5 space-y-3" aria-live="polite">
+                    {[...(resolveData?.messages || []).map((m) => ({ ...m, kind: "message" as const })), ...(resolveData?.events || []).map((e) => ({ role: "assistant" as const, text: e.outcome, timestamp: e.timestamp, kind: "event" as const, eventType: e.eventType }))].sort((a, b) => a.timestamp.localeCompare(b.timestamp)).map((item, index) => (
+                      <div key={`${item.kind}-${item.timestamp}-${index}`} className={`rounded-xl border p-3 ${item.role === "user" ? "ml-8 border-zinc-300 bg-zinc-950 text-white" : "mr-8 border-zinc-200 bg-zinc-50 text-zinc-800"}`}>
+                        <div className="flex justify-between gap-2 font-mono text-[10px] uppercase tracking-wider opacity-60"><span>{item.kind === "event" ? item.eventType : item.role}</span><time>{new Date(item.timestamp).toLocaleTimeString()}</time></div><p className="mt-1 text-sm leading-6">{item.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
                 {/* 1. Summary / What I Found */}
                 <section className="rounded-[28px] border border-zinc-200 bg-white p-7 shadow-[0_16px_50px_rgba(0,0,0,0.03)] md:p-9">
                   <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
@@ -757,6 +768,9 @@ function WorkspacePageContent() {
                     )}
                   </AnimatePresence>
                 </section>
+                <form onSubmit={(event) => { event.preventDefault(); if (followUp.trim()) { void handleRunQuery(followUp); setFollowUp(""); } }} className="sticky bottom-3 rounded-2xl border border-zinc-200 bg-white p-3 shadow-lg">
+                  <label htmlFor="follow-up" className="sr-only">Continue this investigation</label><div className="flex gap-2"><input id="follow-up" value={followUp} onChange={(event) => setFollowUp(event.target.value)} placeholder="Ask a follow-up or add context…" className="min-w-0 flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-500" /><button type="submit" disabled={loading || !followUp.trim()} className="rounded-xl bg-zinc-950 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">Send</button></div>
+                </form>
               </main>
 
               {/* Aside: Verification */}

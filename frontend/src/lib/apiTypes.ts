@@ -43,6 +43,7 @@ export interface ResolveResponse {
   guardrails: string;
   contextEvaluated: string;
   verificationStatus: string;
+  messages?: Array<{ role: "user" | "assistant"; text: string; timestamp: string }>;
 }
 
 export interface ActionRequest {
