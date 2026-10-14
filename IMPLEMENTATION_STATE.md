@@ -23,6 +23,10 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Typography refactor: Established standard, mature type hierarchy (30–34px title, 19–22px section headings, 16–17px prose, 14–16px interactive controls, 12–13px metadata); eliminated aggressive uppercase tracking and emoji headers; anchored composer with safe scroll margin (`pb-44`).
   - Template identity preserved: Removed hardcoded `payment_due_v2` fallbacks; preserved authentic mock fixtures (`TPL-1001` festive_offer_blast, `TPL-1002` order_update_v3, `TPL-1003` payment_reminder_aug).
   - Verification: Added tests 13, 14, 15 to `tests/apiIntegration.test.ts`; all 136 vitest tests passing; Next.js 16 Turbopack production build compiled with 0 errors across all 21 routes.
+- **Enterprise Template Selector & Technical Details Inspector Redesign (2026-10-15)**:
+  - `TargetTemplateSelector`: Custom accessible dropdown replacing native select. Distinct "Automatic detection" mode vs manual selection from authentic templates (`TPL-1001`, `TPL-1002`, `TPL-1003`). Full keyboard navigation (Arrows, Enter, Space, Escape, Home, End, Tab), ARIA attributes, and outside-click dismissal. Selecting an option does not create a case or trigger an analysis until explicit submit.
+  - `TechnicalDetailsInspector`: Replaced raw black terminal block with a structured diagnostic inspector collapsed by default. Includes 4-metric execution summary (Policy, State source, Verification, Latency) with plain explanations; vertical diagnostic timeline mapping domain events to human-readable titles/descriptions with expandable developer payloads; dedicated Evidence & Rule trace card; and a neutral, copyable raw log viewer.
+  - Verification: Added tests 16 and 17 to `tests/apiIntegration.test.ts`; all 138 vitest tests passing; Next.js 16 Turbopack production build clean across all 21 routes; strict root Vite build clean.
 
 ## Current phase
 
@@ -129,11 +133,12 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Adversarial Stress Test & Reliability Hardening gate: PASSED (All 20 threat categories tested; 36 hostile tests passing; 7 defects remediated; 200 concurrent requests benchmarked with 0 crashes and 0 contamination; strict build clean; audit report in `docs/audits/adversarial_stress_test.md`).
 - UI API Integration & Recovery Engine Connection gate: PASSED (Next.js route handlers connected to domain state machine; workspace, history, reports, and settings functional; 133/133 tests passing; Turbopack production build clean).
 - Evidence-Expansion Fix & Design System Typography Polish gate: PASSED (Zero SQLite uniqueness errors on evidence inspection, idempotent database upsert, standard typography scale applied, authentic fixtures preserved, 136/136 tests passing, Turbopack clean across 21 routes).
+- Enterprise Template Selector & Technical Details Inspector Redesign gate: PASSED (Custom accessible popover selector, structured diagnostic inspector with execution summary, vertical timeline, evidence trace, and raw log viewer, 138/138 tests passing, Turbopack clean across 21 routes, Vite build clean).
 
 ## Exact next command / task
 
-The full UI-to-Engine integration, design system polish, and evidence-expansion fix are complete and verified. Commands available:
-- `npm test`: run full 136-test suite across 14 test files.
+The full UI-to-Engine integration, design system polish, template selector, and technical details inspector are complete and verified. Commands available:
+- `npm test`: run full 138-test suite across 14 test files.
 - `npm run frontend:dev`: start Next.js frontend on http://localhost:3000.
 - `npm run frontend:build`: build Next.js production bundle with Turbopack.
 - `npm run dev`: run original Vite prototype UI on http://localhost:5173.

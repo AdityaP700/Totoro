@@ -1,5 +1,17 @@
 # TEST RESULTS
 
+## 2026-10-15 — Enterprise template selector and technical details inspector
+
+- `npm test`: passed — 14 test files, 138 tests passed (100% pass rate, including tests 16 and 17 in `tests/apiIntegration.test.ts` verifying selector semantics without unprompted case creation and diagnostic event timeline fidelity).
+- `npm run frontend:build`: passed — Next.js 16.2.9 Turbopack production compilation and type check across all 21 routes with 0 errors.
+- `npm run build`: passed — Vite and TypeScript production compilation with 0 errors.
+- Verified:
+  1. Accessible `TargetTemplateSelector` popover with distinct "Automatic detection" vs manual selection from authentic fixtures (`TPL-1001`, `TPL-1002`, `TPL-1003`). Keyboard navigation (Arrows, Enter, Space, Escape, Home, End, Tab) and outside-click dismissal work smoothly without unprompted case creation.
+  2. Compact, structured `TechnicalDetailsInspector` collapsed by default with diagnostic event count and "View audit trace" toggle.
+  3. Execution summary (Policy, State source, Verification, Latency) with plain-language explanations.
+  4. Structured vertical diagnostic timeline translating domain events into human-readable titles and descriptions with expandable developer payloads.
+  5. Clearly separated Evidence & Rule trace card and neutral, copyable Raw Log Viewer.
+
 ## 2026-10-15 — Evidence-expansion fix and design-system typography refactor
 
 - `npm test`: passed — 14 test files, 136 tests passed (100% pass rate, including 3 new regression tests in `tests/apiIntegration.test.ts` covering read-only evidence toggles, terminal session follow-up continuity, and SQLite upsert idempotency).

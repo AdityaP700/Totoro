@@ -3,6 +3,7 @@ import { POST as resolvePost } from "../frontend/src/app/api/resolve/route";
 import { POST as actionPost } from "../frontend/src/app/api/action/route";
 import { GET as sessionGet, DELETE as sessionDelete } from "../frontend/src/app/api/session/route";
 import { GET as historyGet } from "../frontend/src/app/api/history/route";
+import { GET as templatesGet } from "../frontend/src/app/api/templates/route";
 import { resetAllSessions, getSession } from "../frontend/src/lib/server/sessionRegistry";
 import { repositories } from "../frontend/src/lib/server/persistence";
 
@@ -463,4 +464,83 @@ describe("Cheerio Resolve — UI API Integration Suite", () => {
 
     repositories.clearWorkspaceForTest("test-workspace-reg");
   });
+
+  // 16. Template context selector semantics: manual selection vs auto-detect
+  it("enforces template selector semantics: manual vs auto-detect without unprompted case creation", async () => {
+    // Verify GET /api/templates returns authentic mock fixtures
+    const templatesRes = await templatesGet();
+    expect(templatesRes.status).toBe(200);
+    const { templates } = await templatesRes.json();
+    const templateIds = templates.map((t: any) => t.id);
+    expect(templateIds).toContain("TPL-1001");
+    expect(templateIds).toContain("TPL-1002");
+    expect(templateIds).toContain("TPL-1003");
+
+    // History before any submit
+    const historyBefore = await (await historyGet()).json();
+    const initialCount = historyBefore.total;
+
+    // Manual template selection submit
+    const manualRes = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Template order_update_v3 has invalid variable format",
+        templateId: "TPL-1002",
+      })
+    );
+    expect(manualRes.status).toBe(200);
+    const manualData = await manualRes.json();
+    expect(manualData.templateSnapshot.id).toBe("TPL-1002");
+    expect(manualData.templateSnapshot.name).toBe("order_update_v3");
+
+    // Auto-detect submit without templateId
+    const autoRes = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Why was my festive_offer_blast rejected?",
+      })
+    );
+    expect(autoRes.status).toBe(200);
+    const autoData = await autoRes.json();
+    expect(autoData.templateSnapshot.id).toBe("TPL-1001");
+    expect(autoData.templateSnapshot.name).toBe("festive_offer_blast");
+
+    // Total cases created equals exactly 2 explicit submissions
+    const historyAfter = await (await historyGet()).json();
+    expect(historyAfter.total).toBe(initialCount + 2);
+  });
+
+  // 17. Technical details diagnostic inspector payload integrity
+  it("verifies structured diagnostic events and raw trace fidelity", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Why was my WhatsApp template rejected?",
+        templateId: "TPL-1001",
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    // Verify structured events
+    expect(Array.isArray(data.events)).toBe(true);
+    expect(data.events.length).toBeGreaterThanOrEqual(4);
+
+    const eventTypes = data.events.map((e: any) => e.eventType);
+    expect(eventTypes).toContain("CASE_OPENED");
+    expect(eventTypes).toContain("STATE_READ");
+    expect(eventTypes).toContain("TRIAGED");
+    expect(eventTypes).toContain("DIAGNOSED");
+    expect(eventTypes).toContain("FIX_PROPOSED");
+
+    // Verify raw trace has matching lines and is readable
+    expect(typeof data.ruleTrace).toBe("string");
+    expect(data.ruleTrace).toContain("[CASE_OPENED]");
+    expect(data.ruleTrace).toContain("[STATE_READ]");
+    expect(data.ruleTrace).toContain("[DIAGNOSED]");
+
+    // Verify execution summary metrics
+    expect(data.guardrails).toBe("Guarded");
+    expect(data.contextEvaluated).toContain("Mock state");
+    expect(typeof data.latencyMs).toBe("number");
+    expect(data.latencyMs).toBeGreaterThanOrEqual(0);
+  });
 });
+

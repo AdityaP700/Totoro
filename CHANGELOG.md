@@ -2,6 +2,16 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Enterprise template selector and technical details inspector
+
+- Replaced native `<select>` dropdown on New Request screen with custom, accessible `TargetTemplateSelector` popover: clear visual hierarchy distinguishing "AUTOMATIC" detection mode from "AVAILABLE TEMPLATES" (`TPL-1001`, `TPL-1002`, `TPL-1003`) with keyboard accessibility and zero unprompted case creation.
+- Redesigned Technical Details section on Case screen into a structured diagnostic inspector (`TechnicalDetailsInspector`):
+  - Collapsed by default with diagnostic event count and "View audit trace" toggle.
+  - Execution summary: 4-cell grid for policy, state source, verification, and latency with plain-language explanations.
+  - Diagnostic timeline: vertical timeline translating internal event codes (`CASE_OPENED`, `STATE_READ`, `TRIAGED`, `DIAGNOSED`, `FIX_PROPOSED`, `HANDOFF_CREATED`) into readable titles with expandable technical payloads.
+  - Evidence & rule trace: clearly separated rule explanation, evidence keys, and unverified boundary limitations.
+  - Raw log viewer: neutral monospace container with text wrapping, copyable trace, and clipboard copy button.
+
 ## 2026-10-15 — Evidence-expansion fix, database idempotency & typography polish
 
 - Fixed SQLite unique constraint error (`UNIQUE constraint failed: cases.session_id`) on expanding or collapsing supporting evidence: converted buttons into pure client-side toggles with zero redundant network or database operations.

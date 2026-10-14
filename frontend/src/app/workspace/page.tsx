@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import type { ResolveResponse, ActionResponse } from "../../lib/apiTypes";
 import { useWorkspace } from "../../lib/workspaceContext";
+import { TargetTemplateSelector } from "./components/TargetTemplateSelector";
+import { TechnicalDetailsInspector } from "./components/TechnicalDetailsInspector";
 
 const allSuggestions = [
   {
@@ -42,13 +44,6 @@ const allSuggestions = [
   },
 ];
 
-const mockTemplates = [
-  { id: "auto", label: "Auto-detect from message" },
-  { id: "TPL-1001", label: "TPL-1001 (festive_offer_blast — Promo/Utility mismatch)" },
-  { id: "TPL-1002", label: "TPL-1002 (order_update_v3 — Variable format fix)" },
-  { id: "TPL-1003", label: "TPL-1003 (payment_reminder_aug — Unverified provider failure)" },
-];
-
 function deriveCaseTitle(data: ResolveResponse | null, fallback: string | null): string {
   const issue = data?.triage?.issueType;
   const titles: Record<string, string> = {
@@ -83,7 +78,6 @@ function WorkspacePageContent() {
   const [clarificationInput, setClarificationInput] = useState("");
   const [followUp, setFollowUp] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showTechnical, setShowTechnical] = useState(false);
   const [showEvidenceSection, setShowEvidenceSection] = useState(false);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -145,7 +139,6 @@ function WorkspacePageContent() {
     setLoading(true);
     setErrorMessage(null);
     setActionData(null);
-    setShowTechnical(false);
 
     try {
       const templateToUse =
@@ -404,7 +397,6 @@ function WorkspacePageContent() {
     setResolveData(null);
     setActionData(null);
     setErrorMessage(null);
-    setShowTechnical(false);
     setShowEvidenceSection(false);
     setIsRenaming(false);
     setCustomTitle("");
@@ -480,21 +472,12 @@ function WorkspacePageContent() {
             {/* Main Prompt Card */}
             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
               {/* Target context selector */}
-              <div className="mb-3.5 flex items-center justify-between border-b border-zinc-100 pb-3">
-                <span className="text-xs font-medium text-zinc-500">
-                  Target template context:
-                </span>
-                <select
+              <div className="mb-4 border-b border-zinc-100 pb-3.5">
+                <TargetTemplateSelector
                   value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-800 outline-none hover:border-zinc-300"
-                >
-                  {mockTemplates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(newId) => setSelectedTemplateId(newId)}
+                  disabled={loading}
+                />
               </div>
 
               <textarea
@@ -969,53 +952,11 @@ function WorkspacePageContent() {
                 </div>
               )}
 
-              {/* Collapsible Technical Details Accordion */}
-              <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setShowTechnical(!showTechnical)}
-                  className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-zinc-50 transition-colors"
-                >
-                  <span className="text-sm font-medium text-zinc-800">
-                    {showTechnical ? "▲ Hide technical details" : "⌵ Technical details (collapsed)"}
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    Audit trace & rule log
-                  </span>
-                </button>
-
-                {showTechnical && (
-                  <div className="border-t border-zinc-100 p-4 space-y-4">
-                    <div>
-                      <span className="text-xs font-semibold text-zinc-500 block mb-2">
-                        Rule checks & state trace
-                      </span>
-                      <pre className="overflow-x-auto rounded-lg bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-300">
-                        <code>{resolveData?.ruleTrace || "Evaluating deterministic rules..."}</code>
-                      </pre>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block text-xs text-zinc-500">Policy</span>
-                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.guardrails || "G1–G15"}</span>
-                      </div>
-                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block text-xs text-zinc-500">Read State</span>
-                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.contextEvaluated || "Mock state"}</span>
-                      </div>
-                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block text-xs text-zinc-500">Latency</span>
-                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.latencyMs ? `${resolveData.latencyMs}ms` : "14ms"}</span>
-                      </div>
-                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block text-xs text-zinc-500">Verification</span>
-                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.verificationStatus || "Pending read"}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Technical Details Diagnostic Inspector */}
+              <TechnicalDetailsInspector
+                resolveData={resolveData}
+                actionData={actionData}
+              />
             </div>
 
             {/* ========================================================= */}

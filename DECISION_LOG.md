@@ -229,4 +229,24 @@ Resolved SQLite uniqueness error on evidence expansion and refactored the UI des
    - Next.js 16 Turbopack production build succeeds with 21 static and dynamic routes (`npm run frontend:build`).
 - Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/apiIntegration.test.ts, Turbopack build log).
 
+## D-020 · 2026-10-15 · Enterprise Template Selector & Technical Details Diagnostic Inspector Redesign
+
+Replaced native controls and developer-dominated terminal blocks with enterprise-grade components:
+1. **Target Template Context Selector (`TargetTemplateSelector.tsx`)**:
+   - Replaced native `<select>` dropdown with an accessible popover control conforming to Totoro's design system.
+   - Closed state: clean full-width control with label "Target template", subtle neutral border (`border-zinc-200`), chevron, and distinct display for "Automatic detection" ("Identify the template from your message") vs selected templates (readable name + template ID badge + issue description).
+   - Expanded state: clear visual hierarchy distinguishing "AUTOMATIC" from "AVAILABLE TEMPLATES", authentic fixture data (`TPL-1001`, `TPL-1002`, `TPL-1003`), restrained blue selection checkmarks, and hover/focus highlights.
+   - Complete keyboard accessibility: ARIA `role="listbox"`, `role="option"`, `aria-selected`, ArrowUp/Down, Enter, Space, Escape, Home, End, Tab, and outside-click dismissal. Selection does not trigger case creation or background analysis until user submission.
+2. **Technical Details Diagnostic Inspector (`TechnicalDetailsInspector.tsx`)**:
+   - Collapsed by default with chevron, "Technical details" title, diagnostic events count pill, and "View audit trace" toggle.
+   - Section A (Execution Summary): compact 4-cell grid for Policy decision, State source, Verification status, and Latency with plain-language explanations.
+   - Section B (Diagnostic Timeline): clean vertical timeline translating domain event types (`CASE_OPENED` → "Case opened", `STATE_READ` → "Current state retrieved", `TRIAGED` → "Request assessed", `DIAGNOSED` → "Likely cause identified", `FIX_PROPOSED` → "Proposed change prepared", `HANDOFF_CREATED` → "Human specialist review requested") with concise descriptions and expandable technical payloads.
+   - Section C (Evidence & Rule Trace): dedicated card displaying rule logic, evidence fields used, and unverified boundaries.
+   - Section D (Raw Log Viewer): neutral monospace container with line wrapping, copyable trace, and clipboard copy button.
+3. **Verification**:
+   - Added integration tests 16 and 17 to `tests/apiIntegration.test.ts`. All 138 vitest tests passing across 14 test files (`npm test`).
+   - Next.js 16 Turbopack production build succeeds with 21 static and dynamic routes (`npm run frontend:build`). Strict Vite build clean (`npm run build`).
+- Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/apiIntegration.test.ts, build logs).
+
+
 
