@@ -28,13 +28,13 @@ export default function WorkspaceReports() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-56px)] w-full max-w-5xl flex-col gap-6 px-6 py-10">
       <div className="border-b border-zinc-200 pb-5">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
+        <span className="text-xs font-semibold text-zinc-500">
           Evaluation & Audit Reports
         </span>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-950 font-sans">
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">
           Case Files & Audits
         </h1>
-        <p className="mt-1 text-sm text-zinc-500 font-sans leading-relaxed">
+        <p className="mt-1.5 text-sm text-zinc-600 leading-relaxed">
           Deterministic evaluation metrics, safety guardrail verification, and session audit dossiers.
         </p>
       </div>

@@ -57,21 +57,21 @@ export default function WorkspaceHistory() {
     <div className="mx-auto flex min-h-[calc(100vh-56px)] w-full max-w-5xl flex-col gap-6 px-6 py-10">
       <div className="flex flex-col gap-1 border-b border-zinc-200 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
+          <span className="text-xs font-semibold text-zinc-500">
             Recovery audit logs
           </span>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-950 font-sans">
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">
             Recovery History
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 font-sans leading-relaxed">
+          <p className="mt-1.5 text-sm text-zinc-600 leading-relaxed">
             Active issue investigations, verified recovery actions, and human escalation case files.
           </p>
         </div>
         <Link
-          href="/workspace"
-          className="w-fit rounded-xl bg-zinc-950 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
+          href="/workspace?new=1"
+          className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
         >
-          New Request
+          New request
         </Link>
       </div>
 

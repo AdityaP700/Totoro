@@ -1,5 +1,15 @@
 # TEST RESULTS
 
+## 2026-10-15 — Evidence-expansion fix and design-system typography refactor
+
+- `npm test`: passed — 14 test files, 136 tests passed (100% pass rate, including 3 new regression tests in `tests/apiIntegration.test.ts` covering read-only evidence toggles, terminal session follow-up continuity, and SQLite upsert idempotency).
+- `npm run frontend:build`: passed — Next.js 16.2.9 Turbopack production compilation and type check across all 21 routes with 0 errors.
+- Verified:
+  1. Zero SQLite uniqueness errors (`UNIQUE constraint failed: cases.session_id`) on expanding or collapsing supporting evidence.
+  2. Cohesive typography hierarchy (30–34px title, 19–22px sections, 16–17px prose, 14–16px controls) matching desktop reference.
+  3. No hardcoded or silent template substitutions (retains authentic `TPL-1001` festive_offer_blast, `TPL-1002` order_update_v3, `TPL-1003` payment_reminder_aug).
+  4. Bottom composer securely anchored with scroll clearance (`pb-44`).
+
 ## 2026-10-15 — Persistent workspace foundation
 
 - `npm test`: passed — 14 test files, 133 tests, including API integration, domain, adversarial, and 170-case evaluation suites.

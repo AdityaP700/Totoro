@@ -208,4 +208,25 @@ Connected the adapted Next.js UI (`frontend/src/app/`) to Totoro's pure TypeScri
    - Production Turbopack build succeeds with 17 static and dynamic routes (`npm run frontend:build`).
 - Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/apiIntegration.test.ts, Turbopack build log).
 
+## D-019 · 2026-10-15 · Evidence-Expansion Bug Fix, Database Idempotency, and Design System Typography Correction
+
+Resolved SQLite uniqueness error on evidence expansion and refactored the UI design system:
+1. **Evidence-Expansion Root Cause & Idempotent Persistence**:
+   - *Client-side toggle*: The suggestion chip "Show supporting evidence" inadvertently invoked `handleRunQuery`, posting a new query to `/api/resolve`. Replaced both chip and strip handlers with pure client-side toggles (`setShowEvidenceSection(prev => !prev)`), executing zero network requests and creating zero cases.
+   - *Database upsert idempotency*: In `frontend/src/lib/server/persistence.ts`, `saveCase()` now checks if a case exists for `(workspaceId, sessionId)`. If present, it executes an `UPDATE` in-place; if absent, it executes an `INSERT`. Added `PRAGMA busy_timeout = 5000;` to prevent lock contention.
+   - *Session continuation*: In `frontend/src/app/api/resolve/route.ts`, follow-up messages on terminal sessions (`PENDING`, `HANDOFF`) append customer turns and record audit events rather than creating an orphan case with a duplicated session ID.
+   - *Registry collision guard*: In `frontend/src/lib/server/sessionRegistry.ts`, `createNewSession()` ensures that if a requested `sessionId` is already persisted, a new unique session ID is generated.
+   - *Error sanitization*: Unhandled internal errors in route handlers are sanitized into generic operator-safe messages without leaking raw SQLite internals.
+2. **Typography & UI Polish**:
+   - Replaced fragmented typography with a consistent, readable hierarchy: 30–34px page headers, 19–22px section titles, 16–17px conversation prose, 14–16px interactive controls, 14–15px secondary text, 12–13px metadata.
+   - Removed aggressive uppercase tracking, oversized emoji headings, and jarring colored badges in favor of subtle neutral borders (`border-zinc-200`), clean white/light neutral cards, and a disciplined single blue accent (`bg-blue-600`).
+   - Anchored the bottom composer with bottom scroll clearance (`pb-44`), preventing overlap with conversation content.
+3. **Template Identity & Authentic Fixtures**:
+   - Removed all hardcoded `payment_due_v2` fallbacks; preserved authentic mock fixtures (`TPL-1001` festive_offer_blast, `TPL-1002` order_update_v3, `TPL-1003` payment_reminder_aug).
+4. **Verification**:
+   - Added tests 13, 14, and 15 to `tests/apiIntegration.test.ts`, verifying read-only evidence toggle behavior, terminal session follow-up continuity, and persistence upsert idempotency.
+   - All 136 vitest tests passing across 14 test suites (`npm test`).
+   - Next.js 16 Turbopack production build succeeds with 21 static and dynamic routes (`npm run frontend:build`).
+- Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/apiIntegration.test.ts, Turbopack build log).
+
 

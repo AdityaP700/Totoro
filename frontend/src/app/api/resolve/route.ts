@@ -45,20 +45,8 @@ export async function POST(req: Request) {
           timestamp: new Date().toISOString(),
         });
         record.updatedAt = new Date().toISOString();
-      } else if (
-        record.session.state.stage === "PENDING" ||
-        record.session.state.stage === "HANDOFF" ||
-        record.session.state.stage === "DECLINED"
-      ) {
-        // Prior case reached terminal stage; start fresh investigation for same user/session
-        record = createNewSession(workspaceId, {
-          message,
-          templateId: body.templateId,
-          userRole: body.userRole,
-          sessionId: body.sessionId,
-        });
       } else {
-        // Preserve an active case. Follow-up text is audit context only; it cannot change a proposal.
+        // Preserve active or terminal case; record follow-up question in conversation history
         record.messages.push({ role: "user", text: message, timestamp: new Date().toISOString() });
         record.updatedAt = new Date().toISOString();
       }
@@ -81,9 +69,13 @@ export async function POST(req: Request) {
     return NextResponse.json(response, { status: 200 });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal diagnosis error";
+    console.error("[API Resolve Error]", err);
+    const userFriendlyMsg = /unique|constraint|sqlite|foreign_key|syntax error/i.test(errorMsg)
+      ? "Unable to complete this recovery step due to an internal storage issue. Please try again or start a new request."
+      : errorMsg;
     return NextResponse.json(
       {
-        error: errorMsg,
+        error: userFriendlyMsg,
         status: "error",
       },
       { status: 500 }

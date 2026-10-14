@@ -295,8 +295,12 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal action execution error";
+    console.error("[API Action Error]", err);
+    const userFriendlyMsg = /unique|constraint|sqlite|foreign_key|syntax error/i.test(errorMsg)
+      ? "Unable to complete this recovery action due to an internal storage issue. Please try again."
+      : errorMsg;
     return NextResponse.json(
-      { error: errorMsg },
+      { error: userFriendlyMsg },
       { status: 500 }
     );
   }

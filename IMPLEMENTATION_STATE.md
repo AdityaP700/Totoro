@@ -18,6 +18,11 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Updated `frontend/src/app/workspace/page.tsx`: Image 2 welcome screen with personalized sky-blue greeting badge, role-tailored prompt cards, right-aligned user bubble, left-aligned prose explanation, horizontal 3-column inspection strip, proposed change pill diff, collapsible technical details, and anchored bottom composer with quick follow-up chips.
   - Updated `frontend/src/app/workspace/settings/page.tsx`: editable profile section for instant personalization updates.
   - Verification: All 133 vitest tests passed; Next.js 16 Turbopack production build compiled with 0 errors across all 21 routes.
+- **Evidence-Expansion Fix & Design System Typography Polish (2026-10-15)**:
+  - Root cause resolved for SQLite error: `UNIQUE constraint failed: cases.session_id` triggered on expanding supporting evidence. Converted evidence buttons to pure read-only UI state toggles (`setShowEvidenceSection(prev => !prev)`); added idempotent `saveCase()` update-in-place for `(workspaceId, sessionId)` in `persistence.ts`; added `PRAGMA busy_timeout = 5000;`; added session continuation and registry collision avoidance; sanitized server error responses.
+  - Typography refactor: Established standard, mature type hierarchy (30–34px title, 19–22px section headings, 16–17px prose, 14–16px interactive controls, 12–13px metadata); eliminated aggressive uppercase tracking and emoji headers; anchored composer with safe scroll margin (`pb-44`).
+  - Template identity preserved: Removed hardcoded `payment_due_v2` fallbacks; preserved authentic mock fixtures (`TPL-1001` festive_offer_blast, `TPL-1002` order_update_v3, `TPL-1003` payment_reminder_aug).
+  - Verification: Added tests 13, 14, 15 to `tests/apiIntegration.test.ts`; all 136 vitest tests passing; Next.js 16 Turbopack production build compiled with 0 errors across all 21 routes.
 
 ## Current phase
 
@@ -123,11 +128,12 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - End-to-End Execution Reality Check gate: PASSED (All 6 execution categories verified live on real CLI; 85/85 tests passing across 12 test files; strict build clean; comprehensive audit matrix authored in `docs/audits/end_to_end_execution_matrix.md`).
 - Adversarial Stress Test & Reliability Hardening gate: PASSED (All 20 threat categories tested; 36 hostile tests passing; 7 defects remediated; 200 concurrent requests benchmarked with 0 crashes and 0 contamination; strict build clean; audit report in `docs/audits/adversarial_stress_test.md`).
 - UI API Integration & Recovery Engine Connection gate: PASSED (Next.js route handlers connected to domain state machine; workspace, history, reports, and settings functional; 133/133 tests passing; Turbopack production build clean).
+- Evidence-Expansion Fix & Design System Typography Polish gate: PASSED (Zero SQLite uniqueness errors on evidence inspection, idempotent database upsert, standard typography scale applied, authentic fixtures preserved, 136/136 tests passing, Turbopack clean across 21 routes).
 
 ## Exact next command / task
 
-The full UI-to-Engine integration is complete and verified. Commands available:
-- `npm test`: run full 133-test suite across 14 test files.
+The full UI-to-Engine integration, design system polish, and evidence-expansion fix are complete and verified. Commands available:
+- `npm test`: run full 136-test suite across 14 test files.
 - `npm run frontend:dev`: start Next.js frontend on http://localhost:3000.
 - `npm run frontend:build`: build Next.js production bundle with Turbopack.
 - `npm run dev`: run original Vite prototype UI on http://localhost:5173.

@@ -43,29 +43,29 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
     const s = (statusBadge || "").toLowerCase();
     if (s.includes("awaiting") || s.includes("propose") || s.includes("approval")) {
       return {
-        dot: "bg-blue-500",
-        pill: "bg-blue-50 text-blue-700 border-blue-200/80",
+        dot: "bg-blue-600",
+        pill: "bg-blue-50 text-blue-700 border-blue-200/70",
         label: statusBadge || "Awaiting approval",
       };
     }
     if (s.includes("verified") || s.includes("success") || s.includes("pass") || s.includes("complete")) {
       return {
-        dot: "bg-emerald-500",
-        pill: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
+        dot: "bg-emerald-600",
+        pill: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
         label: statusBadge || "Verified read",
       };
     }
     if (s.includes("escalat") || s.includes("human") || s.includes("handoff") || s.includes("block")) {
       return {
-        dot: "bg-rose-500",
-        pill: "bg-rose-50 text-rose-700 border-rose-200/80",
+        dot: "bg-rose-600",
+        pill: "bg-rose-50 text-rose-700 border-rose-200/70",
         label: statusBadge || "Escalated to human support",
       };
     }
     if (s.includes("clarif")) {
       return {
-        dot: "bg-amber-500",
-        pill: "bg-amber-50 text-amber-700 border-amber-200/80",
+        dot: "bg-amber-600",
+        pill: "bg-amber-50 text-amber-800 border-amber-200/70",
         label: statusBadge || "Clarification needed",
       };
     }
@@ -144,7 +144,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between pb-1">
           {!sidebarCollapsed && (
             <Link href="/workspace" className="flex items-center gap-2">
-              <span className="font-mono text-sm font-black tracking-widest text-zinc-950">
+              <span className="font-semibold text-sm tracking-wider text-zinc-900 font-mono">
                 TOTORO
               </span>
             </Link>
@@ -153,11 +153,11 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
           {/* Toggle sidebar button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-900 transition-colors mx-auto"
+            className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-900 transition-colors mx-auto"
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label="Toggle sidebar"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -170,32 +170,32 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
           <Link
             href="/workspace?new=1"
             onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
-            className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-800 shadow-xs hover:border-zinc-300 hover:bg-zinc-50 transition-all"
+            className="flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 shadow-sm hover:border-zinc-300 hover:bg-zinc-50 transition-all"
           >
-            <span className="text-sm font-bold text-zinc-700">+</span>
+            <span className="text-base leading-none font-semibold text-zinc-600">+</span>
             <span>New request</span>
           </Link>
         ) : (
           <Link
             href="/workspace?new=1"
             onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
-            className="mx-auto flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-800 shadow-xs hover:bg-zinc-50 transition-all"
+            className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-800 shadow-sm hover:bg-zinc-50 transition-all"
             title="New request"
           >
-            <span className="text-base font-bold">+</span>
+            <span className="text-base font-semibold">+</span>
           </Link>
         )}
 
         {/* Search bar */}
         {!sidebarCollapsed && (
-          <form onSubmit={handleSearchSubmit} className="relative mt-1">
+          <form onSubmit={handleSearchSubmit} className="relative mt-0.5">
             <svg
-              className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400"
+              className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth="2.5"
+              strokeWidth="2"
             >
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -205,9 +205,9 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
               placeholder="Search requests..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-zinc-200/80 bg-zinc-100/60 pl-8 pr-10 py-1.5 text-xs text-zinc-800 placeholder-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none transition-all"
+              className="w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-10 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none transition-all"
             />
-            <span className="absolute right-2 top-2 rounded bg-zinc-200/60 px-1 py-0.5 font-mono text-[9px] text-zinc-500">
+            <span className="absolute right-2 top-2 rounded border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-[10px] text-zinc-500">
               ⌘K
             </span>
           </form>
@@ -215,34 +215,37 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* Recent Requests Section */}
         {!sidebarCollapsed && (
-          <div className="flex flex-col gap-1 mt-2">
-            <span className="px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          <div className="flex flex-col gap-1 mt-1">
+            <span className="px-3 text-xs font-semibold text-zinc-500">
               Recent requests
             </span>
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 mt-1">
               {filteredRecent.length === 0 ? (
                 <span className="px-3 py-2 text-xs text-zinc-400">No requests yet</span>
               ) : (
                 filteredRecent.map((item) => {
-                  const isActive = activeTitle.toLowerCase().includes(item.title.toLowerCase()) || (pathname === "/workspace" && item.id === filteredRecent[0]?.id && !search);
+                  const isActive =
+                    activeTitle.toLowerCase().includes(item.title.toLowerCase()) ||
+                    (pathname === "/workspace" && item.id === filteredRecent[0]?.id && !search);
+                  const destination = item.id.startsWith("SES-")
+                    ? `/workspace?sessionId=${encodeURIComponent(item.id)}`
+                    : `/workspace?q=${encodeURIComponent(item.q)}&new=1`;
+
                   return (
                     <Link
                       key={item.id}
-                      href={`/workspace?q=${encodeURIComponent(item.q)}&new=1`}
+                      href={destination}
                       onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
                       className={`group relative flex flex-col rounded-lg px-3 py-2 text-left transition-colors ${
                         isActive
-                          ? "bg-[#f0f4f9] text-zinc-950"
-                          : "text-zinc-600 hover:bg-zinc-100/70 hover:text-zinc-900"
+                          ? "bg-blue-50/70 border-l-2 border-blue-600 pl-2.5 text-blue-950 font-medium"
+                          : "text-zinc-700 hover:bg-zinc-100/70 hover:text-zinc-950"
                       }`}
                     >
-                      {isActive && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-blue-600" />
-                      )}
-                      <span className="truncate text-xs font-medium">
+                      <span className="truncate text-sm font-medium">
                         {item.title}
                       </span>
-                      <span className="mt-0.5 truncate font-mono text-[10px] text-zinc-400">
+                      <span className="mt-0.5 truncate text-xs text-zinc-500">
                         {item.subtitle}
                       </span>
                     </Link>
@@ -254,12 +257,12 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Divider */}
-        {!sidebarCollapsed && <div className="h-px bg-zinc-200/60 my-1" />}
+        {!sidebarCollapsed && <div className="h-px bg-zinc-200/70 my-1" />}
 
         {/* Navigation Section */}
         <div className="flex flex-col gap-1">
           {!sidebarCollapsed && (
-            <span className="px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+            <span className="px-3 text-xs font-semibold text-zinc-500">
               Workspace
             </span>
           )}
@@ -273,38 +276,38 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
               } ${
                 nav.active
                   ? "bg-zinc-100 text-zinc-950 font-semibold"
-                  : "text-zinc-500 hover:bg-zinc-100/70 hover:text-zinc-900 font-medium"
+                  : "text-zinc-600 hover:bg-zinc-100/70 hover:text-zinc-900 font-medium"
               }`}
               title={sidebarCollapsed ? nav.label : undefined}
             >
-              <span className={nav.active ? "text-zinc-950" : "text-zinc-400"}>
+              <span className={nav.active ? "text-zinc-900" : "text-zinc-500"}>
                 {nav.icon}
               </span>
-              {!sidebarCollapsed && <span className="text-xs">{nav.label}</span>}
+              {!sidebarCollapsed && <span className="text-sm">{nav.label}</span>}
             </Link>
           ))}
         </div>
       </div>
 
       {/* User Profile Footer */}
-      <div className="border-t border-zinc-200/60 p-3.5">
+      <div className="border-t border-zinc-200/70 p-3">
         <Link
           href="/workspace/settings"
           onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
-          className={`flex items-center gap-2.5 rounded-lg p-1 hover:bg-zinc-100/80 transition-colors ${
+          className={`flex items-center gap-2.5 rounded-lg p-1.5 hover:bg-zinc-100/80 transition-colors ${
             sidebarCollapsed ? "justify-center" : ""
           }`}
           title="Account & Settings"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white shadow-xs">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white shadow-xs">
             {initials}
           </div>
           {!sidebarCollapsed && (
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-xs font-semibold text-zinc-800">
+              <span className="truncate text-sm font-medium text-zinc-900">
                 {userProfile.name || "Support Lead"}
               </span>
-              <span className="truncate text-[10px] text-zinc-400 font-mono">
+              <span className="truncate text-xs text-zinc-500">
                 {userProfile.businessName || "Totoro"}
               </span>
             </div>
@@ -315,10 +318,10 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white text-zinc-950 font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-white text-zinc-900 font-sans">
       {/* Desktop Persistent Sidebar */}
       <aside
-        className={`hidden md:flex flex-col bg-[#fafafa] border-r border-zinc-200/70 transition-all duration-300 ${
+        className={`hidden md:flex flex-col bg-[#fcfcfc] border-r border-zinc-200/80 transition-all duration-300 ${
           sidebarCollapsed ? "w-16" : "w-64"
         } shrink-0`}
       >
@@ -335,7 +338,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Slide-over Drawer */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-[#fafafa] shadow-2xl transition-transform duration-300 md:hidden ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-white shadow-xl transition-transform duration-300 md:hidden border-r border-zinc-200 ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -344,9 +347,9 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Main Workspace Area */}
       <div className="flex flex-1 flex-col overflow-hidden bg-white">
-        {/* Top Header matching reference screenshot Image 1 */}
-        <header className="h-14 border-b border-zinc-200/70 px-4 md:px-6 flex items-center justify-between bg-white select-none shrink-0">
-          <div className="flex items-center gap-2 md:gap-3 text-xs">
+        {/* Top Header */}
+        <header className="h-14 border-b border-zinc-200/80 px-4 md:px-6 flex items-center justify-between bg-white select-none shrink-0">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -360,15 +363,15 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
               </svg>
             </button>
 
-            {/* Breadcrumb */}
-            <span className="text-zinc-500 font-normal">Workspace</span>
-            <span className="text-zinc-300">/</span>
-            <span className="font-semibold text-zinc-900 truncate max-w-[180px] sm:max-w-[320px]">
+            {/* Breadcrumb Hierarchy */}
+            <span className="text-zinc-500 text-sm font-normal">Workspace</span>
+            <span className="text-zinc-300 text-sm">/</span>
+            <span className="font-semibold text-zinc-900 text-sm truncate max-w-[180px] sm:max-w-[320px]">
               {activeTitle || "Issue investigation"}
             </span>
 
-            {/* Status Badge Pill */}
-            <div className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${badgeConfig.pill}`}>
+            {/* Status Badge */}
+            <div className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${badgeConfig.pill}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${badgeConfig.dot}`} />
               <span>{badgeConfig.label}</span>
             </div>
@@ -378,14 +381,14 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowHelpModal(true)}
-              className="text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
             >
               Help
             </button>
-            <div className="h-3 w-px bg-zinc-200" />
+            <div className="h-3.5 w-px bg-zinc-200" />
             <Link
               href="/workspace/settings"
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white shadow-xs hover:opacity-90 transition-opacity"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white shadow-xs hover:opacity-90 transition-opacity"
               title="Profile & Settings"
             >
               {initials}
@@ -394,7 +397,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content Canvas */}
-        <main className="flex-1 overflow-y-auto relative bg-white">
+        <main className="flex-1 overflow-y-auto relative bg-[#fafafa]">
           {children}
         </main>
       </div>
@@ -402,7 +405,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Help Modal */}
       {showHelpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <h3 className="text-base font-semibold text-zinc-900">Totoro Support & Guardrails</h3>
               <button
@@ -412,24 +415,24 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
                 ✕
               </button>
             </div>
-            <div className="mt-4 space-y-3 text-xs text-zinc-600 leading-relaxed">
+            <div className="mt-4 space-y-3 text-sm text-zinc-600 leading-relaxed">
               <p>
-                <strong>Rules-First Recovery:</strong> Totoro evaluates deterministic policy rules across mock fixtures without external network dependencies.
+                <strong className="text-zinc-900">Rules-First Recovery:</strong> Totoro evaluates deterministic policy rules across mock fixtures without external network dependencies.
               </p>
               <p>
-                <strong>Safety Guardrail G1:</strong> No changes are submitted without your explicit confirmation displaying exact before/after diffs.
+                <strong className="text-zinc-900">Safety Guardrail G1:</strong> No changes are submitted without your explicit confirmation displaying exact before/after diffs.
               </p>
               <p>
-                <strong>Simulation Only:</strong> All operations are safely executed in mock fixtures. Real Cheerio and Meta API calls are never executed.
+                <strong className="text-zinc-900">Simulation Only:</strong> All operations are safely executed in mock fixtures. Real Cheerio and Meta API calls are never executed.
               </p>
               <p>
-                <strong>Human-Led Zones:</strong> Billing disputes, security credentials, and verification failures automatically trigger complete human specialist handoffs.
+                <strong className="text-zinc-900">Human-Led Zones:</strong> Billing disputes, security credentials, and verification failures automatically trigger complete human specialist handoffs.
               </p>
             </div>
             <div className="mt-5 flex justify-end">
               <button
                 onClick={() => setShowHelpModal(false)}
-                className="rounded-lg bg-zinc-950 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
               >
                 Got it
               </button>

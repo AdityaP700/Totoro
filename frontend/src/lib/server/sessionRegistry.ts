@@ -62,7 +62,10 @@ export function createNewSession(workspaceId: string, options: {
   userRole?: string;
   sessionId?: string;
 }): ActiveSessionRecord {
-  const sessionId = options.sessionId || `SES-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  let sessionId = options.sessionId;
+  if (!sessionId || repositories.getCase(workspaceId, sessionId)) {
+    sessionId = `SES-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  }
   const templateId = options.templateId || autoDetectTemplateId(options.message);
   const store = createMockStore();
 

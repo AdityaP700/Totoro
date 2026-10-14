@@ -47,10 +47,10 @@ const defaultProfile: OnboardingProfile = {
 };
 
 const defaultRecent: RecentRequestItem[] = [
-  { id: "req-1", title: "WhatsApp template rejection", subtitle: "payment_due_v2 · 2 min ago", q: "Why was my WhatsApp template rejected?", timestamp: Date.now() - 120000 },
-  { id: "req-2", title: "Webhook delivery timeout", subtitle: "campaign_123 · 3 hours ago", q: "Webhook delivery failed after retry", timestamp: Date.now() - 10800000 },
-  { id: "req-3", title: "Billing discrepancy", subtitle: "invoice_9053 · 1 day ago", q: "Billing charge discrepancy for message batch", timestamp: Date.now() - 86400000 },
-  { id: "req-4", title: "Account verification", subtitle: "user access · 2 days ago", q: "Account verification lockout", timestamp: Date.now() - 172800000 },
+  { id: "req-1", title: "WhatsApp template rejection", subtitle: "festive_offer_blast (TPL-1001) · 2 min ago", q: "Why was my WhatsApp template rejected?", timestamp: Date.now() - 120000 },
+  { id: "req-2", title: "Variable format rejection", subtitle: "order_update_v3 (TPL-1002) · 3 hours ago", q: "Template order_update_v3 has invalid variable format", timestamp: Date.now() - 10800000 },
+  { id: "req-3", title: "Payment reminder rejection", subtitle: "payment_reminder_aug (TPL-1003) · 1 day ago", q: "Payment reminder template rejected for tag mismatch", timestamp: Date.now() - 86400000 },
+  { id: "req-4", title: "Billing refund dispute", subtitle: "Billing escalation · 2 days ago", q: "I want a refund for the billing overcharge", timestamp: Date.now() - 172800000 },
 ];
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -146,6 +146,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       // Ignore
     }
   }, []);
+
+  useEffect(() => {
+    void refreshRecentRequests();
+  }, [refreshRecentRequests]);
 
   const addRecentRequest = useCallback((item: Omit<RecentRequestItem, "timestamp">) => {
     const newItem: RecentRequestItem = { ...item, timestamp: Date.now() };

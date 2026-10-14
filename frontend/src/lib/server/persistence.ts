@@ -17,7 +17,7 @@ function database() {
   try {
     mkdirSync(uploadRoot, { recursive: true });
     db = new SqliteDatabase(dbPath);
-    db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
+    db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
     db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS preferences (workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE, profile_json TEXT NOT NULL, updated_at TEXT NOT NULL);
@@ -44,10 +44,19 @@ export const repositories = {
   savePreferences(workspaceId: string, profile: unknown) { this.ensureWorkspace(workspaceId); database().prepare("INSERT INTO preferences(workspace_id, profile_json, updated_at) VALUES (?, ?, ?) ON CONFLICT(workspace_id) DO UPDATE SET profile_json=excluded.profile_json, updated_at=excluded.updated_at").run(workspaceId, JSON.stringify(profile), new Date().toISOString()); },
   getPreferences(workspaceId: string) { const row = database().prepare("SELECT profile_json FROM preferences WHERE workspace_id=?").get(workspaceId); return row ? JSON.parse(String(row.profile_json)) : null; },
   saveCase(input: StoredCase) {
-    this.ensureWorkspace(input.workspaceId); const d = database();
-    d.prepare("INSERT INTO cases(id, workspace_id, session_id, title, template_id, original_message, state_json, templates_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title=excluded.title, state_json=excluded.state_json, templates_json=excluded.templates_json, updated_at=excluded.updated_at, deleted_at=NULL").run(input.id, input.workspaceId, input.sessionId, input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.createdAt, input.updatedAt);
-    d.prepare("DELETE FROM conversation_turns WHERE case_id=?").run(input.id);
-    const turn = d.prepare("INSERT INTO conversation_turns(case_id, role, text, created_at) VALUES (?, ?, ?, ?)"); input.messages.forEach((m) => turn.run(input.id, m.role, m.text, m.timestamp));
+    this.ensureWorkspace(input.workspaceId);
+    const d = database();
+    const existing = d.prepare("SELECT id FROM cases WHERE workspace_id=? AND session_id=?").get(input.workspaceId, input.sessionId) as { id: string } | undefined;
+    let targetCaseId = input.id;
+    if (existing) {
+      targetCaseId = existing.id;
+      d.prepare("UPDATE cases SET title=?, template_id=?, original_message=?, state_json=?, templates_json=?, updated_at=?, deleted_at=NULL WHERE workspace_id=? AND session_id=?").run(input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.updatedAt, input.workspaceId, input.sessionId);
+    } else {
+      d.prepare("INSERT INTO cases(id, workspace_id, session_id, title, template_id, original_message, state_json, templates_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title=excluded.title, state_json=excluded.state_json, templates_json=excluded.templates_json, updated_at=excluded.updated_at, deleted_at=NULL").run(input.id, input.workspaceId, input.sessionId, input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.createdAt, input.updatedAt);
+    }
+    d.prepare("DELETE FROM conversation_turns WHERE case_id=?").run(targetCaseId);
+    const turn = d.prepare("INSERT INTO conversation_turns(case_id, role, text, created_at) VALUES (?, ?, ?, ?)");
+    input.messages.forEach((m) => turn.run(targetCaseId, m.role, m.text, m.timestamp));
   },
   getCase(workspaceId: string, sessionId: string): StoredCase | null { const r = database().prepare("SELECT * FROM cases WHERE workspace_id=? AND session_id=? AND deleted_at IS NULL").get(workspaceId, sessionId); return r ? this.rowToCase(r) : null; },
   hasCase(workspaceId: string, caseId: string) { return Boolean(database().prepare("SELECT 1 FROM cases WHERE workspace_id=? AND id=? AND deleted_at IS NULL").get(workspaceId, caseId)); },

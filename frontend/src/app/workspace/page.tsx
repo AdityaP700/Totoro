@@ -15,7 +15,7 @@ const allSuggestions = [
   },
   {
     q: "Template order_update_v3 has invalid variable format",
-    desc: "Inspect bracket formatting, missing placeholders, and syntax requirements.",
+    desc: "Inspect bracket formatting, missing placeholders, and parameter syntax.",
     roleTags: ["ops", "dev", "support"],
     templateId: "TPL-1002",
   },
@@ -175,12 +175,14 @@ function WorkspacePageContent() {
       setActiveTitle(computedTitle);
       setStatusBadge(data.statusBadge || "Awaiting approval");
 
-      // Add to recent requests
-      const subtitle = `${data.templateSnapshot?.id || data.proposal?.targetId || "general"} · just now`;
+      // Add to recent requests with accurate template identity
+      const templateSub = data.templateSnapshot
+        ? `${data.templateSnapshot.name} (${data.templateSnapshot.id})`
+        : data.category || "General";
       addRecentRequest({
         id: data.sessionId,
         title: computedTitle,
-        subtitle,
+        subtitle: `${templateSub} · just now`,
         q: targetText,
       });
     } catch (err: unknown) {
@@ -434,57 +436,58 @@ function WorkspacePageContent() {
   const displayBusiness = userProfile.businessName || "Totoro";
 
   const caseHeadline = customTitle || deriveCaseTitle(resolveData, activeQuery);
-  const templateIdDisplay =
-    resolveData?.templateSnapshot?.id ||
-    resolveData?.proposal?.targetId ||
-    (selectedTemplateId !== "auto" ? selectedTemplateId : "payment_due_v2");
+  const templateIdentity = resolveData?.templateSnapshot
+    ? `${resolveData.templateSnapshot.name} (${resolveData.templateSnapshot.id})`
+    : resolveData?.proposal?.targetId || (selectedTemplateId !== "auto" ? selectedTemplateId : "WhatsApp Template");
+
+  const explanationText =
+    actionData
+      ? actionData.customerExplanation.whatIsWrong
+      : resolveData?.customerExplanation.whatIsWrong ||
+        "Analyzing issue against deterministic rules and mock state...";
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-56px)] w-full max-w-[800px] flex-col px-4 py-8 md:px-8">
+    <div className="mx-auto flex min-h-[calc(100vh-56px)] w-full max-w-[800px] flex-col px-4 py-8 md:px-6">
       <AnimatePresence mode="wait">
         {!activeQuery ? (
           /* ========================================================= */
-          /* 1. WELCOME SCREEN (Reference Screenshot Image 2)           */
+          /* 1. WELCOME SCREEN (Mature Typography & Layout)            */
           /* ========================================================= */
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="mx-auto flex w-full flex-1 flex-col justify-center gap-7 py-6"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="mx-auto flex w-full flex-1 flex-col justify-center gap-6 py-6"
           >
             {/* Greeting Header */}
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-sky-100/80 px-4 py-1.5 text-sky-900 font-semibold text-base sm:text-lg shadow-2xs">
-                <span>Welcome, {displayName}!</span>
-                <span>👋</span>
-              </div>
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-zinc-950 sm:text-4xl">
-                How can I help you today?
+              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+                How can I help you today, {displayName}?
               </h1>
-              <p className="mt-2 text-xs sm:text-sm text-zinc-500 max-w-lg leading-relaxed">
-                Configured for {displayRole} at {displayBusiness} — diagnosing WhatsApp rejections, enforcing deterministic safety guardrails, and guiding recovery.
+              <p className="mt-2 text-sm text-zinc-600 max-w-xl leading-relaxed">
+                Configured for {displayRole} at {displayBusiness}. Totoro diagnoses WhatsApp rejections, enforces safety guardrails, and guides simulated recovery.
               </p>
             </div>
 
             {errorMessage && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-800">
-                <span className="font-semibold">Error:</span> {errorMessage}
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                <span className="font-semibold">Notice:</span> {errorMessage}
               </div>
             )}
 
             {/* Main Prompt Card */}
-            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_12px_40px_rgba(0,0,0,0.03)]">
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
               {/* Target context selector */}
-              <div className="mb-3 flex items-center justify-between border-b border-zinc-100 pb-2.5">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
-                  Target context:
+              <div className="mb-3.5 flex items-center justify-between border-b border-zinc-100 pb-3">
+                <span className="text-xs font-medium text-zinc-500">
+                  Target template context:
                 </span>
                 <select
                   value={selectedTemplateId}
                   onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-mono text-xs text-zinc-700 outline-none hover:border-zinc-300"
+                  className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-800 outline-none hover:border-zinc-300"
                 >
                   {mockTemplates.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -497,9 +500,9 @@ function WorkspacePageContent() {
               <textarea
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Describe what you need help with or paste a rejection error..."
+                placeholder="Describe the issue you are experiencing or paste a template error..."
                 rows={3}
-                className="w-full resize-none bg-transparent text-sm leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400"
+                className="w-full resize-none bg-transparent text-[16px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -509,22 +512,22 @@ function WorkspacePageContent() {
               />
 
               <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
-                <span className="text-[11px] font-medium text-zinc-400">Press Enter to analyze</span>
+                <span className="text-xs text-zinc-500">Press Enter to analyze</span>
                 <button
                   type="button"
                   onClick={() => handleRunQuery(query)}
                   disabled={!query.trim() || loading}
-                  className="rounded-full bg-zinc-950 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-300 transition-all"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:bg-zinc-100 disabled:text-zinc-400 transition-all"
                 >
                   {loading ? "Analyzing rules..." : "Analyze issue"}
                 </button>
               </div>
             </div>
 
-            {/* Quick Suggested Prompt Cards */}
-            <div className="space-y-2">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-400 px-1">
-                Suggested for {displayRole}
+            {/* Quick Suggested Scenarios */}
+            <div className="space-y-3">
+              <span className="text-xs font-semibold text-zinc-500">
+                Suggested scenarios for {displayRole}
               </span>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {prioritizedSuggestions.map((suggestion) => (
@@ -538,12 +541,12 @@ function WorkspacePageContent() {
                       }
                       handleRunQuery(suggestion.q, suggestion.templateId);
                     }}
-                    className="group rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:bg-zinc-50/80 shadow-2xs"
+                    className="group rounded-lg border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:bg-zinc-50/70 shadow-sm"
                   >
-                    <span className="text-xs font-semibold text-zinc-900 group-hover:text-black">
+                    <span className="text-sm font-medium text-zinc-900 group-hover:text-blue-900 block">
                       {suggestion.q}
                     </span>
-                    <span className="mt-1 block text-[11px] leading-relaxed text-zinc-500">
+                    <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
                       {suggestion.desc}
                     </span>
                   </button>
@@ -553,18 +556,18 @@ function WorkspacePageContent() {
           </motion.div>
         ) : (
           /* ========================================================= */
-          /* 2. ACTIVE CASE VIEW (Reference Screenshot Image 1)         */
+          /* 2. ACTIVE CASE VIEW (Refined Typography & Spacing)         */
           /* ========================================================= */
           <motion.div
             key="active"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="flex w-full flex-col gap-6 pb-40"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="flex w-full flex-col gap-6 pb-44"
           >
             {/* Case Title Bar */}
-            <div className="flex items-start justify-between border-b border-zinc-200/80 pb-4">
+            <div className="flex items-start justify-between border-b border-zinc-200 pb-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   {isRenaming ? (
@@ -573,7 +576,7 @@ function WorkspacePageContent() {
                         type="text"
                         value={customTitle}
                         onChange={(e) => setCustomTitle(e.target.value)}
-                        className="rounded-lg border border-zinc-300 px-2 py-1 text-lg font-bold text-zinc-900 outline-none"
+                        className="rounded-lg border border-zinc-300 px-2.5 py-1 text-lg font-semibold text-zinc-900 outline-none"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveRename();
@@ -582,14 +585,14 @@ function WorkspacePageContent() {
                       />
                       <button
                         onClick={handleSaveRename}
-                        className="rounded-md bg-zinc-950 px-2.5 py-1 text-xs font-semibold text-white"
+                        className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
                       >
                         Save
                       </button>
                     </div>
                   ) : (
                     <>
-                      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-950">
+                      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
                         {caseHeadline}
                       </h1>
                       <button
@@ -597,7 +600,7 @@ function WorkspacePageContent() {
                           setIsRenaming(true);
                           setCustomTitle(caseHeadline);
                         }}
-                        className="flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                        className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
                         title="Rename case"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -608,8 +611,8 @@ function WorkspacePageContent() {
                     </>
                   )}
                 </div>
-                <p className="font-mono text-xs text-zinc-400">
-                  {templateIdDisplay} · Last updated just now
+                <p className="text-xs text-zinc-500">
+                  {templateIdentity} · Updated just now
                 </p>
               </div>
 
@@ -617,7 +620,7 @@ function WorkspacePageContent() {
               <div className="relative">
                 <button
                   onClick={() => setShowMenuDropdown(!showMenuDropdown)}
-                  className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                  className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
                   aria-label="More actions"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -628,7 +631,7 @@ function WorkspacePageContent() {
                 </button>
 
                 {showMenuDropdown && (
-                  <div className="absolute right-0 top-9 z-30 w-48 rounded-xl border border-zinc-200 bg-white py-1.5 shadow-lg text-xs">
+                  <div className="absolute right-0 top-9 z-30 w-52 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg text-sm">
                     <button
                       onClick={() => {
                         setShowMenuDropdown(false);
@@ -666,36 +669,33 @@ function WorkspacePageContent() {
             </div>
 
             {errorMessage && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-800">
-                <span className="font-semibold">Error:</span> {errorMessage}
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                <span className="font-semibold">Notice:</span> {errorMessage}
               </div>
             )}
 
             {/* Conversation Flow */}
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
               {/* User Inquiry Bubble (Right-aligned) */}
               <div className="flex justify-end">
-                <div className="max-w-[85%] sm:max-w-[70%] rounded-2xl rounded-tr-xs border border-zinc-200/80 bg-zinc-100/90 p-4 text-xs sm:text-sm leading-relaxed text-zinc-900 shadow-2xs">
+                <div className="max-w-[85%] sm:max-w-[75%] rounded-xl rounded-tr-sm border border-zinc-200/90 bg-zinc-100 px-4 py-3 text-[16px] leading-relaxed text-zinc-900 shadow-xs">
                   {activeQuery}
                 </div>
               </div>
 
               {/* Totoro Assistant Prose Explanation (Left-aligned) */}
-              <div className="flex flex-col gap-2 text-xs sm:text-sm leading-relaxed text-zinc-800">
+              <div className="flex flex-col gap-2 text-[16px] leading-7 text-zinc-800">
                 {loading ? (
-                  <div className="rounded-xl bg-zinc-50 p-4 text-xs text-zinc-400">
+                  <div className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-500">
                     Evaluating deterministic rules against mock state...
                   </div>
                 ) : (
                   <>
                     <p className="font-normal text-zinc-800">
-                      {actionData
-                        ? actionData.customerExplanation.whatIsWrong
-                        : resolveData?.customerExplanation.whatIsWrong ||
-                          `Based on the mock state read, template ${templateIdDisplay} was submitted under the Utility category, but contains promotional wording resulting in a tag mismatch.`}
+                      {explanationText}
                     </p>
                     {resolveData?.customerExplanation.evidenceExplanation && (
-                      <p className="text-zinc-600">
+                      <p className="text-sm text-zinc-600 leading-relaxed">
                         {resolveData.customerExplanation.evidenceExplanation}
                       </p>
                     )}
@@ -703,33 +703,33 @@ function WorkspacePageContent() {
                 )}
               </div>
 
-              {/* Horizontal Inspection Strip Card (Reference Screenshot Image 1) */}
-              <div className="rounded-xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 items-center">
+              {/* Horizontal Inspection Strip Card */}
+              <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 items-center">
                   {/* Col 1: Current state */}
                   <div>
-                    <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                    <span className="block text-xs font-semibold text-zinc-500">
                       Current state
                     </span>
-                    <span className="mt-1 inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
+                    <span className="mt-1 inline-flex items-center rounded border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
                       {resolveData?.templateSnapshot?.status || "Rejected"}
                     </span>
                   </div>
 
                   {/* Col 2: Category */}
                   <div>
-                    <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                    <span className="block text-xs font-semibold text-zinc-500">
                       Category
                     </span>
-                    <span className="mt-1 block text-xs font-semibold text-zinc-900">
+                    <span className="mt-1 block text-sm font-medium text-zinc-900">
                       {resolveData?.templateSnapshot?.category || resolveData?.category || "Marketing"}
                     </span>
                   </div>
 
                   {/* Col 3: Reason */}
                   <div>
-                    <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
-                      Reason
+                    <span className="block text-xs font-semibold text-zinc-500">
+                      Reason code
                     </span>
                     <span className="mt-1 block truncate font-mono text-xs text-zinc-700">
                       {resolveData?.triage?.issueType === "template_rejection"
@@ -738,41 +738,50 @@ function WorkspacePageContent() {
                     </span>
                   </div>
 
-                  {/* Col 4: View Evidence Button */}
+                  {/* Col 4: Read-Only Evidence Toggle */}
                   <div className="flex justify-end">
                     <button
                       type="button"
-                      onClick={() => setShowEvidenceSection(!showEvidenceSection)}
-                      className="flex items-center gap-1 text-xs font-semibold text-zinc-600 hover:text-zinc-950 transition-colors"
+                      onClick={() => setShowEvidenceSection((prev) => !prev)}
+                      className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
                     >
-                      <span>View evidence</span>
-                      <span>{showEvidenceSection ? "▲" : "⌵"}</span>
+                      <span>{showEvidenceSection ? "Hide evidence" : "View evidence"}</span>
+                      <span className="text-xs">{showEvidenceSection ? "▲" : "▼"}</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Expanded Evidence Details Drawer */}
+                {/* Expanded Read-Only Evidence Panel */}
                 {showEvidenceSection && (
-                  <div className="mt-3 border-t border-zinc-100 pt-3 text-xs space-y-3">
-                    <div className="rounded-lg bg-zinc-50 p-3 text-zinc-700 leading-relaxed font-sans">
+                  <div className="mt-4 border-t border-zinc-100 pt-4 text-sm space-y-3">
+                    <div className="rounded-lg bg-zinc-50 p-4 text-zinc-700 leading-relaxed border border-zinc-200/60 font-sans">
                       <span className="font-semibold text-zinc-900 block mb-1">State Evidence:</span>
                       {resolveData?.evidence || "Inspected mock template state and policy constraints."}
                     </div>
 
-                    {/* Uploaded Evidence files */}
+                    {resolveData?.templateSnapshot && (
+                      <div className="rounded-lg bg-zinc-50 p-3.5 border border-zinc-200/60 text-xs space-y-1">
+                        <span className="font-semibold text-zinc-900 block mb-1">Template Content ({resolveData.templateSnapshot.id}):</span>
+                        <p className="font-mono text-zinc-700 bg-white p-2.5 rounded border border-zinc-200">
+                          {resolveData.templateSnapshot.text}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Linked Evidence files */}
                     {sourcesLibrary.length > 0 && (
-                      <div className="space-y-1.5">
-                        <span className="font-mono text-[10px] font-semibold uppercase text-zinc-400">
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-xs font-semibold text-zinc-500">
                           Linked Evidence Files ({sourcesLibrary.length})
                         </span>
                         {sourcesLibrary.map((s) => (
-                          <div key={s.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-1.5 text-xs">
+                          <div key={s.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-2 text-xs">
                             <span className="font-medium text-zinc-800">{s.originalName}</span>
                             <button
                               onClick={() => setExpandedSource(expandedSource === s.id ? null : s.id)}
-                              className="text-zinc-500 underline hover:text-zinc-800"
+                              className="text-blue-600 hover:underline"
                             >
-                              {expandedSource === s.id ? "Close" : "Preview"}
+                              {expandedSource === s.id ? "Close preview" : "Preview text"}
                             </button>
                           </div>
                         ))}
@@ -782,46 +791,46 @@ function WorkspacePageContent() {
                 )}
               </div>
 
-              {/* Proposed Change Card (Reference Screenshot Image 1) */}
+              {/* Proposed Change Card (G1 Guardrail) */}
               {resolveData?.proposal && !actionData && resolveData.stage !== "HANDOFF" && (
-                <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs space-y-4">
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm space-y-4">
                   <div>
-                    <h2 className="text-sm font-bold text-zinc-950">Proposed change</h2>
-                    <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
+                    <h2 className="text-lg font-semibold text-zinc-900">Proposed change</h2>
+                    <p className="mt-1 text-sm text-zinc-600 leading-relaxed">
                       To resolve the rejection, Totoro can reclassify the template or adjust parameters to match Meta transaction guidelines. Recommended path:
                     </p>
                   </div>
 
                   {/* Inline Pill Diff */}
-                  <div className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-3 space-y-2">
+                  <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-3.5 space-y-2">
                     {resolveData.proposal.changes && resolveData.proposal.changes.length > 0 ? (
                       resolveData.proposal.changes.map((c) => (
-                        <div key={c.field} className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="font-semibold text-zinc-800 font-mono">{c.field}</span>
+                        <div key={c.field} className="flex flex-wrap items-center gap-2 text-sm">
+                          <span className="font-medium text-zinc-900 font-mono">{c.field}</span>
                           <span className="text-zinc-300">|</span>
-                          <span className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-rose-700 line-through">
+                          <span className="rounded border border-rose-200 bg-rose-50 px-2.5 py-0.5 font-mono text-xs text-rose-700 line-through">
                             {c.before}
                           </span>
                           <span className="text-zinc-400">→</span>
-                          <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono font-semibold text-emerald-700">
+                          <span className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 font-mono text-xs font-medium text-emerald-800">
                             {c.after}
                           </span>
                         </div>
                       ))
                     ) : (
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="font-semibold text-zinc-800 font-mono">Category</span>
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="font-medium text-zinc-900 font-mono">Category</span>
                         <span className="text-zinc-300">|</span>
-                        <span className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-rose-700 line-through">
+                        <span className="rounded border border-rose-200 bg-rose-50 px-2.5 py-0.5 font-mono text-xs text-rose-700 line-through">
                           Marketing
                         </span>
                         <span className="text-zinc-400">→</span>
-                        <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono font-semibold text-emerald-700">
+                        <span className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 font-mono text-xs font-medium text-emerald-800">
                           {editedCategory}
                         </span>
                       </div>
                     )}
-                    <p className="text-[11px] text-zinc-600 leading-relaxed pt-1">
+                    <p className="text-xs text-zinc-600 leading-relaxed pt-1">
                       {resolveData.proposal.description ||
                         "Changes category to Utility and adjusts parameter formatting to conform to Meta transaction policies."}
                     </p>
@@ -829,14 +838,14 @@ function WorkspacePageContent() {
 
                   {/* Edit Proposal inline drawer if requested */}
                   {showEditProposal && (
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 space-y-2 text-xs">
-                      <span className="font-semibold text-zinc-900 block">Edit Proposed Action:</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-zinc-500">Target Category:</span>
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3.5 space-y-2 text-sm">
+                      <span className="font-medium text-zinc-900 block">Edit Proposed Action:</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-zinc-600 text-xs">Target Category:</span>
                         <select
                           value={editedCategory}
                           onChange={(e) => setEditedCategory(e.target.value)}
-                          className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs"
+                          className="rounded-md border border-zinc-300 bg-white px-3 py-1 text-xs"
                         >
                           <option value="Utility">Utility</option>
                           <option value="Marketing">Marketing</option>
@@ -845,7 +854,7 @@ function WorkspacePageContent() {
                         <button
                           type="button"
                           onClick={() => setShowEditProposal(false)}
-                          className="rounded-md bg-zinc-900 px-2.5 py-1 text-white text-xs font-semibold"
+                          className="rounded-md bg-zinc-900 px-3 py-1 text-white text-xs font-medium hover:bg-zinc-800"
                         >
                           Apply
                         </button>
@@ -854,12 +863,12 @@ function WorkspacePageContent() {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
                     <button
                       type="button"
                       onClick={handleApproveAction}
                       disabled={actionLoading}
-                      className="rounded-xl bg-zinc-950 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-zinc-800 disabled:opacity-50 transition-all"
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
                     >
                       {actionLoading ? "Executing simulated write..." : "Approve simulated resubmission"}
                     </button>
@@ -867,7 +876,7 @@ function WorkspacePageContent() {
                       type="button"
                       onClick={() => setShowEditProposal(!showEditProposal)}
                       disabled={actionLoading}
-                      className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                      className="rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
                     >
                       Edit proposal
                     </button>
@@ -875,14 +884,14 @@ function WorkspacePageContent() {
                       type="button"
                       onClick={handleRequestHuman}
                       disabled={actionLoading}
-                      className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                      className="rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
                     >
                       Request human review
                     </button>
                   </div>
 
                   {/* Guardrail Disclaimer Note */}
-                  <p className="font-mono text-[10px] text-zinc-400">
+                  <p className="text-xs text-zinc-500">
                     * All actions are simulated against mock fixtures. No real Meta/Cheerio API calls are made.
                   </p>
                 </div>
@@ -890,11 +899,11 @@ function WorkspacePageContent() {
 
               {/* Multi-turn Clarification (if triage asks) */}
               {resolveData?.stage === "CLARIFY_ONCE" && !actionData && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">
-                  <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-800 block">
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">
+                  <span className="text-xs font-semibold text-amber-900 block">
                     Clarification required
                   </span>
-                  <p className="text-xs font-semibold text-zinc-900">
+                  <p className="text-sm font-medium text-zinc-900">
                     {resolveData.clarificationQuestion || "Please provide the missing template detail:"}
                   </p>
                   <div className="flex gap-2">
@@ -903,7 +912,7 @@ function WorkspacePageContent() {
                       value={clarificationInput}
                       onChange={(e) => setClarificationInput(e.target.value)}
                       placeholder="Type your answer here..."
-                      className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleClarifySubmit();
                       }}
@@ -912,7 +921,7 @@ function WorkspacePageContent() {
                       type="button"
                       onClick={handleClarifySubmit}
                       disabled={!clarificationInput.trim() || clarificationSubmitting}
-                      className="rounded-xl bg-zinc-950 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
+                      className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
                     >
                       {clarificationSubmitting ? "Submitting..." : "Submit Answer"}
                     </button>
@@ -923,7 +932,7 @@ function WorkspacePageContent() {
               {/* Post-Action Verification Outcome */}
               {actionData && (
                 <div
-                  className={`rounded-2xl border p-5 shadow-2xs space-y-3 ${
+                  className={`rounded-xl border p-5 shadow-sm space-y-3 ${
                     actionData.isVerified
                       ? "border-emerald-200 bg-emerald-50/50"
                       : "border-rose-200 bg-rose-50/50"
@@ -932,28 +941,28 @@ function WorkspacePageContent() {
                   <div className="flex items-center gap-2">
                     <span
                       className={`h-2.5 w-2.5 rounded-full ${
-                        actionData.isVerified ? "bg-emerald-500" : "bg-rose-500"
+                        actionData.isVerified ? "bg-emerald-600" : "bg-rose-600"
                       }`}
                     />
-                    <span className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-900">
+                    <span className="text-sm font-semibold text-zinc-900">
                       {actionData.verificationStatus}
                     </span>
                   </div>
 
                   {actionData.actionResult && (
-                    <p className="rounded-lg border border-zinc-200/80 bg-white p-3 font-mono text-xs text-zinc-800">
+                    <p className="rounded-lg border border-zinc-200 bg-white p-3 font-mono text-xs text-zinc-800">
                       {actionData.actionResult}
                     </p>
                   )}
 
                   {actionData.verification?.statement && (
-                    <p className="text-xs font-medium text-zinc-800">
+                    <p className="text-sm font-medium text-zinc-800">
                       {actionData.verification.statement}
                     </p>
                   )}
 
                   {actionData.blocked && (
-                    <p className="text-xs font-medium text-rose-700">
+                    <p className="text-sm font-medium text-rose-700">
                       Blocked: {actionData.blocked}
                     </p>
                   )}
@@ -961,16 +970,16 @@ function WorkspacePageContent() {
               )}
 
               {/* Collapsible Technical Details Accordion */}
-              <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
+              <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
                 <button
                   type="button"
                   onClick={() => setShowTechnical(!showTechnical)}
                   className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-zinc-50 transition-colors"
                 >
-                  <span className="text-xs font-semibold text-zinc-800">
+                  <span className="text-sm font-medium text-zinc-800">
                     {showTechnical ? "▲ Hide technical details" : "⌵ Technical details (collapsed)"}
                   </span>
-                  <span className="font-mono text-[10px] text-zinc-400">
+                  <span className="text-xs text-zinc-500">
                     Audit trace & rule log
                   </span>
                 </button>
@@ -978,30 +987,30 @@ function WorkspacePageContent() {
                 {showTechnical && (
                   <div className="border-t border-zinc-100 p-4 space-y-4">
                     <div>
-                      <span className="font-mono text-[10px] font-semibold uppercase text-zinc-400 block mb-2">
+                      <span className="text-xs font-semibold text-zinc-500 block mb-2">
                         Rule checks & state trace
                       </span>
-                      <pre className="overflow-x-auto rounded-xl bg-zinc-950 p-4 font-mono text-[11px] leading-relaxed text-zinc-300">
+                      <pre className="overflow-x-auto rounded-lg bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-300">
                         <code>{resolveData?.ruleTrace || "Evaluating deterministic rules..."}</code>
                       </pre>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block font-mono text-[9px] uppercase text-zinc-400">Policy</span>
-                        <span className="font-semibold text-xs text-zinc-900">{resolveData?.guardrails || "G1–G15"}</span>
+                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
+                        <span className="block text-xs text-zinc-500">Policy</span>
+                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.guardrails || "G1–G15"}</span>
                       </div>
-                      <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block font-mono text-[9px] uppercase text-zinc-400">Read State</span>
-                        <span className="font-semibold text-xs text-zinc-900">{resolveData?.contextEvaluated || "Mock state"}</span>
+                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
+                        <span className="block text-xs text-zinc-500">Read State</span>
+                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.contextEvaluated || "Mock state"}</span>
                       </div>
-                      <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block font-mono text-[9px] uppercase text-zinc-400">Latency</span>
-                        <span className="font-semibold text-xs text-zinc-900">{resolveData?.latencyMs ? `${resolveData.latencyMs}ms` : "14ms"}</span>
+                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
+                        <span className="block text-xs text-zinc-500">Latency</span>
+                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.latencyMs ? `${resolveData.latencyMs}ms` : "14ms"}</span>
                       </div>
-                      <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-                        <span className="block font-mono text-[9px] uppercase text-zinc-400">Verification</span>
-                        <span className="font-semibold text-xs text-zinc-900">{resolveData?.verificationStatus || "Pending read"}</span>
+                      <div className="rounded border border-zinc-100 bg-zinc-50 p-3">
+                        <span className="block text-xs text-zinc-500">Verification</span>
+                        <span className="font-semibold text-sm text-zinc-900">{resolveData?.verificationStatus || "Pending read"}</span>
                       </div>
                     </div>
                   </div>
@@ -1010,39 +1019,40 @@ function WorkspacePageContent() {
             </div>
 
             {/* ========================================================= */}
-            {/* 3. ANCHORED BOTTOM COMPOSER (Reference Screenshot Image 1) */}
+            {/* 3. ANCHORED BOTTOM COMPOSER (Read-Only Chip Integration)  */ }
             {/* ========================================================= */}
             <div className="fixed bottom-4 left-4 right-4 md:left-72 md:right-8 z-30 max-w-[760px] mx-auto">
               {/* Follow-up Suggestion Chips */}
               <div className="flex items-center gap-2 mb-2 overflow-x-auto py-1 scrollbar-none">
+                {/* Read-Only Supporting Evidence Toggle (Priority 1 Fix) */}
                 <button
                   type="button"
-                  onClick={() => handleRunQuery("Show supporting evidence and inspected mock state for this case")}
-                  className="shrink-0 rounded-full border border-zinc-200 bg-white/95 px-3 py-1 text-[11px] font-medium text-zinc-600 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                  onClick={() => setShowEvidenceSection((prev) => !prev)}
+                  className="shrink-0 rounded-full border border-zinc-200 bg-white/95 px-3.5 py-1 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
                 >
-                  Show supporting evidence
+                  {showEvidenceSection ? "Hide supporting evidence" : "Show supporting evidence"}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleRunQuery("What if I decline this proposed recovery action?")}
-                  className="shrink-0 rounded-full border border-zinc-200 bg-white/95 px-3 py-1 text-[11px] font-medium text-zinc-600 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                  className="shrink-0 rounded-full border border-zinc-200 bg-white/95 px-3.5 py-1 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
                 >
                   What if I decline?
                 </button>
                 <button
                   type="button"
                   onClick={handleRequestHuman}
-                  className="shrink-0 rounded-full border border-zinc-200 bg-white/95 px-3 py-1 text-[11px] font-medium text-zinc-600 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                  className="shrink-0 rounded-full border border-zinc-200 bg-white/95 px-3.5 py-1 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
                 >
                   Request human specialist
                 </button>
               </div>
 
-              {/* Floating Pill Composer */}
-              <div className="flex items-center gap-2 rounded-2xl border border-zinc-200/90 bg-white/95 p-2 shadow-lg backdrop-blur-xs">
+              {/* Floating Composer */}
+              <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg backdrop-blur-xs">
                 {/* Paperclip attachment button */}
                 <label
-                  className="cursor-pointer rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                  className="cursor-pointer rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
                   title="Attach evidence source"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1075,7 +1085,7 @@ function WorkspacePageContent() {
                     }
                   }}
                   placeholder="Ask a follow-up or add context..."
-                  className="flex-1 bg-transparent px-2 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+                  className="flex-1 bg-transparent px-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
                 />
 
                 {/* Upward arrow send button */}
@@ -1088,7 +1098,7 @@ function WorkspacePageContent() {
                     }
                   }}
                   disabled={loading || !followUp.trim()}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-950 text-white shadow-xs hover:bg-zinc-800 disabled:opacity-30 transition-all shrink-0"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm hover:bg-blue-700 disabled:opacity-30 transition-all shrink-0"
                   aria-label="Send message"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

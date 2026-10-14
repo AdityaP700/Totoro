@@ -40,5 +40,19 @@ Running log of failed commands/tests, diagnosis, attempted fixes, unresolved iss
 - Diagnosis: `@types/node` was omitted from dependencies to maintain zero external network dependencies, while `tsconfig.json` included `vite/client` only. Top-level `declare module` in `dataset.ts` was rejected as invalid module augmentation.
 - Fix: created ambient script `src/node.d.ts` declaring `node:fs` and `node:path` without top-level imports/exports, and cleaned unused type imports. Build passed with zero errors.
 
+### F-008 · SQLite UNIQUE constraint failed: cases.session_id on evidence expansion / terminal session follow-up
+- Error: `UNIQUE constraint failed: cases.session_id` triggered when clicking "Show supporting evidence".
+- Diagnosis:
+  1. Frontend suggestion chip "Show supporting evidence" was wired to `handleRunQuery` which sent a new request to `/api/resolve` instead of toggling UI state.
+  2. When `/api/resolve` handled a follow-up on a session in terminal status (`PENDING` or `HANDOFF`), it called `createNewSession(workspaceId, { sessionId: body.sessionId })`. This allocated a new `ResolveSession` with a new `caseId` (CAS-...) but reused the client's `sessionId`.
+  3. `persistence.ts` `saveCase()` executed `INSERT INTO cases`, throwing `UNIQUE constraint failed: cases.session_id` because `session_id` has a unique constraint.
+  4. Furthermore, `saveCase()` did not check for existing `(workspace_id, session_id)` pairs before inserting, and the database lacked a `busy_timeout` configuration.
+- Fix:
+  1. Converted "Show supporting evidence" buttons in `page.tsx` to pure read-only UI state toggles (`setShowEvidenceSection(prev => !prev)`). They make no network calls and create no cases.
+  2. In `persistence.ts`, implemented `saveCase()` upsert logic: check for existing case by `(workspaceId, sessionId)`. If found, execute `UPDATE` in-place; otherwise `INSERT`. Added `PRAGMA busy_timeout = 5000;`.
+  3. In `/api/resolve`, continued the existing session for terminal states, appending messages and recording audit events without creating new duplicate cases.
+  4. In `sessionRegistry.ts`, ensured `createNewSession` generates a fresh unique session ID if the requested one is already persisted.
+  5. Added regression tests 13, 14, 15 to `tests/apiIntegration.test.ts`.
+
 ## Unresolved issues
-- None at Phase 1 close (19/19 tests passing; clean strict build).
+- None (136/136 tests passing; Turbopack production build clean).

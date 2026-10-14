@@ -4,6 +4,7 @@ import { POST as actionPost } from "../frontend/src/app/api/action/route";
 import { GET as sessionGet, DELETE as sessionDelete } from "../frontend/src/app/api/session/route";
 import { GET as historyGet } from "../frontend/src/app/api/history/route";
 import { resetAllSessions, getSession } from "../frontend/src/lib/server/sessionRegistry";
+import { repositories } from "../frontend/src/lib/server/persistence";
 
 function makeJsonRequest(url: string, body?: any, method: string = "POST"): Request {
   return new Request(url, {
@@ -341,5 +342,125 @@ describe("Cheerio Resolve — UI API Integration Suite", () => {
     // Confirm deleted
     const postDelHistory = await (await historyGet()).json();
     expect(postDelHistory.total).toBe(0);
+  });
+
+  // 13. Evidence expansion regression: read-only operations never create cases
+  it("proves reading or expanding case evidence does not create a case or mutate state", async () => {
+    const initRes = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Why was my WhatsApp template rejected?",
+        templateId: "TPL-1001",
+      })
+    );
+    expect(initRes.status).toBe(200);
+    const caseData = await initRes.json();
+    const initialSessionId = caseData.sessionId;
+    const initialCaseId = caseData.caseId;
+
+    // Check history count
+    const historyBefore = await (await historyGet()).json();
+    expect(historyBefore.total).toBe(1);
+    expect(historyBefore.sessions[0].sessionId).toBe(initialSessionId);
+
+    // Repeated read-only session inspections (simulating evidence expansion and page refresh)
+    for (let i = 0; i < 5; i++) {
+      const inspectRes = await sessionGet(
+        new Request(`http://localhost:3000/api/session?sessionId=${initialSessionId}`)
+      );
+      expect(inspectRes.status).toBe(200);
+      const readData = await inspectRes.json();
+      expect(readData.sessionId).toBe(initialSessionId);
+      expect(readData.caseId).toBe(initialCaseId);
+    }
+
+    // Confirm NO additional cases or sessions were created
+    const historyAfter = await (await historyGet()).json();
+    expect(historyAfter.total).toBe(1);
+    expect(historyAfter.sessions[0].sessionId).toBe(initialSessionId);
+  });
+
+  // 14. Follow-up messages on terminal/approved cases do not violate UNIQUE constraints
+  it("handles follow-up messages on terminal/approved cases without UNIQUE constraint errors", async () => {
+    const initRes = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Why was my WhatsApp template rejected?",
+        templateId: "TPL-1001",
+      })
+    );
+    const caseData = await initRes.json();
+    const sessionId = caseData.sessionId;
+
+    const approveRes = await actionPost(
+      makeJsonRequest("http://localhost:3000/api/action", {
+        sessionId,
+        action: "approve",
+        idempotencyKey: `TEST-APPROVE-${Date.now()}`,
+      })
+    );
+    expect(approveRes.status).toBe(200);
+    const approveData = await approveRes.json();
+    expect(approveData.stage).toBe("PENDING");
+
+    // Send follow-up question on this approved case (which previously failed with UNIQUE constraint failed: cases.session_id)
+    const followUpRes = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "Show supporting evidence and explain the verification outcome.",
+      })
+    );
+
+    expect(followUpRes.status).toBe(200);
+    const followUpData = await followUpRes.json();
+    expect(followUpData.sessionId).toBe(sessionId);
+    expect(followUpData.error).toBeUndefined();
+
+    // Verify history still contains exactly 1 case
+    const historyRes = await (await historyGet()).json();
+    expect(historyRes.total).toBe(1);
+    expect(historyRes.sessions[0].sessionId).toBe(sessionId);
+
+    // Verify conversation turns include the follow-up message
+    const restored = await (
+      await sessionGet(new Request(`http://localhost:3000/api/session?sessionId=${sessionId}`))
+    ).json();
+    const userMessages = restored.messages.filter((m: any) => m.role === "user");
+    expect(userMessages.length).toBeGreaterThanOrEqual(2);
+    expect(userMessages[userMessages.length - 1].text).toContain("Show supporting evidence");
+  });
+
+  // 15. Persistence idempotency: updating existing case updates in place
+  it("idempotently updates an existing case in persistence layer without SQLite errors", () => {
+    const testCase = {
+      id: "CASE-REGRESSION-1001",
+      workspaceId: "test-workspace-reg",
+      sessionId: "SES-REGRESSION-1001",
+      title: "Regression Case Test",
+      templateId: "TPL-1001",
+      originalMessage: "Original message text",
+      state: { stage: "ENTRY", events: [] },
+      templates: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: [{ role: "user" as const, text: "Original message text", timestamp: new Date().toISOString() }],
+    };
+
+    expect(() => repositories.saveCase(testCase)).not.toThrow();
+
+    testCase.title = "Updated Regression Title";
+    testCase.updatedAt = new Date().toISOString();
+    expect(() => repositories.saveCase(testCase)).not.toThrow();
+
+    const testCaseVariantId = {
+      ...testCase,
+      id: "CASE-REGRESSION-VARIANT-9999",
+      title: "Variant Case Id for same Session",
+    };
+    expect(() => repositories.saveCase(testCaseVariantId)).not.toThrow();
+
+    const fetched = repositories.getCase("test-workspace-reg", "SES-REGRESSION-1001");
+    expect(fetched).not.toBeNull();
+    expect(fetched?.title).toBe("Variant Case Id for same Session");
+
+    repositories.clearWorkspaceForTest("test-workspace-reg");
   });
 });

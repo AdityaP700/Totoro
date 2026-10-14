@@ -2,6 +2,14 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Evidence-expansion fix, database idempotency & typography polish
+
+- Fixed SQLite unique constraint error (`UNIQUE constraint failed: cases.session_id`) on expanding or collapsing supporting evidence: converted buttons into pure client-side toggles with zero redundant network or database operations.
+- Added idempotent upsert logic in SQLite persistence (`saveCase`) and configured `PRAGMA busy_timeout = 5000;`.
+- Refactored UI typography to standard desktop hierarchy: 30–34px title, 19–22px section titles, 16–17px conversation prose, 14–16px interactive controls, and 12–13px metadata.
+- Cleaned up visual presentation with subtle neutral borders, restrained single blue accent (`bg-blue-600`), and anchored composer with safe scroll padding (`pb-44`).
+- Maintained authentic template fixtures (`TPL-1001` festive_offer_blast, `TPL-1002` order_update_v3, `TPL-1003` payment_reminder_aug) without fallback substitutions.
+
 ## 2026-10-15 — Persistent demo workspace foundation
 
 - Added a SQLite migration-backed persistence layer for demo workspaces, onboarding preferences, cases, conversation turns, and evidence metadata.

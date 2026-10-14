@@ -76,13 +76,13 @@ export default function WorkspaceSettings() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-56px)] w-full max-w-4xl flex-col gap-8 px-6 py-10 font-sans">
       <div className="border-b border-zinc-200 pb-5">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
+        <span className="text-xs font-semibold text-zinc-500">
           Environment & Personalization
         </span>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">
           Workspace Settings
         </h1>
-        <p className="mt-1 text-xs sm:text-sm text-zinc-500 leading-relaxed">
+        <p className="mt-1.5 text-sm text-zinc-600 leading-relaxed">
           Runtime configuration, user personalization, safety policies, and deterministic mock state.
         </p>
       </div>
@@ -117,7 +117,7 @@ export default function WorkspaceSettings() {
           <form onSubmit={handleSaveProfile} className="space-y-4 pt-2">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-medium text-zinc-700 mb-1">
+                <label className="block text-xs font-semibold text-zinc-600 mb-1">
                   Your Full Name
                 </label>
                 <input
@@ -125,18 +125,18 @@ export default function WorkspaceSettings() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Sarah Lin"
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-700 mb-1">
+                <label className="block text-xs font-semibold text-zinc-600 mb-1">
                   Primary Role
                 </label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
                 >
                   <option value="support">Customer Support Lead</option>
                   <option value="ops">Operations & Reliability</option>
@@ -147,7 +147,7 @@ export default function WorkspaceSettings() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-700 mb-1">
+                <label className="block text-xs font-semibold text-zinc-600 mb-1">
                   Organization / Business Name
                 </label>
                 <input
@@ -155,12 +155,12 @@ export default function WorkspaceSettings() {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="e.g. Fintech Core"
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-700 mb-1">
+                <label className="block text-xs font-semibold text-zinc-600 mb-1">
                   Team Name
                 </label>
                 <input
@@ -168,7 +168,7 @@ export default function WorkspaceSettings() {
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="e.g. Customer Operations"
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
                 />
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function WorkspaceSettings() {
               <button
                 type="submit"
                 disabled={savingProfile}
-                className="rounded-xl bg-zinc-950 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-zinc-800 disabled:opacity-50 transition-all"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
               >
                 {savingProfile ? "Saving..." : "Save Personalization"}
               </button>
