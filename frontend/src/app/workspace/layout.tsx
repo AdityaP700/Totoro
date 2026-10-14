@@ -214,7 +214,7 @@ export default function WorkspaceLayout({
           <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
             <span>Totoro Workspace</span>
             <span className="text-zinc-300">/</span>
-            <Link href="/workspace" className="hover:text-zinc-950 flex items-center gap-1">
+            <Link href="/workspace?new=1" className="hover:text-zinc-950 flex items-center gap-1">
               New Request
               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </Link>
