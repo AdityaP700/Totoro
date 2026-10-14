@@ -8,6 +8,7 @@ export default function WorkspaceHistory() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
 
   const fetchHistory = async () => {
     try {
@@ -22,6 +23,14 @@ export default function WorkspaceHistory() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRename = async (sessionId: string, current: string) => {
+    const title = window.prompt("Investigation title", current);
+    if (!title?.trim()) return;
+    setRenamingId(sessionId);
+    try { const res = await fetch("/api/session", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId, title }) }); if (res.ok) await fetchHistory(); }
+    finally { setRenamingId(null); }
   };
 
   useEffect(() => {
@@ -68,7 +77,7 @@ export default function WorkspaceHistory() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center rounded-2xl border border-zinc-200 bg-white p-8 text-sm text-zinc-400">
-          Loading history from session registry...
+          Loading saved investigations...
         </div>
       ) : sessions.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-sm">
@@ -77,7 +86,7 @@ export default function WorkspaceHistory() {
           </div>
           <h2 className="text-base font-semibold text-zinc-900">No active recovery sessions</h2>
           <p className="mt-1 max-w-md text-xs text-zinc-500 leading-relaxed">
-            Investigations and recovery events run in the workspace will appear here. In-memory session state is retained for the lifetime of the server process.
+            Saved investigations will appear here and can be restored on this device.
           </p>
           <Link
             href="/workspace"
@@ -122,11 +131,13 @@ export default function WorkspaceHistory() {
 
               <div className="flex items-center gap-2 self-end sm:self-center">
                 <Link
-                  href={`/workspace?q=${encodeURIComponent(s.originalMessage)}`}
+                  href={`/workspace?sessionId=${encodeURIComponent(s.sessionId)}`}
                   className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
                 >
-                  View
+                  Restore
                 </Link>
+                <button type="button" onClick={() => void handleRename(s.sessionId, s.originalMessage)} disabled={renamingId === s.sessionId} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">{renamingId === s.sessionId ? "Saving..." : "Rename"}</button>
+                <a href={`/api/export?sessionId=${encodeURIComponent(s.sessionId)}`} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">Export</a>
                 <button
                   type="button"
                   onClick={() => handleDelete(s.sessionId)}

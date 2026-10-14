@@ -254,6 +254,11 @@ function WorkspacePageContent() {
 
   useEffect(() => {
     const q = searchParams.get("q");
+    const restoreSessionId = searchParams.get("sessionId");
+    if (restoreSessionId) {
+      void fetch(`/api/session?sessionId=${encodeURIComponent(restoreSessionId)}`).then((response) => response.ok ? response.json() : null).then((data: ResolveResponse | null) => { if (data) { setResolveData(data); setSessionId(data.sessionId); setActiveQuery(data.customerExplanation.headline); } }).catch(() => setErrorMessage("Unable to restore this investigation."));
+      return;
+    }
     if (q) {
       setQuery(q);
       handleRunQuery(q);
@@ -437,6 +442,7 @@ function WorkspacePageContent() {
               >
                 New request
               </button>
+              {sessionId && <a href={`/workspace?q=${encodeURIComponent(activeQuery || "Review this investigation")}&reconsider=1`} className="w-fit rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50">Reconsider</a>}
             </div>
 
             {errorMessage && (
