@@ -2,6 +2,20 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Request-to-Fixture Decoupling & Laya Invocation Audit
+
+- Decoupled non-template support requests from template fixtures:
+  - Vague delivery complaints, billing questions, webhook issues, and WABA registration inquiries no longer inherit unrelated template entities (`TPL-1001`/`TPL-1002`/`TPL-1003`) or template rejection codes (`FIXTURE_INVALID_VARIABLE_FORMAT`).
+  - Added dedicated non-template diagnostic playbooks (`PB-DELIVERY-STATUS-CHECK`, `PB-INTEGRATION-ENDPOINT-CHECK`, `PB-WABA-REGISTRATION-CHECK`, `PB-CHATBOT-FLOW-CHECK`) that provide read-only diagnostic guidance with zero write proposals.
+  - Handled unmapped template rejections cleanly: when an issue is classified as `template_rejection` without a template entity, the session enters `CLARIFY_ONCE` requesting the template ID/name, rather than guessing an arbitrary fixture.
+  - In the frontend Technical Details inspector and Case header, unmapped entities display `"None (No template entity)"` and appropriate status (`Active` / `Escalated`) rather than defaulting to `"WhatsApp Template: Rejected"`.
+- Audited Laya invocation and model routing:
+  - Ensured deterministic rules engine (`rules-1.0`) is the default local and test baseline with zero network calls and zero cost.
+  - Hosted Laya reasoning adapter activates only when `LAYA_API_KEY` is configured in the environment.
+  - Diagnostic timeline and decision trace truthfully identify the active engine (`rules` vs `laya`), never claiming rules-only output was "Laya-generated".
+- Added 5 automated regression tests in `tests/apiIntegration.test.ts` (all 143 tests passing).
+
+
 ## 2026-10-15 — Enterprise template selector and technical details inspector
 
 - Replaced native `<select>` dropdown on New Request screen with custom, accessible `TargetTemplateSelector` popover: clear visual hierarchy distinguishing "AUTOMATIC" detection mode from "AVAILABLE TEMPLATES" (`TPL-1001`, `TPL-1002`, `TPL-1003`) with keyboard accessibility and zero unprompted case creation.

@@ -54,5 +54,22 @@ Running log of failed commands/tests, diagnosis, attempted fixes, unresolved iss
   4. In `sessionRegistry.ts`, ensured `createNewSession` generates a fresh unique session ID if the requested one is already persisted.
   5. Added regression tests 13, 14, 15 to `tests/apiIntegration.test.ts`.
 
+### F-009 · Inadvertent entity coupling on non-template complaints
+- Error: End-to-end tests revealed:
+  1. A vague WhatsApp message delivery complaint was diagnosed as `FIXTURE_INVALID_VARIABLE_FORMAT`, matched to `PB-002`, and given an irrelevant template-variable correction proposal.
+  2. A duplicate-payment complaint was correctly triaged to `billing_refund` and escalated to human handoff, but displayed state and template evidence were still bound to `TPL-1002` (an unrelated order update template).
+- Diagnosis:
+  1. `autoDetectTemplateId()` in `sessionRegistry.ts` contained a loose fallback keyword regex that defaulted unmapped messages to `TPL-1001` or `TPL-1002` if any generic keyword matched.
+  2. `ResolveSession` in `stateMachine.ts` loaded the template snapshot into state before running triage, and `diagnose()` evaluated `template.reasonCode` unconditionally without verifying if `triage.issueType === "template_rejection"`.
+  3. Non-template issues (delivery, webhooks, WABA, billing) lacked dedicated diagnostic playbooks, falling through to generic template policies.
+  4. UI components defaulted to mock template IDs (`"TPL-1001"`) and `"WhatsApp Template"` even when `templateSnapshot` was null.
+- Fix:
+  1. In `stateMachine.ts`, made `templateId` optional (`string | null`). Replaced loose auto-detect with strict regex requiring explicit template IDs (`TPL-\d{4}`) or explicit phrases (`template <name>`).
+  2. If triage detects a sensitive non-template zone (`billing_refund`, `security_identity_access`, `human_requested`), `templateId` and `templateSnapshot` are immediately severed (`null`).
+  3. In `playbookRegistry.ts`, enforced that reason code and template snapshot matching ONLY applies when `issueType === "template_rejection"` or `!issueType`. Added dedicated non-template playbooks (`PB-DELIVERY-STATUS-CHECK`, `PB-INTEGRATION-ENDPOINT-CHECK`, `PB-WABA-REGISTRATION-CHECK`, `PB-CHATBOT-FLOW-CHECK`) with read-only diagnoses and null proposals.
+  4. For unmapped template rejections, the engine transitions to `CLARIFY_ONCE` asking the user for their template ID/name rather than binding to an arbitrary fixture.
+  5. In `TechnicalDetailsInspector.tsx` and `page.tsx`, removed all hardcoded fallback template IDs and statuses; unmapped entities clearly show `"None (No template entity)"` and `"NOT_APPLICABLE"`.
+  6. Added 5 regression tests in `tests/apiIntegration.test.ts`.
+
 ## Unresolved issues
-- None (136/136 tests passing; Turbopack production build clean).
+- None (143/143 tests passing across 14 test suites; Turbopack production build clean; Vite strict TypeScript build clean).

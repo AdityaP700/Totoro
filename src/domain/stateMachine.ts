@@ -23,8 +23,32 @@ export interface SessionDeps {
 }
 
 export interface StartOptions {
-  templateId: string;
+  templateId?: string | null;
   message: string;
+}
+
+export function detectTemplateIdFromText(text: string): string | undefined {
+  if (!text) return undefined;
+  const idMatch = text.toUpperCase().match(/\bTPL-\d{4}\b/);
+  if (idMatch) return idMatch[0];
+
+  const lower = text.toLowerCase();
+  if (lower.includes("festive_offer_blast") || lower.includes("festive_offer") || (lower.includes("template") && lower.includes("festive"))) {
+    return "TPL-1001";
+  }
+  if (lower.includes("order_update_v3") || (lower.includes("template") && (lower.includes("order_update") || lower.includes("format") || lower.includes("variable")))) {
+    return "TPL-1002";
+  }
+  if (lower.includes("payment_reminder_aug") || (lower.includes("template") && (lower.includes("payment_reminder") || lower.includes("tag")))) {
+    return "TPL-1003";
+  }
+  if (lower.includes("missing_reason_alert") || (lower.includes("template") && lower.includes("missing_reason"))) {
+    return "TPL-1004";
+  }
+  if (lower.includes("welcome_onboarding") || (lower.includes("template") && lower.includes("welcome_onboarding"))) {
+    return "TPL-1005";
+  }
+  return undefined;
 }
 
 /**
@@ -46,7 +70,7 @@ export class ResolveSession {
       stage: "ENTRY",
       originalMessage: opts.message,
       language: guessLanguage(opts.message),
-      templateId: opts.templateId,
+      templateId: opts.templateId ?? null,
       templateSnapshot: null,
       triage: null,
       clarify: null,
@@ -62,21 +86,58 @@ export class ResolveSession {
       updatedAt: startedAt,
       events: [],
     };
-    this.append("CASE_OPENED", "Case opened from the rejected-template screen (mock context)", {
-      templateId: opts.templateId,
-    });
-    this.readState();
+
+    // 1. If templateId was provided, read state first so adapter has template context
+    if (this.state.templateId) {
+      this.readState();
+    }
+
+    // 2. Triage the message intent
     this.runTriage();
+
+    // 3. Enforce request and entity consistency (Requirement B):
+    // Sensitive human-led zones (billing, security, explicit human requests) must NEVER inherit
+    // template rejection state or evidence, even if a template was accidentally pre-selected.
+    const isSensitiveNonTemplateZone =
+      this.state.triage?.issueType === "billing_refund" ||
+      this.state.triage?.issueType === "security_identity_access" ||
+      this.state.triage?.issueType === "human_requested";
+
+    if (isSensitiveNonTemplateZone) {
+      this.state.templateId = null;
+      this.state.templateSnapshot = null;
+      this.append("CASE_OPENED", "Case opened for policy-governed investigation", {
+        issueType: this.state.triage?.issueType,
+      });
+      this.append("STATE_READ", `No template entity attached to request context (${this.state.triage?.issueType})`, {});
+      this.state.stage = "READ_STATE";
+    } else if (this.state.templateId && this.state.templateSnapshot) {
+      this.append("CASE_OPENED", "Case opened from the template context (mock context)", {
+        templateId: this.state.templateId,
+      });
+    } else {
+      this.append("CASE_OPENED", "Case opened without template context", {});
+      this.append("STATE_READ", "No template entity attached to request context", {});
+      this.state.stage = "READ_STATE";
+    }
+
+    // 4. Route after triage and state inspection
     this.routeAfterTriage();
   }
 
   // ---- flow steps -----------------------------------------------------------
 
   private readState(): void {
-    const fresh: MockTemplate | undefined = this.deps.store.getTemplate(this.state.templateId!);
+    if (!this.state.templateId) {
+      this.state.templateSnapshot = null;
+      this.append("STATE_READ", "No template entity attached to request context", {});
+      this.state.stage = "READ_STATE";
+      return;
+    }
+    const fresh: MockTemplate | undefined = this.deps.store.getTemplate(this.state.templateId);
     if (!fresh) {
       this.state.templateSnapshot = null;
-      this.append("STATE_READ", "Template record not found in mock store", {});
+      this.append("STATE_READ", "Template record not found in mock store", { templateId: this.state.templateId });
       this.handoff("The referenced template could not be read from the mock record.");
       return;
     }
@@ -152,6 +213,23 @@ export class ResolveSession {
     this.state.clarify.answer = answer;
     this.append("CLARIFICATION_ANSWERED", "User answered the clarifying question", {});
     const combined = `${this.state.originalMessage}\n${answer}`;
+
+    if (!this.state.templateSnapshot) {
+      const detectedId = detectTemplateIdFromText(combined);
+      if (detectedId) {
+        const fresh = this.deps.store.getTemplate(detectedId);
+        if (fresh) {
+          this.state.templateId = fresh.id;
+          this.state.templateSnapshot = fresh;
+          this.append(
+            "STATE_READ",
+            `Fresh read after clarification (MOCK): status=${fresh.status}, category=${fresh.category}, reasonCode=${fresh.reasonCode ?? "none"}`,
+            { templateId: fresh.id, status: fresh.status, category: fresh.category },
+          );
+        }
+      }
+    }
+
     const t = triageMessage(combined, {
       reasonCode: this.state.templateSnapshot?.reasonCode ?? null,
       stateStatus: this.state.templateSnapshot?.status,
@@ -175,7 +253,110 @@ export class ResolveSession {
   }
 
   private diagnose(): void {
-    const template = this.state.templateSnapshot!;
+    const t = this.state.triage;
+    const issueType = t?.issueType ?? "template_rejection";
+
+    // Non-template issues must never inherit template playbooks or write proposals (Requirement B)
+    if (issueType !== "template_rejection") {
+      if (issueType === "message_delivery") {
+        this.state.diagnosis = {
+          playbookId: "PB-DELIVERY-STATUS-CHECK",
+          reasonCode: null,
+          plainExplanation:
+            "Message delivery issues depend on recipient handset connectivity and carrier delivery networks. No template formatting errors are present.",
+          evidenceUsed: ["message_delivery_status"],
+          cannotVerify: [
+            "Live recipient handset connectivity and carrier delivery receipts cannot be verified without real-time carrier telemetry.",
+          ],
+        };
+        this.append(
+          "DIAGNOSED",
+          "Message delivery assessment: delivery receipts depend on carrier networks and recipient handset connectivity; no template resubmission applies.",
+          { playbookId: "PB-DELIVERY-STATUS-CHECK" },
+        );
+        this.state.stage = "DIAGNOSE";
+        this.state.proposal = null;
+        return;
+      }
+
+      if (issueType === "integration_webhook") {
+        this.state.diagnosis = {
+          playbookId: "PB-INTEGRATION-ENDPOINT-CHECK",
+          reasonCode: null,
+          plainExplanation:
+            "Integration and webhook events depend on customer endpoint availability and webhook subscription status. Verify server SSL and response status 200.",
+          evidenceUsed: ["webhook_endpoint_status"],
+          cannotVerify: ["Remote webhook server response logs cannot be verified directly."],
+        };
+        this.append(
+          "DIAGNOSED",
+          "Integration webhook assessment: inspect endpoint responsiveness and retry metadata.",
+          { playbookId: "PB-INTEGRATION-ENDPOINT-CHECK" },
+        );
+        this.state.stage = "DIAGNOSE";
+        this.state.proposal = null;
+        return;
+      }
+
+      if (issueType === "number_waba_setup") {
+        this.state.diagnosis = {
+          playbookId: "PB-WABA-REGISTRATION-CHECK",
+          reasonCode: null,
+          plainExplanation:
+            "WhatsApp Business Account setup requires verified display name and active phone certificate registration on Meta Business Manager.",
+          evidenceUsed: ["waba_registration_status"],
+          cannotVerify: ["Meta Business Manager verification state cannot be modified automatically."],
+        };
+        this.append(
+          "DIAGNOSED",
+          "WABA setup assessment: business verification and certificate registration required.",
+          { playbookId: "PB-WABA-REGISTRATION-CHECK" },
+        );
+        this.state.stage = "DIAGNOSE";
+        this.state.proposal = null;
+        return;
+      }
+
+      if (issueType === "chatbot_flow") {
+        this.state.diagnosis = {
+          playbookId: "PB-CHATBOT-FLOW-CHECK",
+          reasonCode: null,
+          plainExplanation:
+            "Chatbot flow triggers depend on keyword match rules and flow publish state.",
+          evidenceUsed: ["chatbot_flow_status"],
+          cannotVerify: ["Runtime flow execution state cannot be verified without trigger logs."],
+        };
+        this.append(
+          "DIAGNOSED",
+          "Chatbot flow assessment: inspect trigger rules and publish state.",
+          { playbookId: "PB-CHATBOT-FLOW-CHECK" },
+        );
+        this.state.stage = "DIAGNOSE";
+        this.state.proposal = null;
+        return;
+      }
+
+      // Default safe guidance for any other non-template issue
+      this.state.diagnosis = {
+        playbookId: null,
+        reasonCode: null,
+        plainExplanation: `Policy evaluated for ${issueType}; no automated write operation applies.`,
+        evidenceUsed: [],
+        cannotVerify: ["No fixture matches this entity type."],
+      };
+      this.state.stage = "DIAGNOSE";
+      this.state.proposal = null;
+      return;
+    }
+
+    // For template_rejection:
+    const template = this.state.templateSnapshot;
+    if (!template) {
+      // Unmapped template entity: ask single focused clarification (G9/Requirement B)
+      this.askClarification();
+      return;
+    }
+
     const playbook = findPlaybook(template.reasonCode);
     this.state.diagnosis = {
       playbookId: playbook.id,

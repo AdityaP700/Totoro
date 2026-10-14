@@ -1,5 +1,18 @@
 # TEST RESULTS
 
+## 2026-10-15 — Request-to-Fixture Decoupling and Laya Decision Path Audit
+
+- `npm test`: passed — 14 test files, 143 tests passed (100% pass rate, including 5 new targeted regression tests in `tests/apiIntegration.test.ts` covering delivery complaint auto-detect decoupling, duplicate-payment fixture decoupling, genuine template rejection recovery, explicit human specialist handoff, and unmapped entity clarification).
+- `npm run frontend:build`: passed — Next.js 16.2.9 Turbopack production compilation and type check across all 21 routes with 0 errors.
+- `npm run build`: passed — Vite and TypeScript production compilation with 0 errors.
+- Verified:
+  1. Regression 1: Vague delivery complaints under auto-detect context (`"None of my messages are getting delivered today. Is WhatsApp down?"`) are triaged to `message_delivery`, assigned `PB-DELIVERY-STATUS-CHECK`, receive `proposal: null`, and never inherit `FIXTURE_INVALID_VARIABLE_FORMAT` or template modifications.
+  2. Regression 2: Duplicate-payment / billing complaints (`"I have a duplicate payment complaint: I was charged twice for my subscription invoice"`) are triaged to `billing_refund`, route to `HANDOFF`, set `templateSnapshot: null`, display `category: "Billing & Refund Inquiry"`, and never attach `TPL-1002`/`TPL-1003` rejection state as evidence.
+  3. Regression 3: Genuine template rejection complaints (`"Template order_update_v3 was rejected because of a variable format issue"`) match `TPL-1002`, execute `PB-002-INVALID-VARIABLE-FORMAT`, and formulate the exact before/after fix (`{{1}` → `{{1}}`).
+  4. Regression 4: Explicit requests for human assistance (`"Connect me to a human specialist please, I do not want an automated bot"`) escalate immediately to `HANDOFF` without template binding.
+  5. Regression 5: Ambiguous or missing entity mapping under auto-detect (`"My WhatsApp template was rejected, please fix it"`) routes safely to `CLARIFY_ONCE` asking for the template name or ID, without ungrounded fixture binding.
+  6. Laya Decision Trace Audit: Confirmed deterministic rules-only baseline (`rules-1.0`) is the primary local/test path; live Laya inference requires explicit `LAYA_API_KEY`. Decision layer (`rules`, `laya`, or `fallback`) is truthfully recorded in audit events and execution verification.
+
 ## 2026-10-15 — Enterprise template selector and technical details inspector
 
 - `npm test`: passed — 14 test files, 138 tests passed (100% pass rate, including tests 16 and 17 in `tests/apiIntegration.test.ts` verifying selector semantics without unprompted case creation and diagnostic event timeline fidelity).

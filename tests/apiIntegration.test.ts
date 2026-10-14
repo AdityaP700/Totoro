@@ -542,5 +542,119 @@ describe("Cheerio Resolve — UI API Integration Suite", () => {
     expect(typeof data.latencyMs).toBe("number");
     expect(data.latencyMs).toBeGreaterThanOrEqual(0);
   });
+
+  // =========================================================================
+  // Targeted Regression Tests (Section D)
+  // =========================================================================
+
+  // 18. Regression 1: Vague delivery complaint with auto-detect context must NOT diagnose a template-variable error
+  it("REGRESSION 1: vague message-delivery complaint does not diagnose template-variable errors or associate templates", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "None of my messages are getting delivered today. Is WhatsApp down?",
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.triage.issueType).toBe("message_delivery");
+    expect(data.templateSnapshot).toBeNull();
+    // Must NOT be diagnosed as FIXTURE_INVALID_VARIABLE_FORMAT
+    expect(data.diagnosis?.reasonCode).not.toBe("FIXTURE_INVALID_VARIABLE_FORMAT");
+    expect(data.diagnosis?.playbookId).not.toBe("PB-002-INVALID-VARIABLE-FORMAT");
+    // Must NOT propose template resubmission or modification
+    expect(data.proposal).toBeNull();
+    // Context evaluated must not claim template mock state
+    expect(data.contextEvaluated).not.toContain("TPL-");
+    expect(data.category).toBe("Message Delivery");
+    expect(data.customerExplanation.headline).toBe("Message Delivery Delay");
+  });
+
+  // 19. Regression 2: Duplicate-payment complaint must not associate with unrelated template fixtures or display template rejection evidence
+  it("REGRESSION 2: duplicate-payment / billing complaint does not associate with unrelated template fixtures or evidence", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "I have a duplicate payment complaint: I was charged twice for my subscription invoice",
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.triage.issueType).toBe("billing_refund");
+    expect(data.stage).toBe("HANDOFF");
+    expect(data.triage.needsHuman).toBe(true);
+    // Must NOT associate with TPL-1002 or TPL-1003 or any template fixture
+    expect(data.templateSnapshot).toBeNull();
+    expect(data.proposal).toBeNull();
+    // Context evaluated must not claim template mock state
+    expect(data.contextEvaluated).not.toContain("TPL-");
+    expect(data.category).toBe("Billing & Refund Inquiry");
+    // Evidence must not contain template rejection codes
+    expect(data.evidence).not.toContain("FIXTURE_INVALID_VARIABLE_FORMAT");
+    expect(data.evidence).not.toContain("FIXTURE_TAG_CONTENT_MISMATCH");
+    expect(data.customerExplanation.headline).toBe("Billing & Payment Inquiry");
+  });
+
+  // 20. Regression 3: Genuine template-rejection complaint with matching fixture continues to diagnose and propose the correct fix
+  it("REGRESSION 3: genuine template-rejection complaint with fixture continues to diagnose and propose correct fix", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Template order_update_v3 was rejected because of a variable format issue",
+        templateId: "TPL-1002",
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.triage.issueType).toBe("template_rejection");
+    expect(data.stage).toBe("PROPOSE");
+    expect(data.templateSnapshot).not.toBeNull();
+    expect(data.templateSnapshot.id).toBe("TPL-1002");
+    expect(data.diagnosis?.playbookId).toBe("PB-002-INVALID-VARIABLE-FORMAT");
+    expect(data.diagnosis?.reasonCode).toBe("FIXTURE_INVALID_VARIABLE_FORMAT");
+    expect(data.proposal).not.toBeNull();
+    expect(data.proposal.operation).toBe("resubmit_template");
+    expect(data.proposal.changes[0].field).toBe("text");
+    expect(data.proposal.changes[0].after).toContain("{{1}}");
+  });
+
+  // 21. Regression 4: User asks for human specialist escalates directly without template confusion
+  it("REGRESSION 4: explicit request for a human specialist escalates directly without template confusion", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Connect me to a human specialist please, I do not want an automated bot",
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.triage.issueType).toBe("human_requested");
+    expect(data.stage).toBe("HANDOFF");
+    expect(data.triage.needsHuman).toBe(true);
+    expect(data.templateSnapshot).toBeNull();
+    expect(data.proposal).toBeNull();
+    expect(data.contextEvaluated).not.toContain("TPL-");
+    expect(data.handoffReason).toContain("Policy requires human handling");
+  });
+
+  // 22. Regression 5: Missing or ambiguous entity mapping asks for clarification without ungrounded fixture binding
+  it("REGRESSION 5: ambiguous or missing entity mapping asks for clarification without ungrounded fixture binding", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "My WhatsApp template was rejected, please fix it",
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    // With auto-detect and no template name/ID in message:
+    expect(data.triage.issueType).toBe("template_rejection");
+    expect(data.stage).toBe("CLARIFY_ONCE");
+    expect(data.templateSnapshot).toBeNull();
+    expect(data.proposal).toBeNull();
+    expect(data.clarificationQuestion).toBeDefined();
+    expect(data.clarificationQuestion).toContain("Could you share the template name (or ID)");
+  });
 });
+
 

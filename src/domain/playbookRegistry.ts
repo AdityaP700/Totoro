@@ -85,9 +85,13 @@ export class PlaybookRegistry {
     if (issueType === "human_requested") {
       return this.playbooks.get("PB-HUMAN-EXPLICIT-HANDOFF")!;
     }
+    if (issueType === "ambiguous_or_missing_context") {
+      return this.playbooks.get("PB-AMBIGUOUS-CLARIFICATION")!;
+    }
 
-    // 1. Reason code exact match (highest specificity for template issues)
-    if (reasonCode) {
+    // 1. Reason code exact match (highest specificity for template issues ONLY)
+    // A delivery or billing complaint must NEVER inherit a template reason code.
+    if ((issueType === "template_rejection" || !issueType) && reasonCode) {
       for (const pb of this.playbooks.values()) {
         if (pb.entryConditions.reasonCodes?.includes(reasonCode)) {
           return pb;
@@ -95,8 +99,8 @@ export class PlaybookRegistry {
       }
     }
 
-    // 2. State-matching entry conditions
-    if (templateSnapshot) {
+    // 2. State-matching entry conditions (for template issues ONLY)
+    if ((issueType === "template_rejection" || !issueType) && templateSnapshot) {
       for (const pb of this.playbooks.values()) {
         if (pb.entryConditions.matchesState && pb.entryConditions.matchesState(templateSnapshot)) {
           return pb;
@@ -104,9 +108,10 @@ export class PlaybookRegistry {
       }
     }
 
-    // 3. Issue type fallback match
+    // 3. Issue type fallback match (most recently registered playbook takes precedence)
     if (issueType) {
-      for (const pb of this.playbooks.values()) {
+      const playbooks = Array.from(this.playbooks.values()).reverse();
+      for (const pb of playbooks) {
         if (pb.issueType === issueType) {
           return pb;
         }
@@ -395,6 +400,118 @@ export class PlaybookRegistry {
         failureHandoff: true,
       },
       humanHandoffConditions: ["User fails to clarify after 1 question", "User requests human"],
+    });
+
+    // PB-DELIVERY: Message Delivery & Queue Monitoring
+    this.register({
+      id: "PB-DELIVERY-STATUS-CHECK",
+      issueType: "message_delivery",
+      title: "Message Delivery & Queue Monitoring Policy",
+      description: "Monitors carrier delivery pipeline; never promises delivery or alters templates for delivery complaints.",
+      entryConditions: {
+        requiredEvidence: ["message_delivery_status"],
+      },
+      evidenceHandling: {
+        onMissingEvidence: "clarify",
+        missingEvidenceQuestion: "Which campaign is affected, and roughly when was it sent?",
+        onConflictingEvidence: "escalate_to_human",
+      },
+      permittedActions: [],
+      expectedPostActionState: {
+        status: "MONITORED",
+        explanation: "Delivery receipts depend on recipient handset connectivity and carrier network routing.",
+      },
+      verificationRules: {
+        freshReadRequired: false,
+        expectedStatus: "MONITORED",
+        maxRetries: 0,
+        failureHandoff: true,
+      },
+      humanHandoffConditions: ["Delivery failure persists after carrier monitoring period"],
+    });
+
+    // PB-INTEGRATION: Webhook & API Connectivity
+    this.register({
+      id: "PB-INTEGRATION-ENDPOINT-CHECK",
+      issueType: "integration_webhook",
+      title: "Webhook & API Integration Health Check",
+      description: "Inspects endpoint responsiveness, SSL validity, and webhook retry metadata.",
+      entryConditions: {
+        requiredEvidence: ["webhook_endpoint_status"],
+      },
+      evidenceHandling: {
+        onMissingEvidence: "clarify",
+        missingEvidenceQuestion: "Which endpoint or CRM is affected, and when did the failures start?",
+        onConflictingEvidence: "escalate_to_human",
+      },
+      permittedActions: [],
+      expectedPostActionState: {
+        status: "DIAGNOSTIC_COMPLETED",
+        explanation: "Webhook health check completed; no state mutation permitted without verified endpoint owner.",
+      },
+      verificationRules: {
+        freshReadRequired: false,
+        expectedStatus: "DIAGNOSTIC_COMPLETED",
+        maxRetries: 0,
+        failureHandoff: true,
+      },
+      humanHandoffConditions: ["Persistent webhook 5xx failures or authentication revocation"],
+    });
+
+    // PB-WABA: Account & Number Setup
+    this.register({
+      id: "PB-WABA-REGISTRATION-CHECK",
+      issueType: "number_waba_setup",
+      title: "WhatsApp Business Account Verification Policy",
+      description: "Guides business display name verification and two-step PIN setup.",
+      entryConditions: {
+        requiredEvidence: ["waba_registration_status"],
+      },
+      evidenceHandling: {
+        onMissingEvidence: "clarify",
+        missingEvidenceQuestion: "Which number or WABA account is affected?",
+        onConflictingEvidence: "escalate_to_human",
+      },
+      permittedActions: [],
+      expectedPostActionState: {
+        status: "GUIDANCE_PROVIDED",
+        explanation: "Verification guidance provided for Meta Business Manager.",
+      },
+      verificationRules: {
+        freshReadRequired: false,
+        expectedStatus: "GUIDANCE_PROVIDED",
+        maxRetries: 0,
+        failureHandoff: true,
+      },
+      humanHandoffConditions: ["Business registration rejected by Meta"],
+    });
+
+    // PB-CHATBOT: Flow Logic & Triggers
+    this.register({
+      id: "PB-CHATBOT-FLOW-CHECK",
+      issueType: "chatbot_flow",
+      title: "Chatbot Flow Trigger Diagnostic",
+      description: "Inspects flow publish state, keyword trigger rules, and interactive branch conditions.",
+      entryConditions: {
+        requiredEvidence: ["chatbot_flow_status"],
+      },
+      evidenceHandling: {
+        onMissingEvidence: "clarify",
+        missingEvidenceQuestion: "Which flow is affected, and what should trigger it?",
+        onConflictingEvidence: "escalate_to_human",
+      },
+      permittedActions: [],
+      expectedPostActionState: {
+        status: "FLOW_INSPECTED",
+        explanation: "Chatbot trigger rules evaluated without modifying live flow state.",
+      },
+      verificationRules: {
+        freshReadRequired: false,
+        expectedStatus: "FLOW_INSPECTED",
+        maxRetries: 0,
+        failureHandoff: true,
+      },
+      humanHandoffConditions: ["Complex flow loop or custom webhook action failure"],
     });
   }
 }

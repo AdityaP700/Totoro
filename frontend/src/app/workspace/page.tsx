@@ -430,7 +430,7 @@ function WorkspacePageContent() {
   const caseHeadline = customTitle || deriveCaseTitle(resolveData, activeQuery);
   const templateIdentity = resolveData?.templateSnapshot
     ? `${resolveData.templateSnapshot.name} (${resolveData.templateSnapshot.id})`
-    : resolveData?.proposal?.targetId || (selectedTemplateId !== "auto" ? selectedTemplateId : "WhatsApp Template");
+    : resolveData?.proposal?.targetId || (selectedTemplateId !== "auto" ? selectedTemplateId : resolveData?.category || "Request Context");
 
   const explanationText =
     actionData
@@ -694,8 +694,16 @@ function WorkspacePageContent() {
                     <span className="block text-xs font-semibold text-zinc-500">
                       Current state
                     </span>
-                    <span className="mt-1 inline-flex items-center rounded border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
-                      {resolveData?.templateSnapshot?.status || "Rejected"}
+                    <span
+                      className={`mt-1 inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+                        resolveData?.templateSnapshot
+                          ? "border border-rose-200 bg-rose-50 text-rose-700"
+                          : resolveData?.stage === "HANDOFF"
+                          ? "border border-amber-200 bg-amber-50 text-amber-700"
+                          : "border border-blue-200 bg-blue-50 text-blue-700"
+                      }`}
+                    >
+                      {resolveData?.templateSnapshot?.status || (resolveData?.stage === "HANDOFF" ? "Escalated" : "Active")}
                     </span>
                   </div>
 
@@ -705,7 +713,7 @@ function WorkspacePageContent() {
                       Category
                     </span>
                     <span className="mt-1 block text-sm font-medium text-zinc-900">
-                      {resolveData?.templateSnapshot?.category || resolveData?.category || "Marketing"}
+                      {resolveData?.templateSnapshot?.category || resolveData?.category || "General Inquiry"}
                     </span>
                   </div>
 
@@ -716,7 +724,7 @@ function WorkspacePageContent() {
                     </span>
                     <span className="mt-1 block truncate font-mono text-xs text-zinc-700">
                       {resolveData?.triage?.issueType === "template_rejection"
-                        ? resolveData?.diagnosis?.reasonCode || resolveData?.diagnosis?.playbookId || "FIXTURE_TAG_CONTENT_MISMATCH"
+                        ? resolveData?.diagnosis?.reasonCode || resolveData?.diagnosis?.playbookId || "UNVERIFIED_REASON"
                         : resolveData?.triage?.issueType || "POLICY_CHECK"}
                     </span>
                   </div>

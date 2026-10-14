@@ -247,6 +247,27 @@ Replaced native controls and developer-dominated terminal blocks with enterprise
    - Added integration tests 16 and 17 to `tests/apiIntegration.test.ts`. All 138 vitest tests passing across 14 test files (`npm test`).
    - Next.js 16 Turbopack production build succeeds with 21 static and dynamic routes (`npm run frontend:build`). Strict Vite build clean (`npm run build`).
 - Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/apiIntegration.test.ts, build logs).
+## D-021 · 2026-10-15 · Request-to-Fixture Decoupling, Entity Consistency, and Laya Decision Path Audit
 
-
+Investigated and resolved two critical recovery path inconsistencies:
+1. **Root Cause Analysis**:
+   - *Forced Association in Auto-Detect*: In `sessionRegistry.ts`, `autoDetectTemplateId` previously matched broad keywords ("order", "variable", "payment", "sale") without requiring template context, and unconditionally defaulted to `TPL-1001` (`fallbackId: "TPL-1001"`). Consequently, every complaint—even message delivery complaints and duplicate billing disputes—was forcibly assigned a template ID (`TPL-1001` or `TPL-1002`).
+   - *State Machine Triage / Entity Decoupling Defect*: `ResolveSession` required `opts.templateId`, read the template state into `templateSnapshot` prior to triage, and in `diagnose()` evaluated `template.reasonCode` without checking `triage.issueType`. For message delivery complaints, it keyed on `TPL-1002`'s `FIXTURE_INVALID_VARIABLE_FORMAT`, matched `PB-002-INVALID-VARIABLE-FORMAT`, and proposed template edits. For billing complaints, it triaged to `billing_refund`, but retained `TPL-1002`/`TPL-1003` rejection state as evidence in responses and audit trails.
+   - *Inspector Fallback Fabrication*: In `TechnicalDetailsInspector.tsx`, unmapped reason codes and target IDs defaulted to `"FIXTURE_PROMO_UTILITY"` and `"TPL-1001"`.
+2. **Entity Consistency & Domain Safeguards**:
+   - `StartOptions.templateId`: Made strictly optional (`templateId?: string | null`) in `stateMachine.ts`.
+   - `detectTemplateIdFromText`: Conservative detection requiring explicit ID (`TPL-\d{4}`) or explicit template context (e.g., `template festive_offer`, `template order_update`, `template format`). Vague complaints or billing requests return `undefined`.
+   - `ResolveSession` Triage-First Decoupling: Evaluates user intent; if `issueType` is a non-template sensitive zone (`billing_refund`, `security_identity_access`, `human_requested`), `templateId` and `templateSnapshot` are decoupled (`null`).
+   - Non-Template Playbooks: Registered safe diagnostic policies (`PB-DELIVERY-STATUS-CHECK`, `PB-INTEGRATION-ENDPOINT-CHECK`, `PB-WABA-REGISTRATION-CHECK`, `PB-CHATBOT-FLOW-CHECK`) in `PlaybookRegistry` with `permittedActions: []`. `diagnose()` never evaluates template reason codes for non-template issues.
+   - Unmapped Template Context: In `diagnose()`, if `issueType === "template_rejection"` and `templateSnapshot === null`, Totoro safely asks for clarification (`CLARIFY_ONCE`: "Could you share the template name (or ID)...") instead of guessing or binding to random fixtures.
+   - Honest Reporting in Inspector: Replaced hardcoded fallback strings with `"NOT_APPLICABLE"` and `"None (No template entity)"`.
+3. **Laya Invocation & Model Path Audit**:
+   - Confirmed deterministic rules-only baseline (`RulesReasoningAdapter`, `rules-1.0`) is the primary production path in local/test environments (0 network calls, 0 API keys).
+   - Hosted Laya inference (`HostedLayaClient` via `POST https://api.laya.studio/v1/systemone`) and `HybridLayaReasoningAdapter` run only when `LAYA_API_KEY` is configured.
+   - Audit trail and execution summary accurately distinguish `rules`, `laya`, and `fallback` decision layers; Totoro never labels a rules execution as "Laya-generated".
+4. **Verification**:
+   - Added 5 targeted regression tests (18–22) to `tests/apiIntegration.test.ts`.
+   - All 14 test suites and 143 tests passing (`npm test`).
+   - Production Next.js Turbopack build succeeds across all 21 routes (`npm run frontend:build`). Strict Vite build clean (`npm run build`).
+- Evidence label: DOCUMENTED (Guardrails G1, G2, G8–G12, D10) + REPORTED (vitest test runs, Turbopack build).
 

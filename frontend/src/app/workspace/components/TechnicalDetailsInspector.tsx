@@ -263,7 +263,7 @@ export function TechnicalDetailsInspector({
                       (resolveData?.triage
                         ? `TRIAGE-${resolveData.triage.issueType.toUpperCase()}`
                         : null) ||
-                      "PB-001 (Template policy check)"}
+                      "POLICY_EVALUATION"}
                   </span>
                 </div>
 
@@ -273,9 +273,7 @@ export function TechnicalDetailsInspector({
                   </span>
                   <span className="font-mono text-zinc-800 mt-0.5 block">
                     {resolveData?.diagnosis?.reasonCode ||
-                      (resolveData?.triage?.issueType === "template_rejection"
-                        ? "FIXTURE_PROMO_UTILITY"
-                        : "NOT_APPLICABLE")}
+                      (resolveData?.templateSnapshot?.reasonCode ?? "NOT_APPLICABLE")}
                   </span>
                 </div>
               </div>
@@ -341,7 +339,7 @@ export function TechnicalDetailsInspector({
                     <span className="text-zinc-400">Target Id:</span>{" "}
                     {resolveData?.proposal?.targetId ||
                       resolveData?.templateSnapshot?.id ||
-                      "TPL-1001"}
+                      "None (No template entity)"}
                   </div>
                 </div>
               </details>

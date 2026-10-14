@@ -10,7 +10,7 @@
  *   PostgreSQL) with optimistic locking or idempotency keys across requests.
  */
 
-import { ResolveSession, type SessionDeps } from "../../../../src/domain/stateMachine";
+import { ResolveSession, detectTemplateIdFromText, type SessionDeps } from "../../../../src/domain/stateMachine";
 import { createMockStore, type MockStore } from "../../../../src/domain/mockStore";
 import { RulesReasoningAdapter } from "../../../../src/domain/adapter";
 import { generateCustomerFacingResponse } from "../../../../src/domain/conversationalResponse";
@@ -38,22 +38,8 @@ export interface ActiveSessionRecord {
 // Global server-side registry (persists across Next.js API calls in same process)
 const registry = new Map<string, ActiveSessionRecord>();
 
-function autoDetectTemplateId(message: string, fallbackId: string = "TPL-1001"): string {
-  const upper = message.toUpperCase();
-  const match = upper.match(/TPL-\d{4}/);
-  if (match) return match[0];
-
-  const lower = message.toLowerCase();
-  if (lower.includes("order") || lower.includes("variable") || lower.includes("format") || lower.includes("bracket") || lower.includes("parameter")) {
-    return "TPL-1002";
-  }
-  if (lower.includes("payment") || lower.includes("late fee") || lower.includes("reminder") || lower.includes("tag")) {
-    return "TPL-1003";
-  }
-  if (lower.includes("festive") || lower.includes("diwali") || lower.includes("promo") || lower.includes("sale") || lower.includes("50%")) {
-    return "TPL-1001";
-  }
-  return fallbackId;
+export function detectTemplateIdFromMessage(message: string): string | undefined {
+  return detectTemplateIdFromText(message);
 }
 
 export function createNewSession(workspaceId: string, options: {
@@ -66,7 +52,10 @@ export function createNewSession(workspaceId: string, options: {
   if (!sessionId || repositories.getCase(workspaceId, sessionId)) {
     sessionId = `SES-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   }
-  const templateId = options.templateId || autoDetectTemplateId(options.message);
+  const explicitTemplateId =
+    options.templateId && options.templateId !== "auto"
+      ? options.templateId
+      : detectTemplateIdFromMessage(options.message);
   const store = createMockStore();
 
   let idCounter = 1000;
@@ -78,7 +67,7 @@ export function createNewSession(workspaceId: string, options: {
   };
 
   const session = new ResolveSession(deps, {
-    templateId,
+    templateId: explicitTemplateId,
     message: options.message,
   });
 
@@ -90,7 +79,7 @@ export function createNewSession(workspaceId: string, options: {
     session,
     store,
     userRole: options.userRole,
-    templateId,
+    templateId: session.state.templateId || explicitTemplateId || "",
     originalMessage: options.message,
     messages: [{ role: "user", text: options.message, timestamp: nowStr }],
     createdAt: nowStr,
@@ -240,7 +229,7 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
   // Format inspected sources
   const sources = [
     "mock_store_fixtures",
-    `template:${record.templateId}`,
+    ...(s.templateSnapshot ? [`template:${s.templateSnapshot.id}`] : []),
     s.diagnosis?.playbookId ? `playbook:${s.diagnosis.playbookId}` : "deterministic_rules_1.0",
     s.triage?.issueType ? `issue:${s.triage.issueType}` : "general_triage",
   ];
@@ -249,12 +238,12 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
   const reasoningSteps = [
     `1. Triaged symptom: "${s.triage?.issueType || "unknown"}" (urgency=${s.triage?.urgency || "medium"}).`,
     s.templateSnapshot
-      ? `2. Inspected fresh mock state for ${record.templateId} (status=${s.templateSnapshot.status}, reasonCode=${s.templateSnapshot.reasonCode ?? "none"}).`
+      ? `2. Inspected fresh mock state for ${s.templateSnapshot.id} (status=${s.templateSnapshot.status}, reasonCode=${s.templateSnapshot.reasonCode ?? "none"}).`
       : "2. Checked mock state store (no template record attached).",
     s.stage === "CLARIFY_ONCE"
       ? `3. Detected missing information — asked one focused clarifying question.`
       : s.diagnosis
-      ? `3. Matched recovery playbook: ${s.diagnosis.playbookId} — evaluated deterministic rules.`
+      ? `3. Evaluated recovery playbook: ${s.diagnosis.playbookId} — evaluated deterministic rules.`
       : `3. Evaluated safety guardrails and policy constraints.`,
     s.proposal
       ? `4. Formulated exact before/after change: ${s.proposal.description} (Approval required).`
@@ -266,7 +255,7 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
   // Execution verification items
   const executionVerification: [string, string][] = [
     ["Triage Route", s.triage?.route || "rules_playbook"],
-    ["Mock State", s.templateSnapshot ? `Read (${s.templateSnapshot.status})` : "Verified context"],
+    ["Mock State", s.templateSnapshot ? `Read (${s.templateSnapshot.status})` : "Verified context (No template attached)"],
     ["Safety Policy", s.triage?.needsHuman ? "Human Required" : s.proposal ? "Approval Required" : "Guarded Pass"],
   ];
 
@@ -309,11 +298,27 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     latencyMs,
     auditTrail,
     title: customerExplanation.headline,
-    category: s.templateSnapshot?.category ? `WhatsApp Template (${s.templateSnapshot.category})` : "Cheerio Support Recovery",
+    category: s.templateSnapshot?.category
+      ? `WhatsApp Template (${s.templateSnapshot.category})`
+      : s.triage?.issueType === "billing_refund"
+      ? "Billing & Refund Inquiry"
+      : s.triage?.issueType === "message_delivery"
+      ? "Message Delivery"
+      : s.triage?.issueType === "security_identity_access"
+      ? "Security & Account Access"
+      : "Cheerio Support Recovery",
     statusBadge,
     guardrails: s.triage?.needsHuman ? "Human-Led Escalation" : "Guarded",
-    contextEvaluated: `Mock state (${record.templateId})`,
-    verificationStatus: s.verification?.verified ? "Verified read (MOCK)" : s.stage === "HANDOFF" ? "Handoff dossier" : "Inspection complete",
+    contextEvaluated: s.templateSnapshot
+      ? `Mock state (${s.templateSnapshot.id})`
+      : `Request context (${s.triage?.issueType ?? "general"})`,
+    verificationStatus: s.verification?.verified
+      ? "Verified read (MOCK)"
+      : s.stage === "HANDOFF"
+      ? "Handoff dossier"
+      : s.stage === "CLARIFY_ONCE"
+      ? "Clarification pending"
+      : "Inspection complete",
     messages: record.messages,
   };
 }
