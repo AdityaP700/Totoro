@@ -35,8 +35,10 @@ function WorkspacePageContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTechnical, setShowTechnical] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
-  const [sourcesLibrary, setSourcesLibrary] = useState<Array<{ id: string; originalName: string; status: string; sizeBytes: number; profile: Record<string, unknown> }>>([]);
+  const [sourcesLibrary, setSourcesLibrary] = useState<Array<{ id: string; originalName: string; status: string; sizeBytes: number; profile: Record<string, unknown>; extractedText: string; caseId: string | null }>>([]);
   const [uploading, setUploading] = useState(false);
+  const [expandedSource, setExpandedSource] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<{ available: boolean; reason?: string; totalRecords?: number; uniqueRecords?: number; statusBreakdown?: Record<string, number> } | null>(null);
 
   const [resolveData, setResolveData] = useState<ResolveResponse | null>(null);
   const [actionData, setActionData] = useState<ActionResponse | null>(null);
@@ -119,6 +121,13 @@ function WorkspacePageContent() {
   };
 
   useEffect(() => { if (resolveData?.caseId) void loadSources(resolveData.caseId); }, [resolveData?.caseId]);
+  useEffect(() => { if (!resolveData?.caseId) return; void fetch(`/api/analytics?caseId=${encodeURIComponent(resolveData.caseId)}`).then((r) => r.json()).then(setAnalytics).catch(() => setAnalytics(null)); }, [resolveData?.caseId, sourcesLibrary.length]);
+
+  const updateSource = async (id: string, body: Record<string, unknown>) => {
+    const response = await fetch("/api/evidence", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }) });
+    if (!response.ok) { const error = await response.json(); throw new Error(error.error || "Unable to update source."); }
+    if (resolveData?.caseId) await loadSources(resolveData.caseId);
+  };
 
   const handleClarifySubmit = async () => {
     if (!clarificationInput.trim() || !sessionId) return;
@@ -664,13 +673,15 @@ function WorkspacePageContent() {
                   {sourcesLibrary.length > 0 && (
                     <div className="mt-5 space-y-2" aria-label="Case-linked evidence">
                       {sourcesLibrary.map((source) => (
-                        <div key={source.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs">
-                          <div><span className="font-semibold text-zinc-900">{source.originalName}</span><span className="ml-2 font-mono text-zinc-500">{source.status} · {Math.ceil(source.sizeBytes / 1024)} KB</span></div>
-                          <span className="font-mono text-[10px] uppercase text-zinc-500">{String(source.profile.kind || "document")}</span>
+                        <div key={source.id} className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs">
+                          <div className="flex items-center justify-between gap-2"><div><span className="font-semibold text-zinc-900">{source.originalName}</span><span className="ml-2 font-mono text-zinc-500">{source.status} · {Math.ceil(source.sizeBytes / 1024)} KB</span></div><div className="flex gap-2"><button type="button" onClick={() => setExpandedSource(expandedSource === source.id ? null : source.id)} className="text-zinc-600 underline">{expandedSource === source.id ? "Hide" : "Preview"}</button><button type="button" onClick={() => void updateSource(source.id, { caseId: null }).catch((e) => setErrorMessage(e.message))} className="text-rose-700 underline">Unlink</button></div></div>
+                          {expandedSource === source.id && <div className="mt-3 space-y-2 border-t border-zinc-200 pt-2"><p className="whitespace-pre-wrap text-zinc-700">{source.extractedText.slice(0, 1200) || "No extractable text; metadata is available."}</p>{Array.isArray(source.profile.headers) && <button type="button" onClick={() => void updateSource(source.id, { mapping: { status: (source.profile.headers as string[]).find((h) => /status|state|outcome/i.test(h)) || "" } }).catch((e) => setErrorMessage(e.message))} className="rounded-lg border border-zinc-300 px-2 py-1 text-zinc-700">Confirm detected status mapping</button>}</div>}
                         </div>
                       ))}
                     </div>
                   )}
+
+                  {analytics && <div className="mt-5 rounded-xl border border-zinc-200 bg-white p-4"><p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Deterministic source analysis</p>{analytics.available ? <><div className="mt-2 grid grid-cols-2 gap-3"><div><strong>{analytics.totalRecords}</strong><span className="ml-1 text-zinc-500">records</span></div><div><strong>{analytics.uniqueRecords}</strong><span className="ml-1 text-zinc-500">unique</span></div></div>{analytics.statusBreakdown && <div className="mt-3 space-y-1">{Object.entries(analytics.statusBreakdown).map(([label, count]) => <div key={label} className="flex justify-between text-zinc-700"><span>{label}</span><span>{count}</span></div>)}</div>}</> : <p className="mt-2 text-zinc-500">{analytics.reason}</p>}</div>}
 
                   <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
                     {[

@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { getWorkspaceId } from "../../../lib/server/workspace";
+import { repositories } from "../../../lib/server/persistence";
+export const runtime = "nodejs";
+export async function GET(req: Request) { const sessionId = new URL(req.url).searchParams.get("sessionId"); if (!sessionId) return NextResponse.json({ error:"sessionId required" }, { status:400 }); const record = repositories.getCase(await getWorkspaceId(), sessionId); if (!record) return NextResponse.json({ error:"Case not found" }, { status:404 }); const evidence = repositories.listEvidence(record.workspaceId, record.id); const markdown = `# ${record.title}\n\n**Case:** ${record.id}\n**Stage:** ${(record.state as { stage?: string }).stage || "unknown"}\n\n## Conversation\n${record.messages.map((m) => `- **${m.role}:** ${m.text}`).join("\n")}\n\n## Evidence\n${evidence.map((e) => `- ${e.originalName} — ${e.status}`).join("\n") || "No linked evidence."}`; return new NextResponse(markdown, { headers:{ "Content-Type":"text/markdown; charset=utf-8", "Content-Disposition":`attachment; filename="totoro-case-${record.id}.md"` } }); }

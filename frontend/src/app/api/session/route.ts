@@ -5,6 +5,7 @@ import {
   buildResolveResponse,
 } from "../../../lib/server/sessionRegistry";
 import { getWorkspaceId } from "../../../lib/server/workspace";
+import { repositories } from "../../../lib/server/persistence";
 
 export const runtime = "nodejs";
 
@@ -54,3 +55,5 @@ export async function DELETE(req: Request) {
     message: `Session '${sessionId}' successfully deleted from memory.`,
   });
 }
+
+export async function PATCH(req: Request) { const body = await req.json(); if (!body || typeof body.sessionId !== "string" || typeof body.title !== "string" || !body.title.trim()) return NextResponse.json({ error: "sessionId and title are required." }, { status: 400 }); return NextResponse.json({ ok: repositories.renameCase(await getWorkspaceId(), body.sessionId, body.title.trim()) }); }

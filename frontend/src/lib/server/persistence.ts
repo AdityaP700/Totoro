@@ -3,7 +3,8 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 type DatabaseSync = { exec(sql: string): void; prepare(sql: string): { run(...params: unknown[]): { changes: number }; get(...params: unknown[]): Record<string, unknown> | undefined; all(...params: unknown[]): Array<Record<string, unknown>>; }; };
-const nodeRequire = createRequire(import.meta.url);
+// A filesystem request anchor keeps Turbopack from treating import.meta.url as an external URL.
+const nodeRequire = createRequire(path.join(process.cwd(), "package.json"));
 const SqliteDatabase = nodeRequire(`node:${"sqlite"}`).DatabaseSync as new (path: string) => DatabaseSync;
 
 const dataRoot = process.env.TOTORO_DATA_DIR || path.join(process.cwd(), ".totoro-data");
