@@ -7,7 +7,7 @@ import {
 } from "../../../lib/server/sessionRegistry";
 import { getWorkspaceId } from "../../../lib/server/workspace";
 import type { ResolveRequest } from "../../../lib/apiTypes";
-import { runConversationTurn } from "../../../../../src/domain/conversationGraph";
+import { runConversationTurn, isBusinessRequest } from "../../../../../src/domain/conversationGraph";
 
 export const runtime = "nodejs";
 
@@ -37,7 +37,13 @@ export async function POST(req: Request) {
 
     if (record) {
       record.messages.push({ role: "user", text: message, timestamp: new Date().toISOString() });
-      if (record.session.state.stage === "CLARIFY_ONCE") {
+      const isBusinessSession = Boolean(
+        record.session.state.businessContext &&
+        record.session.state.businessContext.domain !== "platform_recovery" &&
+        record.session.state.businessContext.domain !== "customer_support"
+      );
+
+      if (record.session.state.stage === "CLARIFY_ONCE" && !isBusinessSession && !isBusinessRequest(message)) {
         record.session.clarify(message);
       } else {
         // Multi-turn conversational follow-up handled by LangGraph.js flow
@@ -57,6 +63,16 @@ export async function POST(req: Request) {
         userRole: body.userRole,
         sessionId: body.sessionId,
       });
+
+      // Execute LangGraph flow on Turn 1 for business requests
+      if (isBusinessRequest(message)) {
+        await runConversationTurn({
+          sessionId: record.sessionId,
+          message,
+          history: record.messages,
+          session: record.session,
+        });
+      }
     }
 
     const latencyMs = Math.max(8, Date.now() - start);

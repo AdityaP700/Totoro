@@ -709,34 +709,46 @@ function WorkspacePageContent() {
   const templateIdOnly =
     resolveData?.templateSnapshot?.id ||
     (resolveData?.proposal?.targetId?.startsWith("TPL-") ? resolveData.proposal.targetId : null);
+  const isBusinessCategory = Boolean(
+    resolveData?.category?.includes("Business") ||
+    resolveData?.category?.includes("Sales") ||
+    resolveData?.category?.includes("Project") ||
+    resolveData?.category?.includes("Invoicing") ||
+    resolveData?.category?.includes("Operations")
+  );
+
   const templateCategory =
-    resolveData?.triage?.issueType === "template_rejection"
+    resolveData?.category ||
+    (resolveData?.triage?.issueType === "template_rejection"
       ? "Template support"
-      : resolveData?.category ||
-        (resolveData?.templateSnapshot?.category
-          ? `WhatsApp Template (${resolveData.templateSnapshot.category})`
-          : "Cheerio Support Recovery");
+      : resolveData?.templateSnapshot?.category
+      ? `WhatsApp Template (${resolveData.templateSnapshot.category})`
+      : "Cheerio Support Recovery");
 
   // Derive interaction state
   const currentInteractionState =
     actionData?.interactionState || resolveData?.interactionState || (loading ? "triaging" : "idle");
 
   const isMandatoryHumanZone =
-    resolveData?.triage?.issueType === "billing_refund" ||
-    resolveData?.triage?.issueType === "security_identity_access" ||
-    (actionData?.attemptsFailed ?? 0) >= 2;
+    !isBusinessCategory &&
+    (resolveData?.triage?.issueType === "billing_refund" ||
+      resolveData?.triage?.issueType === "security_identity_access" ||
+      (actionData?.attemptsFailed ?? 0) >= 2);
 
-  const isClarificationState = resolveData?.stage === "CLARIFY_ONCE" && !actionData;
-  const isTemplateRejectionIssue = resolveData?.triage?.issueType === "template_rejection";
-  const isMessageDeliveryIssue = resolveData?.triage?.issueType === "message_delivery";
+  const isClarificationState = !isBusinessCategory && resolveData?.stage === "CLARIFY_ONCE" && !actionData;
+  const isTemplateRejectionIssue = !isBusinessCategory && resolveData?.triage?.issueType === "template_rejection";
+  const isMessageDeliveryIssue = !isBusinessCategory && resolveData?.triage?.issueType === "message_delivery";
   const isVerifiedOutcome = Boolean(actionData?.isVerified || resolveData?.isVerified);
-  const isHumanHandoffStage = resolveData?.stage === "HANDOFF" || isMandatoryHumanZone;
+  const isHumanHandoffStage = !isBusinessCategory && (resolveData?.stage === "HANDOFF" || isMandatoryHumanZone);
 
   // Laya-assisted vs Deterministic rules indicator
   const isLayaAssisted = resolveData?.triage?.decisionLayer === "laya";
 
   // Diagnosis Summary fallback derivation
   const diagnosisSummary = useMemo(() => {
+    if (isBusinessCategory) {
+      return null;
+    }
     if (resolveData?.diagnosisSummary) {
       return resolveData.diagnosisSummary;
     }
@@ -863,6 +875,9 @@ function WorkspacePageContent() {
 
   // Brief assistant acknowledgement text (Section 2 Step 2)
   const getAssistantAcknowledgement = (index: number) => {
+    if (isBusinessCategory) {
+      return "I've analyzed your business request and structured the findings below:";
+    }
     if (index === 1 && conversationMessages.length <= 2) {
       return isClarificationState
         ? "I'll look into this. Let me check the available evidence first."
@@ -1214,7 +1229,7 @@ function WorkspacePageContent() {
                     </p>
 
                     {/* Step 3: Compact investigation timeline (shown on latest assistant turn) */}
-                    {isLatestAssistant && !isClarificationState && (
+                    {isLatestAssistant && !isClarificationState && !isBusinessCategory && (
                       <div className="rounded-xl border border-[#E5E7EB] bg-[#F8F9FB] p-3 text-xs space-y-2">
                         <button
                           type="button"
@@ -1742,7 +1757,8 @@ function WorkspacePageContent() {
               )}
 
               {/* Specialist / Escalation State Banner */}
-              {(currentInteractionState === "pending_assignment" ||
+              {!isBusinessCategory &&
+                (currentInteractionState === "pending_assignment" ||
                 currentInteractionState === "assigned" ||
                 currentInteractionState === "in_progress" ||
                 actionData?.specialistAssignment) && (

@@ -399,5 +399,23 @@ Expanded Totoro from a WhatsApp/Instagram messaging recovery tool into a general
    - Full repository test suite expanded to 196/196 passing tests across 17 test files (`npm test`).
 - Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/businessScenarios.test.ts).
 
+## D-027 · 2026-10-15 · Multi-Turn Founder Analytics Routing, analyze_data Graph Route Enforcement, and Zero Support Triage UI Leakage
+
+Resolved defect where a 4-turn founder revenue analysis inquiry ("Our revenue dropped this week. Help me figure out why.") received generic clarification acknowledgements and fell back into WhatsApp support triage, specialist assignment cards, 5-stage diagnostic timelines, and "Escalated to human support" header badges:
+1. **Root Causes**:
+   - Turn 1 bypassed LangGraph in `/api/resolve/route.ts`: new sessions only called `createNewSession()`, which ran support `triage.ts`. Because business queries didn't match WhatsApp rejection patterns, triage defaulted to `ambiguous_or_missing_context` and set `stage = "CLARIFY_ONCE"`.
+   - Turn 2 bypassed LangGraph: `/api/resolve/route.ts` checked `stage === "CLARIFY_ONCE"` and called `session.clarify()`. A second ambiguous reply in `stateMachine.ts` called `this.handoff()`, immediately escalating the case to human specialist queue. LangGraph was never invoked on any turn.
+   - Frontend and Session Registry lacked business domain suppression: `buildResolveResponse` and `workspace/page.tsx` rendered the 5-stage diagnostic investigation timeline, specialist assignment banner, and human escalation badge whenever `stage === "HANDOFF"` or `isMandatoryHumanZone` evaluated true.
+2. **Remediation**:
+   - Turn 1 & Multi-Turn Routing: In `/api/resolve/route.ts`, if `isBusinessRequest(message)` evaluates true on Turn 1, `runConversationTurn` is invoked immediately. On Turn 2+, `isBusinessSession` ensures all follow-ups route through LangGraph rather than `session.clarify()`.
+   - Route Enforcement (`analyze_data`): Added matchers 8D1 (revenue drop drivers + DB limitation), 8D2 (comparison period update + hypothesis invalidation), 8D3 (data requirement categories), and 8D4 (disconnected DB knowns vs. unknowns) in `src/domain/conversationGraph.ts`. In `validateProposalNode`, all 4 turns map strictly to `targetRoute = "analyze_data"`.
+   - UI & State Contract: In `sessionRegistry.ts` (`buildResolveResponse`), business domains return `statusBadge = "Analysis active"`, `category = "Business Analytics"`, `stage = "RESOLVED"`, `diagnosisSummary = null`, and suppress support fallback CTAs. In `workspace/page.tsx`, `isBusinessCategory` suppresses the 5-stage timeline, specialist banner, and human escalation badges.
+   - Types & Build Integrity: Exported missing domain types (`InteractionState`, `DiagnosisSummary`, `SpecialistAssignment`, `RecommendedNextStep`, `ProposedNextStep`, `CommandProposal`) in `src/domain/types.ts` and `frontend/src/lib/apiTypes.ts`, bringing `npm run build` and `npm --prefix frontend run build` to 0 errors.
+3. **Verification**:
+   - Added test `F0` in `tests/businessScenarios.test.ts` verifying that all 4 turns route to `analyze_data`.
+   - Added Test 26 in `tests/apiIntegration.test.ts` testing the complete HTTP API cycle across all 4 turns without human escalation or support UI leakage.
+   - 100% pass across all 17 test suites (198/198 tests passing).
+- Evidence label: DOCUMENTED (Guardrails G1, G5, G8, D1–D11) + REPORTED (vitest test suite and Next.js static build).
+
 
 

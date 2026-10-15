@@ -476,5 +476,34 @@ but unused — no test needs it.
 - Safety Violations: **0**
 - False Verified Outcomes: **0**
 
+## 2026-10-15 · Founder Business Analytics & Zero Support UI Leakage Verification
+
+### Automated Multi-Turn Founder Revenue Journey (`tests/businessScenarios.test.ts`)
+- Scenario Verified: **F0 (Founder 4-Turn Revenue Drop Reproduction)**:
+  - Turn 1: *"Our revenue dropped this week. Help me figure out why."* -> Route: `analyze_data`, Status: `data_analyzed`, discloses DB limitation (`[LIMITATION]`), outlines 4 core drivers (Traffic, Funnel Conversion, AOV, Payment/Refunds).
+  - Turn 2: *"Compare October 1–7 with October 8–14."* -> Route: `analyze_data`, Status: `data_analyzed`, updates comparison period (`October 1–7 vs. October 8–14`), appends to `invalidatedConclusions` (invalidating prior "this week" hypotheses).
+  - Turn 3: *"What data do you need to confirm the cause?"* -> Route: `analyze_data`, Status: `data_analyzed`, itemizes 5 metric categories (revenue by day, order counts, funnel conversion, AOV, payment failure rates) with limitation disclosure.
+  - Turn 4: *"We don't have production database access connected yet. What can you conclude from what you have?"* -> Route: `analyze_data`, Status: `data_analyzed`, explains knowns (`[REPORTED / DOCUMENTED]`) vs unknowns (`[UNKNOWN]`), prompts for CSV upload or figures without support escalation.
+- Route History: `["analyze_data", "analyze_data", "analyze_data", "analyze_data"]` (100% analyze_data).
+
+### Full HTTP API Integration Verification (`tests/apiIntegration.test.ts`)
+- Added Test 26 executing the complete 4-turn founder revenue conversation through `/api/resolve`:
+  - `statusBadge`: `"Analysis active"` across all turns (no "Escalated to human support" or "Needs details").
+  - `category`: `"Business Analytics"` (no "Cheerio Support Recovery" or "Template support").
+  - `stage`: `"RESOLVED"` (no "HANDOFF" or "CLARIFY_ONCE").
+  - `diagnosisSummary`: `null` (no 3-column support diagnosis card).
+  - `specialistAssignment`: `null` (no specialist queue banner).
+  - `messages`: All 4 user turns and 4 assistant turns correctly sequenced and preserved.
+
+### Full Repository Regression Verification
+- Command: `npm test` (`vitest run`)
+- Result: PASS (exit 0) in 3.66s — **198 passed across 17 test files (100% passing)**.
+- Command: `npm run build` (`tsc -b && vite build`)
+  - Result: PASS (exit 0) in 6.30s — strict mode typecheck clean.
+- Command: `npm --prefix frontend run build` (`next build`)
+  - Result: PASS (exit 0) — all 21 static/dynamic routes compiled and generated with zero errors.
+- Safety Violations: **0**
+- Support UI Leakage on Business Turns: **0**
+
 
 

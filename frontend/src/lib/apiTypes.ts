@@ -53,6 +53,8 @@ export interface ResolveResponse {
   verificationStatus: string;
   diagnosisSummary?: DiagnosisSummary | null;
   recommendedNextStep?: RecommendedNextStep | null;
+  completedChecks?: string[];
+  businessContext?: any;
   messages?: Array<{ role: "user" | "assistant"; text: string; timestamp: string }>;
 }
 
@@ -97,6 +99,8 @@ export interface ActionResponse {
   executionVerification: [string, string][];
   diagnosisSummary?: DiagnosisSummary | null;
   recommendedNextStep?: RecommendedNextStep | null;
+  completedChecks?: string[];
+  businessContext?: any;
   attemptsFailed?: number;
   messages?: Array<{ role: "user" | "assistant"; text: string; timestamp: string }>;
 }

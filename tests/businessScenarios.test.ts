@@ -66,6 +66,119 @@ describe("Operational Business Scenarios Evaluation Suite (12 Multi-Turn Scenari
   });
 
   // ==========================================================================
+  // Scenario F0: Founder 4-Turn Revenue Drop Reproduction (Live User Journey)
+  // ==========================================================================
+  it("F0: handles 4-turn revenue-drop journey routing all 4 turns to analyze_data without human handoff or support triage leakage", async () => {
+    const session = new ResolveSession(deps, {
+      message: "Our revenue dropped this week. Help me figure out why.",
+    });
+
+    const routeHistory: string[] = [];
+
+    // Turn 1: Revenue dropped inquiry
+    const turn1 = await runConversationTurn({
+      sessionId: "SES-TEST-F0",
+      message: "Our revenue dropped this week. Help me figure out why.",
+      history: [{ role: "user", text: "Our revenue dropped this week. Help me figure out why." }],
+      session,
+    });
+    routeHistory.push(turn1.route || "unknown");
+
+    expect(turn1.route).toBe("analyze_data");
+    expect(turn1.status).toBe("data_analyzed");
+    expect(turn1.response).toContain("LIMITATION");
+    expect(turn1.response).toContain("Traffic / Volume");
+    expect(turn1.response).toContain("Conversion Funnel");
+    expect(turn1.response).toContain("Average Order Value");
+    expect(turn1.response).toContain("Payment Failures & Refunds");
+    expect(session.state.businessContext?.domain).toBe("founder_metrics");
+    expect(session.state.stage).toBe("RESOLVED");
+    expect(session.state.clarify).toBeNull();
+    expect(session.state.handoffReason).toBeNull();
+    expect(session.state.specialistAssignment).toBeNull();
+
+    // Turn 2: Compare October 1–7 with October 8–14
+    const turn2 = await runConversationTurn({
+      sessionId: "SES-TEST-F0",
+      message: "Compare October 1–7 with October 8–14.",
+      history: [
+        { role: "user", text: "Our revenue dropped this week. Help me figure out why." },
+        { role: "assistant", text: turn1.response },
+        { role: "user", text: "Compare October 1–7 with October 8–14." },
+      ],
+      session,
+    });
+    routeHistory.push(turn2.route || "unknown");
+
+    expect(turn2.route).toBe("analyze_data");
+    expect(turn2.status).toBe("data_analyzed");
+    expect(session.state.businessContext?.entities.comparisonPeriod).toContain("October 1–7");
+    expect(session.state.businessContext?.invalidatedConclusions.length).toBeGreaterThan(0);
+    expect(session.state.stage).toBe("RESOLVED");
+    expect(turn2.response).toContain("LIMITATION");
+
+    // Turn 3: What data do you need to confirm the cause?
+    const turn3 = await runConversationTurn({
+      sessionId: "SES-TEST-F0",
+      message: "What data do you need to confirm the cause?",
+      history: [
+        { role: "user", text: "Our revenue dropped this week. Help me figure out why." },
+        { role: "assistant", text: turn1.response },
+        { role: "user", text: "Compare October 1–7 with October 8–14." },
+        { role: "assistant", text: turn2.response },
+        { role: "user", text: "What data do you need to confirm the cause?" },
+      ],
+      session,
+    });
+    routeHistory.push(turn3.route || "unknown");
+
+    expect(turn3.route).toBe("analyze_data");
+    expect(turn3.status).toBe("data_analyzed");
+    expect(turn3.headline).toContain("Required Data to Confirm Revenue Drop Cause");
+    expect(turn3.response).toContain("Daily Revenue & Order Volume");
+    expect(turn3.response).toContain("Traffic & Funnel Conversion");
+    expect(turn3.response).toContain("Average Order Value (AOV)");
+    expect(turn3.response).toContain("Payment Processing & Refunds");
+    expect(turn3.response).toContain("LIMITATION");
+    expect(session.state.stage).toBe("RESOLVED");
+
+    // Turn 4: We don't have production database access connected yet.
+    const turn4 = await runConversationTurn({
+      sessionId: "SES-TEST-F0",
+      message: "We don't have production database access connected yet. What can you conclude from what you have?",
+      history: [
+        { role: "user", text: "Our revenue dropped this week. Help me figure out why." },
+        { role: "assistant", text: turn1.response },
+        { role: "user", text: "Compare October 1–7 with October 8–14." },
+        { role: "assistant", text: turn2.response },
+        { role: "user", text: "What data do you need to confirm the cause?" },
+        { role: "assistant", text: turn3.response },
+        { role: "user", text: "We don't have production database access connected yet. What can you conclude from what you have?" },
+      ],
+      session,
+    });
+    routeHistory.push(turn4.route || "unknown");
+
+    expect(turn4.route).toBe("analyze_data");
+    expect(turn4.status).toBe("data_analyzed");
+    expect(turn4.headline).toContain("Known Facts vs. Unknowns");
+    expect(turn4.response).toContain("What We Know [REPORTED / DOCUMENTED]");
+    expect(turn4.response).toContain("What Remains Unknown [UNKNOWN]");
+    expect(turn4.response).toContain("LIMITATION");
+    expect(session.state.stage).toBe("RESOLVED");
+    expect(session.state.handoffReason).toBeNull();
+    expect(session.state.specialistAssignment).toBeNull();
+
+    // Verify all 4 turns routed to analyze_data
+    expect(routeHistory).toEqual([
+      "analyze_data",
+      "analyze_data",
+      "analyze_data",
+      "analyze_data",
+    ]);
+  });
+
+  // ==========================================================================
   // Scenario F2: Founder Dynamic Task Prioritization
   // ==========================================================================
   it("F2: dynamically re-ranks 3 tasks when a time-sensitive expiration constraint is added", async () => {

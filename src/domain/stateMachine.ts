@@ -1031,7 +1031,7 @@ export class ResolveSession {
     // 12. CALM Grounded semantic interpretation (eliminates generic echo, updates facts & next steps)
     const proposal = interpretSemanticGrounded(raw, this.state);
     applyCommandProposal(this.state, proposal, raw, this.append.bind(this));
-    return { status: proposal.status, note: proposal.note };
+    return { status: proposal.status || "follow_up_interpreted", note: proposal.note || "CALM grounded interpretation" };
   }
 
   /**
@@ -1080,7 +1080,7 @@ export class ResolveSession {
     }
 
     applyCommandProposal(this.state, proposal, raw, this.append.bind(this));
-    return { status: proposal.status, note: proposal.note };
+    return { status: proposal.status || "follow_up_interpreted", note: proposal.note || "CALM runtime turn" };
   }
 
   // ---- helpers --------------------------------------------------------------

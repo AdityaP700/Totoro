@@ -103,6 +103,19 @@ Running log of failed commands/tests, diagnosis, attempted fixes, unresolved iss
   5. Added minimal structured server logging (`sessionId`, `caseId`, `threadId`, `issueCategory`, `selectedRoute`, `responseCaseId`) in `/api/resolve` and `conversationGraph.ts`.
   6. Verified 100% session isolation with `scratch/verify_isolation.ps1`.
 
+### F-013 · Business analytics inquiry hijacked by support recovery state machine and UI components
+- Error: Live browser testing of a 4-turn founder revenue analysis inquiry ("Our revenue dropped this week. Help me figure out why.") resulted in generic ambiguous acknowledgements, a header displaying "Escalated to human support", a 5-stage support investigation timeline, and a specialist assignment card.
+- Diagnosis:
+  1. `/api/resolve/route.ts` did not invoke LangGraph on Turn 1 for newly opened sessions; it only called `createNewSession()`. Because "Our revenue dropped..." did not match WhatsApp template rules, `triage.ts` assigned `ambiguous_or_missing_context` and entered `stage = "CLARIFY_ONCE"` with a WhatsApp feature question.
+  2. On Turn 2+, `/api/resolve/route.ts` checked `stage === "CLARIFY_ONCE"` and called `session.clarify()`. The domain state machine's single-question limit treated follow-up input as still ambiguous and invoked `this.handoff()`, immediately escalating to a human specialist. LangGraph was never executed on ANY turn.
+  3. `workspace/page.tsx` and `sessionRegistry.ts` lacked business domain guards. When `stage === "HANDOFF"` or `isMandatoryHumanZone` evaluated true, the workspace unconditionally rendered the support 5-stage timeline, specialist queue banner, and rose escalation badge.
+- Fix:
+  1. In `/api/resolve/route.ts`, if `isBusinessRequest(message)` evaluates true on Turn 1, `runConversationTurn` is invoked immediately following session creation. On Turn 2+, `isBusinessSession` ensures all follow-up turns route through LangGraph, bypassing `session.clarify()`.
+  2. In `src/domain/conversationGraph.ts`, added matchers 8D1 (revenue drop + 4 drivers + DB limitation), 8D2 (comparison period update + hypothesis invalidation), 8D3 (data requirement categories), and 8D4 (disconnected DB knowns vs. unknowns). In `validateProposalNode`, mapped all 4 turns strictly to `targetRoute = "analyze_data"`. In `persistResponseNode`, set `stage = "RESOLVED"` and cleared support artifacts (`clarify`, `handoffReason`, `specialistAssignment`).
+  3. In `sessionRegistry.ts` (`buildResolveResponse`), return `category = "Business Analytics"`, `statusBadge = "Analysis active"`, `stage = "RESOLVED"`, `diagnosisSummary = null`, and suppress support fallback CTAs.
+  4. In `workspace/page.tsx`, defined `isBusinessCategory` and guarded `isMandatoryHumanZone`, `isHumanHandoffStage`, the 5-stage investigation timeline, specialist assignment banner, and `diagnosisSummary`.
+  5. Added regression test `F0` in `tests/businessScenarios.test.ts` verifying all 4 turns route to `analyze_data`, and Test 26 in `tests/apiIntegration.test.ts` verifying complete HTTP API contracts. 198/198 tests pass.
+
 ## Unresolved issues
-- None (all isolation and scenario tests passing).
+- None (all 198 tests across 17 test suites passing; Next.js 16 and Vite builds clean).
 

@@ -101,6 +101,93 @@ export type Stage =
   | "DECLINED"
   | "HANDOFF";
 
+export type InteractionState =
+  | "idle"
+  | "triaging"
+  | "clarification_pending"
+  | "clarification_required"
+  | "ready_for_review"
+  | "proposal_ready"
+  | "recommendation_ready"
+  | "diagnosis_ready"
+  | "gathering_evidence"
+  | "request_submitted"
+  | "awaiting_confirmation"
+  | "executing"
+  | "verifying"
+  | "resolved"
+  | "recovery_failed"
+  | "handoff_confirmation"
+  | "pending_assignment"
+  | "assigned"
+  | "in_progress"
+  | "closed";
+
+export interface SpecialistAssignment {
+  specialistName: string;
+  queue: string;
+  assignedAt: string;
+}
+
+export interface DiagnosisSummary {
+  whatWeKnow: string[];
+  whatRemainsUncertain: string[];
+  impact: string | string[];
+}
+
+export interface ProposedNextStep {
+  actionId?: string;
+  actionTitle: string;
+  supportingText: string;
+  primaryCtaLabel: string;
+  primaryCtaAction: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaAction?: string;
+}
+
+export interface RecommendedNextStep {
+  actionTitle: string;
+  supportingText: string;
+  primaryCta: {
+    label: string;
+    action: string;
+  };
+  secondaryCta?: {
+    label: string;
+    action: string;
+  } | null;
+  title?: string;
+  subtitle?: string;
+  explanation?: string;
+  actionLabel?: string;
+  actionType?: string;
+  actionId?: string;
+  primaryCtaLabel?: string;
+  primaryCtaAction?: string;
+  secondaryLabel?: string;
+  secondaryAction?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaAction?: string;
+}
+
+export interface CommandProposal {
+  intent: string;
+  status: string;
+  note?: string;
+  headline?: string;
+  conversationalResponse: string;
+  evidenceExplanation?: string;
+  nextSteps?: string;
+  extractedFacts?: Array<{ key: string; value: string; provenance: "user_reported" }>;
+  completedCheck?: string;
+  proposedNextStep?: ProposedNextStep | null;
+  confidence?: number;
+  decisionLayer?: string;
+  modelId?: string;
+  latencyMs?: number;
+  validationOutcome?: boolean;
+}
+
 export type EventType =
   | "CASE_OPENED"
   | "STATE_READ"
@@ -113,7 +200,11 @@ export type EventType =
   | "USER_CONFIRMED"
   | "ACTION_SIMULATED"
   | "STATE_VERIFIED"
-  | "HANDOFF_CREATED";
+  | "HANDOFF_CREATED"
+  | "HANDOFF_CONFIRMED"
+  | "SPECIALIST_ASSIGNED"
+  | "CASE_CLOSED"
+  | "HANDOFF_WITHDRAWN";
 
 export interface AuditEvent {
   eventId: string;
@@ -133,6 +224,7 @@ export interface Diagnosis {
   /** Exact template field/line the playbook keyed on. */
   evidenceUsed: string[];
   cannotVerify: string[];
+  summary?: DiagnosisSummary | null;
 }
 
 export interface VerificationResult {
@@ -173,4 +265,8 @@ export interface CaseState {
   completedChecks?: string[];
   userReportedEvidence?: Record<string, string>;
   businessContext?: any;
+  interactionState?: InteractionState;
+  handoffRequestedAt?: string | null;
+  specialistAssignment?: SpecialistAssignment | null;
+  closedAt?: string | null;
 }

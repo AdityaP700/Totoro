@@ -2,6 +2,25 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Founder Revenue Analytics Route Preservation & Support UI Leakage Suppression (D-027, F-013)
+
+- **Founder Business Analytics Flow & Route Preservation**:
+  - Eliminated the bug where business analytics queries (e.g. *"Our revenue dropped this week. Help me figure out why."*) were falsely routed through support triage as ambiguous tickets, trapped in single-turn clarification, and escalated to human support.
+  - Initial business messages now trigger LangGraph immediately on Turn 1 (`runConversationTurn`), sustaining `analyze_data` routing across the complete multi-turn sequence:
+    1. Turn 1 (*"Our revenue dropped this week..."*): Identifies the 4 primary drivers (traffic, conversion, AOV, cancellations) and discloses lack of direct DB connection.
+    2. Turn 2 (*"Compare October 1–7 with October 8–14."*): Dynamically updates comparison date range and records explicit hypothesis invalidation.
+    3. Turn 3 (*"What data do you need to confirm the cause?"*): Enumerates the 4 structured data categories required to prove root causes.
+    4. Turn 4 (*"We don't have production database access connected yet..."*): Accurately contrasts what can vs cannot be concluded with strict evidence labeling (`[LIMITATION]`, `[REPORTED]`, `[UNKNOWN]`).
+  - Verified route telemetry log: `["analyze_data", "analyze_data", "analyze_data", "analyze_data"]`.
+- **Elimination of Support UI Leakage on Business Sessions**:
+  - Replaced the misleading `"Escalated to human support"` header badge with `"Analysis active"`.
+  - Suppressed the 5-stage support diagnostic timeline and specialist-assignment queue banner for all business analytics cases.
+  - Resets support artifacts (`clarify`, `handoffReason`, `specialistAssignment`, `diagnosisSummary`) to `null` and assigns `stage = "RESOLVED"` to maintain a clean business copilot interface.
+- **Verification**:
+  - Added Scenario `F0` in `tests/businessScenarios.test.ts` verifying all 4 turns select `analyze_data` and record invalidations without escalation.
+  - Added Test 26 in `tests/apiIntegration.test.ts` testing the complete HTTP API `/api/resolve` cycle across all 4 turns.
+  - All 198 tests passing across 17 test files (100% passing). Both Vite and Next.js production builds compile cleanly.
+
 ## 2026-10-15 — General-Purpose Operational Assistant, Capability Boundaries & 12 Multi-Turn Business Scenarios
 
 - **Everyday Operational Scenarios Across 6 Business Domains**:

@@ -50,7 +50,7 @@ export const repositories = {
       || (d.prepare("SELECT id FROM cases WHERE session_id=?").get(input.sessionId) as { id: string } | undefined);
     let targetCaseId = input.id;
     if (existing) {
-      targetCaseId = existing.id;
+      targetCaseId = (existing as { id: string }).id;
       d.prepare("UPDATE cases SET title=?, template_id=?, original_message=?, state_json=?, templates_json=?, updated_at=?, deleted_at=NULL WHERE session_id=?").run(input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.updatedAt, input.sessionId);
     } else {
       d.prepare("INSERT INTO cases(id, workspace_id, session_id, title, template_id, original_message, state_json, templates_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title=excluded.title, state_json=excluded.state_json, templates_json=excluded.templates_json, updated_at=excluded.updated_at, deleted_at=NULL").run(input.id, input.workspaceId, input.sessionId, input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.createdAt, input.updatedAt);

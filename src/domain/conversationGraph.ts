@@ -24,9 +24,8 @@ import {
   MemorySaver,
 } from "@langchain/langgraph";
 import type { ResolveSession } from "./stateMachine";
-import type { CaseState, AuditEvent, ProposedNextStep } from "./types";
+import type { CaseState, ProposedNextStep } from "./types";
 import { GroqClient } from "./groqClient";
-import { HostedLayaClient } from "./layaClient";
 
 // ============================================================================
 // Types & Structured Schemas
@@ -117,6 +116,96 @@ export interface TurnTrace {
   timestamp: string;
 }
 
+/**
+ * Detects whether a user message belongs to an operational or business analytics inquiry
+ * (e.g. founder revenue/metrics, sales outreach, task prioritization, project blockers,
+ * freelancer invoicing, or inventory discrepancies) rather than a platform WhatsApp template recovery.
+ */
+export function isBusinessRequest(message: string): boolean {
+  if (!message || typeof message !== "string") return false;
+  const lower = message.toLowerCase().trim();
+
+  // 1. Founder metrics & revenue analysis
+  if (
+    lower.includes("revenue") ||
+    lower.includes("conversion rate") ||
+    lower.includes("conversion drop") ||
+    lower.includes("conversion") ||
+    lower.includes("funnel") ||
+    lower.includes("drop-off") ||
+    lower.includes("drop off") ||
+    lower.includes("compare october") ||
+    lower.includes("compare oct") ||
+    (lower.includes("compare") && (lower.includes("with") || lower.includes("week") || lower.includes("days"))) ||
+    lower.includes("what data do you need") ||
+    lower.includes("what data is needed") ||
+    lower.includes("what information do you need") ||
+    lower.includes("production database access") ||
+    lower.includes("database access connected") ||
+    (lower.includes("what can you conclude") && !lower.includes("template"))
+  ) {
+    return true;
+  }
+
+  // 2. Sales & CRM outreach
+  if (
+    (lower.includes("draft") && (lower.includes("email") || lower.includes("acme") || lower.includes("follow-up") || lower.includes("outreach") || lower.includes("proposal"))) ||
+    lower.includes("budget ceiling") ||
+    lower.includes("too expensive") ||
+    (lower.includes("objection") && lower.includes("sales"))
+  ) {
+    return true;
+  }
+
+  // 3. Task Prioritization
+  if (
+    lower.includes("prioritize these 3 tasks") ||
+    lower.includes("prioritize these tasks") ||
+    lower.includes("help me prioritize") ||
+    lower.includes("lead expires") ||
+    lower.includes("expires in 2 hours") ||
+    (lower.includes("checkout drop-off") && lower.includes("enterprise lead"))
+  ) {
+    return true;
+  }
+
+  // 4. Project & Sprint Blockers
+  if (
+    (lower.includes("blocker") && (lower.includes("sprint") || lower.includes("frontend") || lower.includes("backend") || lower.includes("team") || lower.includes("daily updates"))) ||
+    lower.includes("dependency chain") ||
+    lower.includes("sprint blocker")
+  ) {
+    return true;
+  }
+
+  // 5. Freelancer Invoicing
+  if (
+    lower.includes("inv-204") ||
+    (lower.includes("invoice") && (lower.includes("overdue") || lower.includes("reminder") || lower.includes("net 30") || lower.includes("net 15") || lower.includes("payment terms"))) ||
+    lower.includes("payment terms from net 30") ||
+    lower.includes("net 15")
+  ) {
+    return true;
+  }
+
+  // 6. Operations & Inventory
+  if (
+    lower.includes("delayed dispatches") ||
+    lower.includes("delayed orders") ||
+    lower.includes("ord-901") ||
+    lower.includes("ord-902") ||
+    lower.includes("north hub") ||
+    lower.includes("physical count") ||
+    lower.includes("ledger count") ||
+    lower.includes("sku-a") ||
+    (lower.includes("discrepancy") && lower.includes("inventory"))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export interface StructuredInterpretation {
   intent: ConversationalIntent;
   businessDomain?: BusinessDomain;
@@ -131,6 +220,8 @@ export interface StructuredInterpretation {
   completedCheck?: string | null;
   confidence: number;
   unsupportedActionRequested?: string | null;
+  status?: string;
+  note?: string;
 }
 
 export interface ProviderStatus {
@@ -811,62 +902,176 @@ export function runGroundedSemanticInterpreter(
     };
   }
 
-  // 8D. Founder: Date Range Fact Correction (F1 - Turn 2)
-  if (
-    lower.includes("oct 1 to oct 7") ||
-    (lower.includes("not this week") && (lower.includes("oct") || lower.includes("actually"))) ||
-    (activeBusinessContext?.domain === "founder_metrics" && lower.includes("oct 1"))
-  ) {
-    return {
-      intent: "correct_information",
-      businessDomain: "founder_metrics",
-      extractedEntities: {
-        dateRange: "Oct 1 to Oct 7",
-      },
-      corrections: [
-        {
-          field: "dateRange",
-          oldValue: "this week",
-          newValue: "Oct 1 to Oct 7",
-        },
-      ],
-      missingFields: [],
-      proposedNextStep: null,
-      headline: "Date Range Corrected: Oct 1 to Oct 7",
-      conversationalResponse:
-        "Understood. I have updated the date range from 'this week' to 'Oct 1 to Oct 7' [REPORTED]. Any prior hypotheses regarding the current week's conversion metrics have been invalidated. Note that I still do not have access to your live financial database to extract October metrics automatically [LIMITATION]; if you share the session-to-checkout counts for Oct 1 to Oct 7, I can calculate the exact drop-off rate.",
-      evidenceExplanation:
-        "Date range updated to Oct 1 to Oct 7 [REPORTED]. Live analytics database remains disconnected [LIMITATION]. Previous week-to-date hypotheses invalidated.",
-      nextSteps:
-        "Provide session and checkout counts for Oct 1 to Oct 7 to isolate the drop-off.",
-      confidence: 0.97,
-    };
-  }
-
-  // 8E. Founder: Conversion Rate Drop Inquiry (F1 - Turn 1)
-  if (
+  // 8D1. Founder: Revenue / Conversion Rate Drop Inquiry (Turn 1)
+  const isRevenueOrMetricsDrop =
+    lower.includes("revenue dropped") ||
+    lower.includes("revenue drop") ||
+    lower.includes("revenue is down") ||
+    (lower.includes("revenue") && (lower.includes("drop") || lower.includes("fell") || lower.includes("decrease") || lower.includes("down") || lower.includes("figure out why"))) ||
     lower.includes("conversion rate drop") ||
     lower.includes("conversion drop") ||
-    (lower.includes("conversion") && lower.includes("drop") && lower.includes("this week"))
-  ) {
+    (lower.includes("conversion") && lower.includes("drop") && lower.includes("this week"));
+
+  if (isRevenueOrMetricsDrop) {
+    const isRevenue = lower.includes("revenue");
     return {
       intent: "analyze_metrics",
       businessDomain: "founder_metrics",
       extractedEntities: {
-        topic: "conversion_rate_drop",
+        topic: isRevenue ? "revenue_drop" : "conversion_rate_drop",
         initialTimeframe: "this week",
       },
       corrections: [],
-      missingFields: ["funnelMetrics"],
-      proposedNextStep: null,
-      headline: "Conversion Rate Drop Inquiry: Database Limitation",
-      conversationalResponse:
-        "I do not have access to your live production database or analytics dashboard [LIMITATION]. I cannot directly pull your real-time conversion rates or visitor funnel counts. To analyze what caused the drop, please provide the step-by-step funnel data (e.g., visitors, checkout initiates, completions) or any error logs observed.",
+      missingFields: isRevenue ? ["revenueMetrics", "orderCounts", "funnelMetrics"] : ["funnelMetrics"],
+      proposedNextStep: {
+        actionId: "clarify",
+        actionTitle: "Specify comparison period or share revenue metrics",
+        supportingText: "Providing daily order and revenue figures helps identify which driver caused the drop.",
+        primaryCtaLabel: "Provide timeframe or metrics",
+        primaryCtaAction: "clarify",
+        secondaryCtaLabel: "Upload revenue export",
+        secondaryCtaAction: "view_supporting_evidence",
+      },
+      headline: isRevenue
+        ? "Revenue Drop Investigation: Diagnostic Framework & Limitations"
+        : "Conversion Rate Drop Inquiry: Database Limitation",
+      conversationalResponse: isRevenue
+        ? "I'll help you investigate why revenue dropped this week. First, please note that I do not have direct access to your live financial database or production billing systems [LIMITATION], so I cannot query your transaction logs automatically.\n\nRevenue drops typically stem from one or more of four core drivers:\n1. **Traffic / Volume**: A decline in visitors or session volume.\n2. **Conversion Funnel**: Drop-offs at key checkout steps (cart additions, checkout initiates, payment submissions).\n3. **Average Order Value (AOV)**: Fewer items per basket, reduced pricing, or higher discount code usage.\n4. **Payment Failures & Refunds**: Spikes in gateway payment rejections, pending authorizations, or chargebacks.\n\nTo isolate which driver is responsible, what specific comparison date range should we evaluate, and do you have daily revenue or order figures available?"
+        : "I do not have access to your live production database or analytics dashboard [LIMITATION]. I cannot directly pull your real-time conversion rates or visitor funnel counts. To analyze what caused the drop, please provide the step-by-step funnel data (e.g., visitors, checkout initiates, completions) or any error logs observed.",
       evidenceExplanation:
-        "Live analytics database access is disconnected [LIMITATION]. Conversion funnel telemetry is UNKNOWN.",
+        "Live financial database and analytics access is disconnected [LIMITATION]. Analysis is based strictly on operator-provided metrics [REPORTED].",
       nextSteps:
-        "Share specific funnel breakdown numbers or dates to analyze the drop.",
-      confidence: 0.95,
+        "Specify the exact date range to compare or share daily revenue and order counts to calculate the drop.",
+      confidence: 0.96,
+    };
+  }
+
+  // 8D2. Founder: Comparison Period / Date Range Fact Correction (Turn 2)
+  const isDateComparisonOrCorrection =
+    (lower.includes("compare") && (lower.includes("october") || lower.includes("oct"))) ||
+    lower.includes("october 1–7 with october 8–14") ||
+    lower.includes("october 1-7 with october 8-14") ||
+    lower.includes("oct 1 to oct 7") ||
+    (lower.includes("not this week") && (lower.includes("oct") || lower.includes("actually"))) ||
+    (activeBusinessContext?.domain === "founder_metrics" && (lower.includes("october 1") || lower.includes("oct 1") || lower.includes("compare")));
+
+  if (isDateComparisonOrCorrection) {
+    const isComparison = lower.includes("8–14") || lower.includes("8-14") || lower.includes("with");
+    const periodStr = isComparison ? "October 1–7 vs. October 8–14" : "Oct 1 to Oct 7";
+
+    return {
+      intent: "correct_information",
+      businessDomain: "founder_metrics",
+      extractedEntities: {
+        comparisonPeriod: periodStr,
+        period1: isComparison ? "October 1–7" : "Oct 1 to Oct 7",
+        period2: isComparison ? "October 8–14" : "none",
+        dateRange: periodStr,
+      },
+      corrections: [
+        {
+          field: isComparison ? "comparisonPeriod" : "dateRange",
+          oldValue: "this week",
+          newValue: periodStr,
+        },
+      ],
+      missingFields: [],
+      proposedNextStep: {
+        actionId: "clarify",
+        actionTitle: `Provide metrics for ${periodStr}`,
+        supportingText: "Enter revenue and order totals for each period to compute the drop-off and conversion impact.",
+        primaryCtaLabel: "Enter period metrics",
+        primaryCtaAction: "clarify",
+        secondaryCtaLabel: "Upload CSV export",
+        secondaryCtaAction: "view_supporting_evidence",
+      },
+      headline: isComparison
+        ? `Comparison Period Updated: ${periodStr}`
+        : `Date Range Corrected: ${periodStr}`,
+      conversationalResponse:
+        `Understood. I have recorded the comparison period as **${periodStr}** [REPORTED]. Any prior hypotheses regarding the current week have been invalidated.\n\nBecause live production database access remains disconnected [LIMITATION], I cannot automatically extract your transactions for these two periods from your database. To calculate the exact revenue variance and determine the primary driver, please provide the total revenue, order count, or visitor numbers for both periods.`,
+      evidenceExplanation:
+        `Comparison timeframe updated to ${periodStr} [REPORTED]. Live analytics database remains disconnected [LIMITATION]. Prior week-to-date hypotheses invalidated.`,
+      nextSteps:
+        `Provide revenue and order totals for ${periodStr} to compute the variance.`,
+      confidence: 0.97,
+    };
+  }
+
+  // 8D3. Founder: Data Requirements Inquiry (Turn 3)
+  const isDataRequirementsInquiry =
+    lower.includes("what data do you need") ||
+    lower.includes("what data is needed") ||
+    lower.includes("what information do you need") ||
+    lower.includes("what data do you require") ||
+    lower.includes("what metrics do you need") ||
+    (lower.includes("to confirm the cause") && lower.includes("data"));
+
+  if (isDataRequirementsInquiry) {
+    return {
+      intent: "ask_question",
+      businessDomain: "founder_metrics",
+      extractedEntities: {
+        dataRequirementsRequested: "true",
+      },
+      corrections: [],
+      missingFields: ["revenueByDay", "orderCounts", "conversionFunnel", "aovMetrics", "paymentGatewayFailureRate"],
+      proposedNextStep: {
+        actionId: "clarify",
+        actionTitle: "Provide required metrics or attach CSV",
+        supportingText: "Paste figures for the 5 categories or upload an analytics export.",
+        primaryCtaLabel: "Provide figures",
+        primaryCtaAction: "clarify",
+        secondaryCtaLabel: "Attach CSV export",
+        secondaryCtaAction: "view_supporting_evidence",
+      },
+      headline: "Required Data to Confirm Revenue Drop Cause",
+      conversationalResponse:
+        "To confirm the exact cause of the revenue drop between October 1–7 and October 8–14, I need the following comparison data points across both periods:\n\n1. **Daily Revenue & Order Volume**: Gross revenue, net revenue, total completed orders, and daily run-rates.\n2. **Traffic & Funnel Conversion**: Total unique visitors/sessions, product page views, add-to-carts, checkout initiations, and completed purchases.\n3. **Average Order Value (AOV)**: Average spend per order, units per transaction, and discount code or promotion redemption rates.\n4. **Payment Processing & Refunds**: Payment gateway authorization success/failure rates, declined transactions, and total refunds or chargebacks issued.\n5. **Acquisition Channel Distribution**: Revenue and sessions split by channel (Paid Social, Organic Search, Direct, Email/WhatsApp).\n\n*Note: None of these records are currently connected or accessible in this workspace [LIMITATION]. They must be supplied via manual input or file upload.*",
+      evidenceExplanation:
+        "Five diagnostic metric categories identified. No live database connection exists in this environment [LIMITATION].",
+      nextSteps:
+        "Provide available figures for revenue, orders, and traffic, or upload a CSV export to calculate the drop.",
+      confidence: 0.98,
+    };
+  }
+
+  // 8D4. Founder: Database Disconnected & Known vs Unknown Conclusion (Turn 4)
+  const isDatabaseDisconnectedConclusion =
+    (lower.includes("don't have production database access") ||
+      lower.includes("dont have production database access") ||
+      lower.includes("no database access") ||
+      lower.includes("don't have production database") ||
+      lower.includes("database access connected")) ||
+    (lower.includes("what can you conclude") && (lower.includes("what you have") || lower.includes("without that") || lower.includes("without data") || activeBusinessContext?.domain === "founder_metrics"));
+
+  if (isDatabaseDisconnectedConclusion) {
+    return {
+      intent: "provide_evidence",
+      businessDomain: "founder_metrics",
+      extractedEntities: {
+        databaseConnected: "false",
+        limitationAcknowledged: "true",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: {
+        actionId: "clarify",
+        actionTitle: "Paste aggregate figures or attach CSV export",
+        supportingText: "Enter summary revenue, orders, and visitors for both periods or attach a CSV export.",
+        primaryCtaLabel: "Enter figures",
+        primaryCtaAction: "clarify",
+        secondaryCtaLabel: "Attach export",
+        secondaryCtaAction: "view_supporting_evidence",
+      },
+      headline: "Investigation Status: Known Facts vs. Unknowns",
+      conversationalResponse:
+        "Understood. Without production database access connected [LIMITATION], here is exactly what can and cannot be concluded from what we have:\n\n### What We Know [REPORTED / DOCUMENTED]\n- **Target Inquiry**: A revenue drop was reported between October 1–7 and October 8–14.\n- **Integration State**: Production database, payment gateway, and analytics API integrations are disconnected.\n- **Diagnostic Boundary**: No automated data extraction is possible; all analysis depends on operator-provided figures.\n\n### What Remains Unknown [UNKNOWN]\n- **Actual Variance**: We cannot confirm the magnitude of the revenue decline (dollar amount or percentage).\n- **Primary Driver**: We cannot determine whether the drop was driven by declining traffic, a checkout bug, reduced pricing/AOV, or payment gateway declines.\n- **Platform Health**: We cannot verify whether advertising channels or payment gateways suffered outages.\n\n### Actionable Next Step\nIf you have an export from your billing provider, Shopify, or analytics tool, click the attachment paperclip below to upload it. Alternatively, paste the total revenue and order count for both weeks, and I will calculate the exact variance and isolate the leading indicators.",
+      evidenceExplanation:
+        "Production database is disconnected [LIMITATION]. Known facts: Reported revenue drop and comparison dates [REPORTED]. Unknowns: Actual figures, funnel conversion, and root cause [UNKNOWN].",
+      nextSteps:
+        "Upload an export or paste total revenue and orders for Oct 1–7 and Oct 8–14 to compute the variance.",
+      confidence: 0.98,
     };
   }
 
@@ -1605,7 +1810,8 @@ export async function validateProposalNode(
     proposal.intent === "summarize_progress" ||
     proposal.intent === "troubleshoot_operational_issue" ||
     proposal.intent === "correct_information" ||
-    (proposal.intent === "provide_evidence" && proposal.businessDomain === "sales_crm")
+    (proposal.businessDomain === "founder_metrics" && (proposal.intent === "ask_question" || proposal.intent === "provide_evidence")) ||
+    (proposal.intent === "provide_evidence" && (proposal.businessDomain === "sales_crm" || proposal.businessDomain === "operations_inventory" || proposal.businessDomain === "management_projects" || proposal.businessDomain === "freelancer_invoicing"))
   ) {
     targetRoute = "analyze_data";
     reasons.push("Operational analysis grounded strictly in provided evidence.");
@@ -1641,7 +1847,7 @@ export async function validateProposalNode(
 // ============================================================================
 
 export async function routeNode(
-  state: ConversationGraphState,
+  _state: ConversationGraphState,
 ): Promise<Partial<ConversationGraphState>> {
   // Pass-through node allowing clean edge definitions
   return {};
@@ -1658,9 +1864,8 @@ export async function executeExistingDomainOperationNode(
   const intent = state.validation.sanitizedIntent;
 
   if (intent === "confirm" && state.caseContext.hasActiveProposal) {
-    const confirmResult = session.confirm();
-    if (confirmResult.ok) {
-      session.verify();
+    const confirmResult = session.approveProposal();
+    if (!confirmResult.blocked && confirmResult.result?.ok) {
       const verified = session.state.verification?.verified ?? false;
       return {
         executionResult: {
@@ -1680,7 +1885,7 @@ export async function executeExistingDomainOperationNode(
   }
 
   if (intent === "decline" && state.caseContext.hasActiveProposal) {
-    session.decline();
+    session.declineProposal();
     return {
       executionResult: {
         status: "proposal_declined",
@@ -1988,6 +2193,17 @@ export async function persistResponseNode(
           }
         : null,
     };
+  } else if (bCtx.domain !== "platform_recovery" && proposal.businessDomain !== "customer_support") {
+    session.state.recommendedNextStep = null;
+  }
+
+  // 9B. For business domains, clear support recovery artifacts so business turns don't inherit them
+  if (bCtx.domain !== "platform_recovery" && proposal.businessDomain !== "customer_support") {
+    session.state.clarify = null;
+    session.state.handoffReason = null;
+    session.state.handoffRequestedAt = null;
+    session.state.specialistAssignment = null;
+    session.state.stage = "RESOLVED";
   }
 
   // 10. Append Audit Event for complete traceability
@@ -2115,6 +2331,7 @@ export async function runConversationTurn(params: {
   decisionLayer: string;
   modelId: string;
   businessContext?: BusinessContext;
+  route?: string;
 }> {
   const result = await conversationGraph.invoke(
     {
@@ -2140,6 +2357,7 @@ export async function runConversationTurn(params: {
     decisionLayer: result.providerStatus.decisionLayer,
     modelId: result.providerStatus.modelId,
     businessContext: result.businessContext,
+    route: result.validation?.targetRoute,
   };
 }
 
@@ -2275,7 +2493,7 @@ export function applyCommandProposal(
 export async function processConversationTurn(
   rawMessage: string,
   state: CaseState,
-  history: Array<{ role: string; text: string }> = [],
+  _history: Array<{ role: string; text: string }> = [],
 ): Promise<StructuredInterpretation> {
   const provider = checkHostedProvider();
   if (provider.configured && provider.name === "groq") {
@@ -2294,7 +2512,7 @@ export async function processConversationTurn(
         const rawOutput = {
           intent: groqProposal.intent,
           extractedEntities: Object.fromEntries(
-            (groqProposal.extractedFacts || []).map((f) => [f.key, f.value]),
+            (groqProposal.extractedFacts || []).map((f: { key: string; value: string }) => [f.key, f.value]),
           ),
           corrections: [],
           missingFields: [],

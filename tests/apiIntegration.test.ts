@@ -840,6 +840,93 @@ describe("Cheerio Resolve — UI API Integration Suite", () => {
     const uniqueAssistantTexts = new Set(assistantTexts);
     expect(uniqueAssistantTexts.size).toBe(4);
   });
+
+  // 26. Founder business analytics 4-turn journey (Zero support triage leakage)
+  it("executes 4-turn founder revenue-drop conversation through HTTP API without escalating or leaking support triage UI", async () => {
+    // Turn 1: Initial business request
+    const res1 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Our revenue dropped this week. Help me figure out why.",
+      })
+    );
+    expect(res1.status).toBe(200);
+    const data1 = await res1.json();
+    const sessionId = data1.sessionId;
+    expect(sessionId).toBeDefined();
+    expect(data1.category).toBe("Business Analytics");
+    expect(data1.statusBadge).toBe("Analysis active");
+    expect(data1.stage).toBe("RESOLVED");
+    expect(data1.diagnosisSummary).toBeNull();
+    expect(data1.specialistAssignment).toBeNull();
+    expect(data1.handoffReason).toBeNull();
+    expect(data1.customerExplanation.whatIsWrong).toContain("LIMITATION");
+    expect(data1.customerExplanation.whatIsWrong).toContain("Traffic / Volume");
+    expect(data1.customerExplanation.whatIsWrong).toContain("Conversion Funnel");
+    expect(data1.customerExplanation.whatIsWrong).toContain("Average Order Value");
+    expect(data1.customerExplanation.whatIsWrong).toContain("Payment Failures & Refunds");
+    expect(data1.messages).toHaveLength(2);
+
+    // Turn 2: Fact update & comparison dates
+    const res2 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "Compare October 1–7 with October 8–14.",
+      })
+    );
+    expect(res2.status).toBe(200);
+    const data2 = await res2.json();
+    expect(data2.sessionId).toBe(sessionId);
+    expect(data2.category).toBe("Business Analytics");
+    expect(data2.statusBadge).toBe("Analysis active");
+    expect(data2.stage).toBe("RESOLVED");
+    expect(data2.diagnosisSummary).toBeNull();
+    expect(data2.specialistAssignment).toBeNull();
+    expect(data2.customerExplanation.whatIsWrong).toContain("October 1–7");
+    expect(data2.customerExplanation.whatIsWrong).toContain("October 8–14");
+    expect(data2.customerExplanation.whatIsWrong).toContain("invalidated");
+    expect(data2.messages).toHaveLength(4);
+
+    // Turn 3: Query required data points
+    const res3 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "What data do you need to confirm the cause?",
+      })
+    );
+    expect(res3.status).toBe(200);
+    const data3 = await res3.json();
+    expect(data3.sessionId).toBe(sessionId);
+    expect(data3.category).toBe("Business Analytics");
+    expect(data3.statusBadge).toBe("Analysis active");
+    expect(data3.stage).toBe("RESOLVED");
+    expect(data3.diagnosisSummary).toBeNull();
+    expect(data3.specialistAssignment).toBeNull();
+    expect(data3.customerExplanation.whatIsWrong).toContain("Daily Revenue & Order Volume");
+    expect(data3.customerExplanation.whatIsWrong).toContain("Traffic & Funnel Conversion");
+    expect(data3.customerExplanation.whatIsWrong).toContain("Average Order Value");
+    expect(data3.messages).toHaveLength(6);
+
+    // Turn 4: Disclosed database limitation and known vs unknown conclusion
+    const res4 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "We don't have production database access connected yet. What can you conclude from what you have?",
+      })
+    );
+    expect(res4.status).toBe(200);
+    const data4 = await res4.json();
+    expect(data4.sessionId).toBe(sessionId);
+    expect(data4.category).toBe("Business Analytics");
+    expect(data4.statusBadge).toBe("Analysis active");
+    expect(data4.stage).toBe("RESOLVED");
+    expect(data4.diagnosisSummary).toBeNull();
+    expect(data4.specialistAssignment).toBeNull();
+    expect(data4.handoffReason).toBeNull();
+    expect(data4.customerExplanation.whatIsWrong).toContain("What We Know [REPORTED / DOCUMENTED]");
+    expect(data4.customerExplanation.whatIsWrong).toContain("What Remains Unknown [UNKNOWN]");
+    expect(data4.customerExplanation.whatIsWrong).toContain("LIMITATION");
+    expect(data4.messages).toHaveLength(8);
+  });
 });
 
 

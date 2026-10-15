@@ -19,6 +19,7 @@ import { assessRecoveryUncertainty } from "../../../../src/domain/uncertainty";
 import { defaultPlaybookRegistry } from "../../../../src/domain/playbookRegistry";
 import type { SessionSummary, ResolveResponse } from "../apiTypes";
 import { repositories, type StoredCase } from "./persistence";
+import { isBusinessRequest } from "../../../../src/domain/conversationGraph";
 
 export interface ActiveSessionRecord {
   workspaceId: string;
@@ -122,7 +123,9 @@ export function listSessions(workspaceId: string): SessionSummary[] {
     const record = cached?.workspaceId === workspaceId ? cached : hydrate(stored);
     const s = record.session.state;
     let statusBadge = "Diagnosing";
-    if (s.stage === "PENDING" && s.verification?.verified) {
+    if (s.businessContext && s.businessContext.domain !== "platform_recovery" && s.businessContext.domain !== "customer_support") {
+      statusBadge = "Analysis active";
+    } else if (s.stage === "PENDING" && s.verification?.verified) {
       statusBadge = "Verified (Pending Review)";
     } else if (s.stage === "HANDOFF") {
       statusBadge = "Human Escalation";
@@ -241,40 +244,82 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     .map((e) => `[${e.eventType}] ${e.outcome}`)
     .join("\n");
 
+  const isBusinessDomain = Boolean(
+    (s.businessContext &&
+      s.businessContext.domain !== "platform_recovery" &&
+      s.businessContext.domain !== "customer_support") ||
+    isBusinessRequest(record.originalMessage)
+  );
+
+  const businessCategoryMap: Record<string, string> = {
+    founder_metrics: "Business Analytics",
+    sales_crm: "Sales Outreach",
+    management_projects: "Project Management",
+    freelancer_invoicing: "Invoicing & Billing",
+    operations_inventory: "Operations & Inventory",
+  };
+
   // Format inspected sources
-  const sources = [
-    "mock_store_fixtures",
-    ...(s.templateSnapshot ? [`template:${s.templateSnapshot.id}`] : []),
-    s.diagnosis?.playbookId ? `playbook:${s.diagnosis.playbookId}` : "deterministic_rules_1.0",
-    s.triage?.issueType ? `issue:${s.triage.issueType}` : "general_triage",
-  ];
+  const sources = isBusinessDomain
+    ? [
+        "conversational_context",
+        `domain:${s.businessContext?.domain || "founder_metrics"}`,
+        ...(s.businessContext?.unsupportedCapabilitiesAttempted?.length
+          ? [`disconnected_sources:${s.businessContext.unsupportedCapabilitiesAttempted.join(",")}`]
+          : []),
+      ]
+    : [
+        "mock_store_fixtures",
+        ...(s.templateSnapshot ? [`template:${s.templateSnapshot.id}`] : []),
+        s.diagnosis?.playbookId ? `playbook:${s.diagnosis.playbookId}` : "deterministic_rules_1.0",
+        s.triage?.issueType ? `issue:${s.triage.issueType}` : "general_triage",
+      ];
 
   // Reasoning steps trace
-  const reasoningSteps = [
-    `1. Triaged symptom: "${s.triage?.issueType || "unknown"}" (urgency=${s.triage?.urgency || "medium"}).`,
-    s.templateSnapshot
-      ? `2. Inspected fresh mock state for ${s.templateSnapshot.id} (status=${s.templateSnapshot.status}, reasonCode=${s.templateSnapshot.reasonCode ?? "none"}).`
-      : "2. Checked mock state store (no template record attached).",
-    s.stage === "CLARIFY_ONCE"
-      ? `3. Detected missing information — asked one focused clarifying question.`
-      : s.diagnosis
-      ? `3. Evaluated recovery playbook: ${s.diagnosis.playbookId} — evaluated deterministic rules.`
-      : `3. Evaluated safety guardrails and policy constraints.`,
-    s.proposal
-      ? `4. Formulated exact before/after change: ${s.proposal.description} (Approval required).`
-      : s.stage === "HANDOFF"
-      ? `4. Escalated to human support: ${s.handoffReason || "Policy constraint"}.`
-      : `4. Triage concluded with route: ${s.triage?.route}.`,
-  ];
+  const reasoningSteps = isBusinessDomain
+    ? [
+        `1. Interpreted operational context for domain: "${s.businessContext?.domain || "founder_metrics"}".`,
+        s.businessContext?.entities && Object.keys(s.businessContext.entities).length > 0
+          ? `2. Extracted operational entities: ${Object.entries(s.businessContext.entities).map(([k, v]) => `${k}=${v}`).join(", ")}.`
+          : "2. Evaluated conversational context and historical parameters.",
+        s.businessContext?.invalidatedConclusions && s.businessContext.invalidatedConclusions.length > 0
+          ? `3. Handled correction / context update: invalidated prior conclusions.`
+          : "3. Checked system capability boundaries and connected data sources.",
+        s.recommendedNextStep
+          ? `4. Prepared next step: ${s.recommendedNextStep.actionTitle}.`
+          : "4. Synthesized operational findings and guidance.",
+      ]
+    : [
+        `1. Triaged symptom: "${s.triage?.issueType || "unknown"}" (urgency=${s.triage?.urgency || "medium"}).`,
+        s.templateSnapshot
+          ? `2. Inspected fresh mock state for ${s.templateSnapshot.id} (status=${s.templateSnapshot.status}, reasonCode=${s.templateSnapshot.reasonCode ?? "none"}).`
+          : "2. Checked mock state store (no template record attached).",
+        s.stage === "CLARIFY_ONCE"
+          ? `3. Detected missing information — asked one focused clarifying question.`
+          : s.diagnosis
+          ? `3. Evaluated recovery playbook: ${s.diagnosis.playbookId} — evaluated deterministic rules.`
+          : `3. Evaluated safety guardrails and policy constraints.`,
+        s.proposal
+          ? `4. Formulated exact before/after change: ${s.proposal.description} (Approval required).`
+          : s.stage === "HANDOFF"
+          ? `4. Escalated to human support: ${s.handoffReason || "Policy constraint"}.`
+          : `4. Triage concluded with route: ${s.triage?.route}.`,
+      ];
 
   // Execution verification items
-  const executionVerification: [string, string][] = [
-    ["Triage Route", s.triage?.route || "rules_playbook"],
-    ["Mock State", s.templateSnapshot ? `Read (${s.templateSnapshot.status})` : "Verified context (No template attached)"],
-    ["Safety Policy", s.triage?.needsHuman ? "Human Required" : s.proposal ? "Approval Required" : "Guarded Pass"],
-  ];
+  const executionVerification: [string, string][] = isBusinessDomain
+    ? [
+        ["Domain", s.businessContext?.domain ? businessCategoryMap[s.businessContext.domain] || s.businessContext.domain : "Business Analytics"],
+        ["Data Source", "User-Reported / In-Memory (No Production DB)"],
+        ["Capability Boundary", "Analysis & Advisory (Safe / Read-Only)"],
+      ]
+    : [
+        ["Triage Route", s.triage?.route || "rules_playbook"],
+        ["Mock State", s.templateSnapshot ? `Read (${s.templateSnapshot.status})` : "Verified context (No template attached)"],
+        ["Safety Policy", s.triage?.needsHuman ? "Human Required" : s.proposal ? "Approval Required" : "Guarded Pass"],
+      ];
 
-  if (s.verification) {
+  if (!isBusinessDomain && s.verification) {
     executionVerification.push([
       "Verification",
       s.verification.verified ? "Verified match (PENDING)" : "Failed fresh read",
@@ -282,7 +327,9 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
   }
 
   let statusBadge = "Diagnosis verified";
-  if (s.stage === "CLARIFY_ONCE") {
+  if (isBusinessDomain) {
+    statusBadge = "Analysis active";
+  } else if (s.stage === "CLARIFY_ONCE") {
     statusBadge = s.triage?.issueType === "template_rejection" ? "Needs details" : "Clarification needed";
   } else if (s.stage === "HANDOFF") {
     statusBadge = s.specialistAssignment ? "Specialist Assigned" : "Escalated to human support";
@@ -299,7 +346,7 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     s.triage?.issueType === "template_rejection" && !s.proposal;
 
   const diagnosisSummary =
-    s.stage === "CLARIFY_ONCE" || isTemplateRejectionWithoutProposal
+    isBusinessDomain || s.stage === "CLARIFY_ONCE" || isTemplateRejectionWithoutProposal
       ? null
       : s.diagnosis?.summary || (playbook && playbook.issueType === s.triage?.issueType ? playbook.diagnosisSummary : null) || null;
 
@@ -329,7 +376,7 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
           }
         : null,
     };
-  } else if (s.proposal) {
+  } else if (!isBusinessDomain && s.proposal) {
     recommendedNextStep = {
       actionTitle: s.proposal.description,
       supportingText: "Operator authorization is required prior to applying simulated resubmission (G1).",
@@ -342,7 +389,7 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
         action: "edit_proposal",
       },
     };
-  } else if (s.stage === "HANDOFF") {
+  } else if (!isBusinessDomain && s.stage === "HANDOFF") {
     recommendedNextStep = {
       actionTitle: "Escalate to human support specialist",
       supportingText: s.handoffReason || "Policy guardrails require human specialist review with complete audit dossier.",
@@ -353,6 +400,7 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
       secondaryCta: null,
     };
   } else if (
+    !isBusinessDomain &&
     playbook?.recommendedAction &&
     playbook.issueType === s.triage?.issueType &&
     s.stage !== "CLARIFY_ONCE" &&
@@ -402,7 +450,9 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     latencyMs,
     auditTrail,
     title: customerExplanation.headline,
-    category: s.triage?.issueType === "template_rejection"
+    category: isBusinessDomain
+      ? (s.businessContext?.domain && businessCategoryMap[s.businessContext.domain]) || "Business Analytics"
+      : s.triage?.issueType === "template_rejection"
       ? "Template support"
       : s.templateSnapshot?.category
       ? `WhatsApp Template (${s.templateSnapshot.category})`
@@ -414,11 +464,15 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
       ? "Security & Account Access"
       : "Cheerio Support Recovery",
     statusBadge,
-    guardrails: s.triage?.needsHuman ? "Human-Led Escalation" : "Guarded",
-    contextEvaluated: s.templateSnapshot
+    guardrails: isBusinessDomain ? "Guarded Copilot" : s.triage?.needsHuman ? "Human-Led Escalation" : "Guarded",
+    contextEvaluated: isBusinessDomain
+      ? `Operational context (${s.businessContext?.domain || "founder_metrics"})`
+      : s.templateSnapshot
       ? `Mock state (${s.templateSnapshot.id})`
       : `Request context (${s.triage?.issueType ?? "general"})`,
-    verificationStatus: s.verification?.verified
+    verificationStatus: isBusinessDomain
+      ? "Analysis active"
+      : s.verification?.verified
       ? "Verified read (MOCK)"
       : s.stage === "HANDOFF"
       ? "Handoff dossier"
@@ -427,6 +481,8 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
       : "Inspection complete",
     diagnosisSummary,
     recommendedNextStep,
+    completedChecks: s.completedChecks || [],
+    businessContext: s.businessContext,
     messages: record.messages,
   };
 }
