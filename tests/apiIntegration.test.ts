@@ -655,6 +655,191 @@ describe("Cheerio Resolve — UI API Integration Suite", () => {
     expect(data.clarificationQuestion).toBeDefined();
     expect(data.clarificationQuestion).toContain("Could you share the template name (or ID)");
   });
+
+  // 23. Regression 6: Template rejection without attached template or reason code never leaks message delivery diagnosis
+  it("REGRESSION 6: template rejection inquiry never returns delivery diagnosis or check_message_status next step", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Why is my WhatsApp template being rejected?",
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.triage.issueType).toBe("template_rejection");
+    expect(data.stage).toBe("CLARIFY_ONCE");
+    expect(data.category).toBe("Template support");
+    expect(data.statusBadge).toBe("Needs details");
+    expect(data.title).toBe("WhatsApp template rejection");
+    expect(data.customerExplanation.whatIsWrong).toBe(
+      "Your WhatsApp template was rejected, but I don't yet have the rejection reason needed to recommend the right fix."
+    );
+    expect(data.customerExplanation.evidenceExplanation).toContain(
+      "I haven't verified the rejection reason yet, so I won't recommend a delivery-status check."
+    );
+    expect(data.diagnosisSummary).toBeNull();
+    expect(data.recommendedNextStep).toBeNull();
+  });
+
+  // 24. Multi-turn conversation preserves full transcript continuity through clarification and proposal
+  it("maintains conversation continuity across multiple turns without losing prior messages", async () => {
+    // Turn 1: Initial query triggering clarification
+    const res1 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Why is my WhatsApp template being rejected?",
+      })
+    );
+    expect(res1.status).toBe(200);
+    const data1 = await res1.json();
+    const sessionId = data1.sessionId;
+    expect(data1.stage).toBe("CLARIFY_ONCE");
+    expect(data1.messages).toHaveLength(2);
+    expect(data1.messages[0].role).toBe("user");
+    expect(data1.messages[0].text).toBe("Why is my WhatsApp template being rejected?");
+    expect(data1.messages[1].role).toBe("assistant");
+    expect(data1.messages[1].text).toContain("WhatsApp template was rejected");
+
+    // Turn 2: Follow-up providing template ID and rejection reason
+    const res2 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "The template ID is TPL-1001 and rejection reason is promotional content",
+      })
+    );
+    expect(res2.status).toBe(200);
+    const data2 = await res2.json();
+    expect(data2.sessionId).toBe(sessionId);
+    expect(data2.stage).toBe("PROPOSE");
+    expect(data2.proposal).not.toBeNull();
+    expect(data2.proposal.changes[0].after).toBe("MARKETING");
+    expect(data2.messages).toHaveLength(4);
+    expect(data2.messages[0].text).toBe("Why is my WhatsApp template being rejected?");
+    expect(data2.messages[1].role).toBe("assistant");
+    expect(data2.messages[2].role).toBe("user");
+    expect(data2.messages[2].text).toBe("The template ID is TPL-1001 and rejection reason is promotional content");
+    expect(data2.messages[3].role).toBe("assistant");
+    expect(data2.messages[3].text).toContain("promotional wording");
+
+    // Turn 3: Follow-up asking for a simpler explanation
+    const res3 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "What does category mismatch actually mean?",
+      })
+    );
+    expect(res3.status).toBe(200);
+    const data3 = await res3.json();
+    expect(data3.sessionId).toBe(sessionId);
+    expect(data3.messages).toHaveLength(6);
+    expect(data3.messages[4].role).toBe("user");
+    expect(data3.messages[4].text).toBe("What does category mismatch actually mean?");
+    expect(data3.messages[5].role).toBe("assistant");
+    expect(data3.messages[5].text).toContain("WhatsApp rejected this template because its wording looks like a promotion");
+
+    // Turn 4: Approve action
+    const actionRes = await actionPost(
+      makeJsonRequest("http://localhost:3000/api/action", {
+        sessionId,
+        action: "approve",
+        idempotencyKey: `TEST-KEY-MULTITURN-${Date.now()}`,
+      })
+    );
+    expect(actionRes.status).toBe(200);
+    const actionData = await actionRes.json();
+    expect(actionData.isVerified).toBe(true);
+    expect(actionData.messages).toHaveLength(7);
+    expect(actionData.messages[6].role).toBe("assistant");
+    expect(actionData.messages[6].text).toContain("Simulated resubmission applied and verified for TPL-1001");
+  });
+
+  // 25. Multi-turn follow-up intent understanding (P0 reproduction sequence)
+  it("understands follow-up intent across multi-turn conversation without repeating diagnosis or completed checks", async () => {
+    // 1. Initial message: message delivery complaint without template rejection
+    const res1 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "My WhatsApp messages show as sent, but several recipients have not received them. There is no template rejection error.",
+      })
+    );
+    expect(res1.status).toBe(200);
+    const data1 = await res1.json();
+    const sessionId = data1.sessionId;
+    expect(sessionId).toBeDefined();
+    expect(data1.triage.issueType).toBe("message_delivery");
+    expect(data1.recommendedNextStep?.primaryCta.action).toBe("check_message_status");
+    expect(data1.messages).toHaveLength(2);
+    expect(data1.messages[0].text).toContain("My WhatsApp messages show as sent");
+    expect(data1.messages[1].role).toBe("assistant");
+
+    // 2. Follow-up 1: User already performed the recommended check
+    const res2 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "I already checked the delivery status. It is still pending. Please don't ask me to repeat the same check.",
+      })
+    );
+    expect(res2.status).toBe(200);
+    const data2 = await res2.json();
+    expect(data2.sessionId).toBe(sessionId);
+    expect(data2.triage.issueType).toBe("message_delivery");
+    // Verify check is marked completed and NOT recommended again
+    expect(data2.recommendedNextStep?.primaryCta.action).not.toBe("check_message_status");
+    expect(data2.recommendedNextStep?.primaryCta.action).toBe("clarify");
+    expect(data2.recommendedNextStep?.secondaryCta?.action).toBe("human");
+    // Verify no fabricated telemetry
+    expect(data2.customerExplanation.evidenceExplanation).not.toContain("carrier handset transit is active");
+    expect(data2.customerExplanation.evidenceExplanation).toContain("[REPORTED]");
+    expect(data2.customerExplanation.nextSteps).toContain("approximately when were the affected messages sent");
+    expect(data2.messages).toHaveLength(4);
+    expect(data2.messages[2].text).toBe("I already checked the delivery status. It is still pending. Please don't ask me to repeat the same check.");
+    expect(data2.messages[3].role).toBe("assistant");
+    expect(data2.messages[3].text).toContain("confirmed that message delivery status remains pending");
+
+    // 3. Follow-up 2: "hi" greeting
+    const res3 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "hi",
+      })
+    );
+    expect(res3.status).toBe(200);
+    const data3 = await res3.json();
+    expect(data3.sessionId).toBe(sessionId);
+    expect(data3.triage.issueType).toBe("message_delivery");
+    // Verify it responds naturally and does not repeat prior diagnosis
+    expect(data3.customerExplanation.whatIsWrong).toContain("Hi! I'm here. Would you like to continue troubleshooting the pending WhatsApp deliveries?");
+    expect(data3.messages).toHaveLength(6);
+    expect(data3.messages[4].text).toBe("hi");
+    expect(data3.messages[5].text).toContain("Hi! I'm here.");
+    // Verify it does not repeat completed check
+    expect(data3.recommendedNextStep?.primaryCta.action).not.toBe("check_message_status");
+
+    // 4. Follow-up 3: "what chlk" mistyped / unclear query
+    const res4 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "what chlk",
+      })
+    );
+    expect(res4.status).toBe(200);
+    const data4 = await res4.json();
+    expect(data4.sessionId).toBe(sessionId);
+    expect(data4.triage.issueType).toBe("message_delivery");
+    // Verify it asks for clarification instead of inventing new technical evidence or repeating
+    expect(data4.customerExplanation.whatIsWrong).toContain("I didn't quite catch that. Did you mean to ask about the delivery check");
+    expect(data4.messages).toHaveLength(8);
+    expect(data4.messages[6].text).toBe("what chlk");
+    expect(data4.messages[7].text).toContain("I didn't quite catch that");
+
+    // Verify all assistant messages are distinct across the multi-turn session
+    const assistantTexts = [
+      data4.messages[1].text,
+      data4.messages[3].text,
+      data4.messages[5].text,
+      data4.messages[7].text,
+    ];
+    const uniqueAssistantTexts = new Set(assistantTexts);
+    expect(uniqueAssistantTexts.size).toBe(4);
+  });
 });
 
 

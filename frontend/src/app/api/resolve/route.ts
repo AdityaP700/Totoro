@@ -7,6 +7,7 @@ import {
 } from "../../../lib/server/sessionRegistry";
 import { getWorkspaceId } from "../../../lib/server/workspace";
 import type { ResolveRequest } from "../../../lib/apiTypes";
+import { runConversationTurn } from "../../../../../src/domain/conversationGraph";
 
 export const runtime = "nodejs";
 
@@ -35,21 +36,15 @@ export async function POST(req: Request) {
     let record = body.sessionId ? getSession(workspaceId, body.sessionId) : undefined;
 
     if (record) {
-      // Existing session found
-      if (record.session.state.stage === "CLARIFY_ONCE") {
-        // Multi-turn clarification answer
-        record.session.clarify(message);
-        record.messages.push({
-          role: "user",
-          text: message,
-          timestamp: new Date().toISOString(),
-        });
-        record.updatedAt = new Date().toISOString();
-      } else {
-        // Preserve active or terminal case; record follow-up question in conversation history
-        record.messages.push({ role: "user", text: message, timestamp: new Date().toISOString() });
-        record.updatedAt = new Date().toISOString();
-      }
+      // Multi-turn conversational follow-up handled by LangGraph.js flow
+      record.messages.push({ role: "user", text: message, timestamp: new Date().toISOString() });
+      await runConversationTurn({
+        sessionId: record.sessionId,
+        message,
+        history: record.messages,
+        session: record.session,
+      });
+      record.updatedAt = new Date().toISOString();
     } else {
       // Create new isolated session
       record = createNewSession(workspaceId, {
@@ -65,6 +60,19 @@ export async function POST(req: Request) {
     record.messages.push({ role: "assistant", text: response.customerExplanation.whatIsWrong, timestamp: new Date().toISOString() });
     persist(record);
     response = buildResolveResponse(record, latencyMs);
+
+    console.log(
+      JSON.stringify({
+        tag: "CONVERSATION_TURN",
+        sessionId: record.sessionId,
+        caseId: record.caseId,
+        threadId: record.sessionId,
+        issueCategory: record.session.state.triage?.issueType || "unknown",
+        selectedRoute: record.session.state.triage?.route || "unknown",
+        responseCaseId: response.caseId,
+        timestamp: new Date().toISOString(),
+      })
+    );
 
     return NextResponse.json(response, { status: 200 });
   } catch (err: unknown) {

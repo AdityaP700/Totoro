@@ -10,7 +10,7 @@
  *   PostgreSQL) with optimistic locking or idempotency keys across requests.
  */
 
-import { ResolveSession, detectTemplateIdFromText, type SessionDeps } from "../../../../src/domain/stateMachine";
+import { ResolveSession, detectTemplateIdFromText, deriveInteractionState, type SessionDeps } from "../../../../src/domain/stateMachine";
 import { createMockStore, type MockStore } from "../../../../src/domain/mockStore";
 import { RulesReasoningAdapter } from "../../../../src/domain/adapter";
 import { generateCustomerFacingResponse } from "../../../../src/domain/conversationalResponse";
@@ -98,12 +98,12 @@ export function getSession(workspaceOrSessionId: string, maybeSessionId?: string
   const workspaceId = maybeSessionId ? workspaceOrSessionId : undefined;
   const sessionId = maybeSessionId || workspaceOrSessionId;
   const record = registry.get(sessionId);
-  if (record && (!workspaceId || record.workspaceId === workspaceId)) {
+  if (record) {
     record.lastActive = Date.now();
     return record;
   }
-  if (!workspaceId) return undefined;
-  const stored = repositories.getCase(workspaceId, sessionId);
+  const stored = (workspaceId ? repositories.getCase(workspaceId, sessionId) : undefined)
+    || repositories.getCaseBySessionId?.(sessionId);
   if (!stored) return undefined;
   const restored = hydrate(stored);
   registry.set(sessionId, restored);
@@ -129,7 +129,7 @@ export function listSessions(workspaceId: string): SessionSummary[] {
     } else if (s.stage === "PROPOSE" || s.stage === "CONFIRM") {
       statusBadge = "Action Proposed";
     } else if (s.stage === "CLARIFY_ONCE") {
-      statusBadge = "Clarification Needed";
+      statusBadge = s.triage?.issueType === "template_rejection" ? "Needs details" : "Clarification Needed";
     }
 
     summaries.push({
@@ -199,10 +199,25 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     clarifyingQuestion: s.clarify?.question,
   });
 
+  if (s.customExplanation) {
+    if (s.customExplanation.headline) customerExplanation.headline = s.customExplanation.headline;
+    if (s.customExplanation.whatIsWrong) customerExplanation.whatIsWrong = s.customExplanation.whatIsWrong;
+    if (s.customExplanation.evidenceExplanation) customerExplanation.evidenceExplanation = s.customExplanation.evidenceExplanation;
+    if (s.customExplanation.nextSteps) customerExplanation.nextSteps = s.customExplanation.nextSteps;
+  } else if (s.stage === "CLARIFY_ONCE" && s.triage?.issueType === "template_rejection") {
+    customerExplanation.headline = "WhatsApp template rejection";
+    customerExplanation.whatIsWrong =
+      "Your WhatsApp template was rejected, but I don't yet have the rejection reason needed to recommend the right fix.";
+    customerExplanation.evidenceExplanation =
+      "Open the rejected template in WhatsApp Manager and share the rejection reason shown there. You can also provide the template name or ID if it's available. I haven't verified the rejection reason yet, so I won't recommend a delivery-status check.";
+    customerExplanation.statusLabel = "Needs details";
+  }
+
   const playbook = defaultPlaybookRegistry.findForContext({
     reasonCode: s.templateSnapshot?.reasonCode,
     issueType: s.triage!.issueType,
     templateSnapshot: s.templateSnapshot,
+    message: record.originalMessage,
   });
 
   const auditTrail = buildCaseAuditTrail({
@@ -268,25 +283,114 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
 
   let statusBadge = "Diagnosis verified";
   if (s.stage === "CLARIFY_ONCE") {
-    statusBadge = "Clarification needed";
+    statusBadge = s.triage?.issueType === "template_rejection" ? "Needs details" : "Clarification needed";
   } else if (s.stage === "HANDOFF") {
-    statusBadge = "Escalated to human support";
+    statusBadge = s.specialistAssignment ? "Specialist Assigned" : "Escalated to human support";
   } else if (s.stage === "PROPOSE" || s.stage === "CONFIRM") {
     statusBadge = "Approval required";
   } else if (s.stage === "PENDING" && s.verification?.verified) {
     statusBadge = "Verified read";
   }
 
+  const interactionState = s.interactionState || deriveInteractionState(s);
+
+  // CRITICAL: NEVER populate a delivery diagnostic next step or diagnosis summary for template_rejection or clarification
+  const isTemplateRejectionWithoutProposal =
+    s.triage?.issueType === "template_rejection" && !s.proposal;
+
+  const diagnosisSummary =
+    s.stage === "CLARIFY_ONCE" || isTemplateRejectionWithoutProposal
+      ? null
+      : s.diagnosis?.summary || (playbook && playbook.issueType === s.triage?.issueType ? playbook.diagnosisSummary : null) || null;
+
+  let recommendedNextStep: any = null;
+  if (s.recommendedNextStep !== undefined && s.recommendedNextStep !== null) {
+    const rawStep = s.recommendedNextStep as any;
+    const primaryLabel =
+      rawStep.primaryCta?.label || rawStep.primaryCtaLabel || rawStep.actionLabel || "Proceed";
+    const primaryAction =
+      rawStep.primaryCta?.action || rawStep.primaryCtaAction || rawStep.actionType || rawStep.actionId || "proceed";
+    const secondaryLabel =
+      rawStep.secondaryCta?.label || rawStep.secondaryCtaLabel || rawStep.secondaryLabel;
+    const secondaryAction =
+      rawStep.secondaryCta?.action || rawStep.secondaryCtaAction || rawStep.secondaryAction;
+
+    recommendedNextStep = {
+      actionTitle: rawStep.actionTitle || rawStep.title || "",
+      supportingText: rawStep.supportingText || rawStep.subtitle || rawStep.explanation || "",
+      primaryCta: {
+        label: primaryLabel,
+        action: primaryAction,
+      },
+      secondaryCta: secondaryLabel
+        ? {
+            label: secondaryLabel,
+            action: secondaryAction || "secondary",
+          }
+        : null,
+    };
+  } else if (s.proposal) {
+    recommendedNextStep = {
+      actionTitle: s.proposal.description,
+      supportingText: "Operator authorization is required prior to applying simulated resubmission (G1).",
+      primaryCta: {
+        label: "Approve simulated resubmission",
+        action: "approve_resubmission",
+      },
+      secondaryCta: {
+        label: "Edit proposal",
+        action: "edit_proposal",
+      },
+    };
+  } else if (s.stage === "HANDOFF") {
+    recommendedNextStep = {
+      actionTitle: "Escalate to human support specialist",
+      supportingText: s.handoffReason || "Policy guardrails require human specialist review with complete audit dossier.",
+      primaryCta: {
+        label: "Confirm human handoff",
+        action: "human",
+      },
+      secondaryCta: null,
+    };
+  } else if (
+    playbook?.recommendedAction &&
+    playbook.issueType === s.triage?.issueType &&
+    s.stage !== "CLARIFY_ONCE" &&
+    !isTemplateRejectionWithoutProposal
+  ) {
+    const isCompleted = s.completedChecks?.includes(playbook.recommendedAction.primaryCtaAction);
+    if (!isCompleted) {
+      recommendedNextStep = {
+        actionTitle: playbook.recommendedAction.title,
+        supportingText: playbook.recommendedAction.subtitle,
+        primaryCta: {
+          label: playbook.recommendedAction.primaryCtaLabel,
+          action: playbook.recommendedAction.primaryCtaAction,
+        },
+        secondaryCta: playbook.recommendedAction.secondaryCtaLabel
+          ? {
+              label: playbook.recommendedAction.secondaryCtaLabel,
+              action: playbook.recommendedAction.secondaryCtaAction || "view_supporting_evidence",
+            }
+          : null,
+      };
+    }
+  }
+
   return {
     sessionId: record.sessionId,
     caseId: record.caseId,
     stage: s.stage,
+    interactionState,
     customerExplanation,
     triage: s.triage!,
     diagnosis: s.diagnosis,
     proposal: s.proposal,
     clarificationQuestion: s.clarify?.question,
     handoffReason: s.handoffReason,
+    handoffRequestedAt: s.handoffRequestedAt || null,
+    specialistAssignment: s.specialistAssignment || null,
+    closedAt: s.closedAt || null,
     isVerified: s.verification?.verified ?? false,
     events: s.events,
     templateSnapshot: s.templateSnapshot,
@@ -298,7 +402,9 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     latencyMs,
     auditTrail,
     title: customerExplanation.headline,
-    category: s.templateSnapshot?.category
+    category: s.triage?.issueType === "template_rejection"
+      ? "Template support"
+      : s.templateSnapshot?.category
       ? `WhatsApp Template (${s.templateSnapshot.category})`
       : s.triage?.issueType === "billing_refund"
       ? "Billing & Refund Inquiry"
@@ -319,6 +425,8 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
       : s.stage === "CLARIFY_ONCE"
       ? "Clarification pending"
       : "Inspection complete",
+    diagnosisSummary,
+    recommendedNextStep,
     messages: record.messages,
   };
 }

@@ -47,7 +47,7 @@ const SECURITY: Rule = {
     i(/\b(add me as admin|admin access|admin bana|give[^\n]{0,20}admin|make me admin|teammate gave me permission)\b/),
     i(/\b(lost access|someone (changed|is using)|kisi aur ne change|account (was|has been|got) (changed|compromised|hacked)|compromis)\b/),
     i(/\b(bypass[^\n]{0,25}(verification|identity|safety|check)|skip the human check|ignore (all )?(safety|security))\b/),
-    i(/\b(ignore\s+(all\s+)?(previous\s+)?instructions?|system\s*(prompt)?\s*:\s*ignore|system prompt (override|injection|instructions?)|jailbreak|disregard\s+(all\s+)?(previous\s+)?instructions?|admin override|debug mode override)\b/),
+    i(/\b(ignore\s+(all\s+)?(previous\s+)?(instructions?|rules?|policies?)|system\s*(prompt)?\s*:\s*ignore|system prompt (override|injection|instructions?)|jailbreak|disregard\s+(all\s+)?(previous\s+)?(instructions?|rules?)|admin override|debug mode override)\b/),
     i(/\b(roleplay as|dan mode|unrestricted ai|bypass (all )?(guardrails|rules))\b/),
     i(/\b(prompt injection|override system prompt)\b/),
     i(/\b(another customer|other customer|cross[- ]tenant|someone else'?s (campaign|account|data|logs))\b/),
@@ -74,6 +74,9 @@ const HUMAN_REQUEST: Rule = {
     i(/\bneed a human\b/),
     i(/\bhuman please\b/),
     i(/\bconnect me to a human\b/),
+    i(/\bconnect me (to|with) (a )?human\b/),
+    i(/\bhuman specialist\b/),
+    i(/\b(connect|transfer) (me )?(to|with) (human )?support\b/),
     i(/\b(speak|talk) to (a |an )?(human|person|support|someone|manager|agent)\b/),
     i(/\breal person\b/),
     i(/\bnot a bot\b/),
@@ -111,7 +114,18 @@ const BILLING: Rule = {
     i(/\bbilling\b/),
     i(/\badd credits?\b/),
     i(/\bcancel my subscription\b/),
-    i(/\bpayment (failed|issue|problem|ho gaya)\b/),
+    i(/\bpayment (failed|issue|problem|ho gaya|pending|deducted|status|processed)\b/),
+    i(/\b(paid|debited|deducted)\b[^\n]{0,50}\b(order|amount|money|account|bank|fee)\b/),
+    i(/\b(order|account|bank)\b[^\n]{0,50}\b(paid|debited|deducted)\b/),
+    i(/\bmoney (was )?deducted\b/),
+    i(/\bamount (was )?deducted\b/),
+    i(/\b(bank|account) (was )?debited\b/),
+    i(/\bdebit(ed)? (from|in) (my )?(bank|account)\b/),
+    i(/\b(still )?says payment pending\b/),
+    i(/\b(order|payment)\b[^\n]{0,30}\bpending\b/),
+    i(/\bpayment pending\b/),
+    i(/\border\b[^\n]{0,30}\bpayment\b/),
+    i(/\bpaid\s+[₹$€£\d]/),
     i(/\bhow much[^\n]{0,40}(cost|charge)\b/),
     i(/\bcost estimate\b/),
     i(/\bplan price\b/),
@@ -278,6 +292,22 @@ const AMB_SPECIFIC: Rule[] = [
       rationale:
         "The affected feature is not identifiable from the message. The system asks one concise question instead of guessing the issue type.",
       missingInformation: ["which feature or flow is failing"],
+    },
+  },
+  {
+    name: "ambiguous_not_working_properly",
+    patterns: [
+      i(/\b(not working properly|working properly|kuch samajh nahi|something is wrong|not working right)\b/),
+    ],
+    hit: {
+      issueType: "ambiguous_or_missing_context",
+      urgency: "medium",
+      needsHuman: false,
+      route: "clarify_once",
+      confidence: 0.6,
+      rationale:
+        "The complaint is ambiguous ('not working properly') without identifying whether messages are rejected, failing to reach recipients, or failing to trigger.",
+      missingInformation: ["whether messages are being rejected or are failing to reach recipients"],
     },
   },
 ];
@@ -541,6 +571,14 @@ const RULES_IN_ORDER: Rule[] = [
 
 function firstMatch(message: string): { rule: Rule; hit: RuleHit } | null {
   for (const rule of RULES_IN_ORDER) {
+    if (rule.name === "template_rejection") {
+      if (
+        /\b(no|without|not an?|neither)\s+(template\s+)?(rejection|error)\b/i.test(message) ||
+        /\bno\s+rejection\s+error\b/i.test(message)
+      ) {
+        continue;
+      }
+    }
     if (rule.patterns.some((p) => p.test(message))) {
       return { rule, hit: { ...rule.hit } };
     }

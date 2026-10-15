@@ -69,7 +69,40 @@ Running log of failed commands/tests, diagnosis, attempted fixes, unresolved iss
   3. In `playbookRegistry.ts`, enforced that reason code and template snapshot matching ONLY applies when `issueType === "template_rejection"` or `!issueType`. Added dedicated non-template playbooks (`PB-DELIVERY-STATUS-CHECK`, `PB-INTEGRATION-ENDPOINT-CHECK`, `PB-WABA-REGISTRATION-CHECK`, `PB-CHATBOT-FLOW-CHECK`) with read-only diagnoses and null proposals.
   4. For unmapped template rejections, the engine transitions to `CLARIFY_ONCE` asking the user for their template ID/name rather than binding to an arbitrary fixture.
   5. In `TechnicalDetailsInspector.tsx` and `page.tsx`, removed all hardcoded fallback template IDs and statuses; unmapped entities clearly show `"None (No template entity)"` and `"NOT_APPLICABLE"`.
-  6. Added 5 regression tests in `tests/apiIntegration.test.ts`.
+### F-010 · Premature delivery diagnosis and status badge during template rejection clarification
+- Error: UI screenshots showed a template rejection inquiry ("Why is my WhatsApp template being rejected?") displaying delivery diagnostics ("Messages were sent successfully...", "Check message status") and an contradictory "Diagnosis verified" status badge while clarification was pending.
+- Diagnosis: `workspace/page.tsx` fell back to hardcoded delivery copy when API responses returned null `diagnosisSummary` and `recommendedNextStep` for unmapped templates. `sessionRegistry.ts` also matched delivery playbooks on unmapped states.
+- Fix: Suppressed `diagnosisSummary` and `recommendedNextStep` in `sessionRegistry.ts` and `page.tsx` when `triage.issueType === "template_rejection"` without a proposal, or when `stage === "CLARIFY_ONCE"`. Created a dedicated "What would help" card with inline input for rejection details and WhatsApp Manager guidance. Added REGRESSION 6 in `tests/apiIntegration.test.ts`.
+
+### F-011 · Repetitive diagnosis and re-recommending completed checks across multi-turn follow-ups
+- Error: When a user stated that they had already performed a recommended check (and delivery status was still pending), Totoro re-recommended the exact same check ("Check message status") and repeated stale assistant explanations for follow-ups like "hi" or "what chlk".
+- Diagnosis:
+  1. `handleFollowUp` in `stateMachine.ts` incremented `attemptsFailed` but did not record `check_message_status` in `completedChecks` or `userReportedEvidence`, and asserted simulated carrier transit without evidence.
+  2. For non-matching conversational follow-ups ("hi", "what chlk"), `handleFollowUp` fell through to default without updating `customExplanation`, causing `buildResolveResponse` to repeat the stale Turn 2 assistant text.
+  3. `buildResolveResponse` evaluated playbooks against `record.originalMessage` and ignored `s.completedChecks`.
+  4. `workspace/page.tsx` fell back to `check_message_status` when `recommendedNextStep` was null and the primary CTA button unconditionally invoked `handleCheckMessageStatus`.
+- Fix:
+  1. Marked `check_message_status` in `state.completedChecks` and recorded `userReportedEvidence` labeled `[REPORTED]`.
+  2. Adhered to Rule 4 by stating that carrier queue telemetry cannot be verified without provider data and asking a targeted question (dispatch timing or carrier concentration). Enforced G8 escalation if attempts >= 2.
+  3. Added greeting detector (`isGreeting`) and typo/unclear detector (`isUnclearOrTypo`) in `handleFollowUp`, along with a dynamic conversational fallback.
+  4. In `sessionRegistry.ts`, prioritized `s.recommendedNextStep` and filtered out any action present in `s.completedChecks`.
+  5. In `workspace/page.tsx`, removed delivery fallback, added secondary CTA support, and dispatched primary/secondary CTAs dynamically by action type.
+  6. Added Test 25 to `tests/apiIntegration.test.ts` reproducing the full 5-message conversation flow.
+
+### F-012 · Cross-case conversation contamination between payment and WhatsApp delivery
+- Error: An order payment inquiry ("I paid ₹2,499 for order ORD-4821. Money was deducted, but my order still says payment pending.") received WhatsApp delivery diagnostics, asked which WhatsApp feature was affected, and showed a delivery-specific clarification form upon follow-up ("I already checked my bank statement...").
+- Diagnosis:
+  1. `triage.ts` lacked rules matching payment deductions, bank debits, or order payment pending text, causing Turn 1 to fall through to `FALLBACK_AMBIGUOUS` with the WhatsApp-specific clarification question.
+  2. In `conversationGraph.ts` (and `stateMachine.ts`), Pattern 5 matched `lower.includes("already checked")` unconditionally without gating on `state.caseContext.issueType === "message_delivery"`, emitting WhatsApp delivery headline, completed check `check_message_status`, and carrier delivery next steps.
+  3. `validateProposalNode()` lacked context invariants verifying domain consistency between proposed actions and the active case's issue category.
+- Fix:
+  1. Expanded `BILLING` in `src/domain/triage.ts` to detect payment deductions, debited bank accounts, and order payment disputes.
+  2. Gated delivery check pattern strictly to `isDeliveryIssue || hasDeliveryKeywords`.
+  3. Added isolated Pattern 5B for payment/billing follow-up (bank statement checked, debit confirmed, recorded as `[REPORTED]`, escalated to finance specialist, suppressed repeating checks).
+  4. Enforced domain context invariant in `validateProposalNode()` and preserved proposal text in `handoffNode()`.
+  5. Added minimal structured server logging (`sessionId`, `caseId`, `threadId`, `issueCategory`, `selectedRoute`, `responseCaseId`) in `/api/resolve` and `conversationGraph.ts`.
+  6. Verified 100% session isolation with `scratch/verify_isolation.ps1`.
 
 ## Unresolved issues
-- None (143/143 tests passing across 14 test suites; Turbopack production build clean; Vite strict TypeScript build clean).
+- None (all isolation and scenario tests passing).
+

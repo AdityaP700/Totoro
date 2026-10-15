@@ -271,3 +271,105 @@ Investigated and resolved two critical recovery path inconsistencies:
    - Production Next.js Turbopack build succeeds across all 21 routes (`npm run frontend:build`). Strict Vite build clean (`npm run build`).
 - Evidence label: DOCUMENTED (Guardrails G1, G2, G8–G12, D10) + REPORTED (vitest test runs, Turbopack build).
 
+## D-022 · 2026-10-15 · End-to-End Recovery Quality Audit (20 Scenarios Across 4 Levels) and Multi-Turn Continuity Architecture
+
+Executed comprehensive recovery quality audit across all 20 mandatory acceptance scenarios specified in `ChunkdUp_ retrieval and memory ideas (8).md`:
+1. **Level 1 — Problem Understanding (Tests 1–5)**:
+   - Straightforward template rejections (Test 1) classify as `template_rejection`, explain category mismatch in plain English, and request missing rejection details/template body text without jumping straight to category modification.
+   - Delivery issue without template rejection (Test 2): identified and fixed triage bug where statements like "There is no template rejection error" previously matched `template_rejection` because `\btemplates?\b` preceded `DELIVERY` in rule evaluation order. Added negative phrase filtering in `firstMatch()` so explicit negations skip `TEMPLATE` and match `DELIVERY` (`PB-DELIVERY-STATUS-CHECK`).
+   - Invalid template variables (Test 3): added message-level keyword matching in `PlaybookRegistry.findForContext` so variable formatting complaints without explicit reason codes select `PB-002-INVALID-VARIABLE-FORMAT` and request broken variable text.
+   - Ambiguous complaints (Test 4): added `ambiguous_not_working_properly` to `AMB_SPECIFIC` to ask one focused, non-overwhelming clarifying question ("whether messages are being rejected or are failing to reach recipients").
+   - Natural-language follow-ups (Test 5): explain category mismatch simply in everyday language without restarting triage or re-running initial diagnosis.
+2. **Level 2 — Evidence Matching (Tests 6–10)**:
+   - Category unknown payment reminder (Test 6): refuses to assume Utility is correct merely because message mentions payments; explains that Utility requires strict transactional content without promotional wording.
+   - Irrelevant delivery fixture (Test 7): keeps diagnosis focused on template rejection; does not cite 98.4% delivery telemetry as evidence for template rejection.
+   - Contradictory evidence (Test 8): acknowledges apparent discrepancy when user reports rejection but fresh state read shows approved; cross-checks timestamps and version IDs.
+   - Missing rejection details (Test 9): explains what is missing and offers inspecting provider rejection logs without fabricating reasons.
+   - Cross-platform isolation (Test 10): ignores unrelated Instagram fixtures for WhatsApp cases; maintains strict platform scoping.
+3. **Level 3 — Multi-Turn Continuity (Tests 11–15)**:
+   - Implemented `ResolveSession.prototype.handleFollowUp(message)` wired via `POST /api/resolve` and `sessionRegistry.ts`.
+   - Incorporating new evidence (Test 11): updates existing case, incorporates rejection details, and identifies remaining requirements without re-asking questions.
+   - Completed checks (Test 12): acknowledges completed delivery status check, increments attempt counter, and offers persistent delivery diagnosis (`PB-DELIVERY-PERSISTENT`) instead of repeating instructions.
+   - Troubleshooting escalation threshold (Test 13): enforces G8 threshold at 2 failed attempts; escalates to human specialist with complete diagnostic dossier.
+   - Dynamic topic shift (Test 14): switches active issue from template rejection to message delivery when template approval is verified, preserving prior history in audit trail.
+   - Simpler explanation (Test 15): provides plain-English breakdown of What we know, What remains uncertain, and Next steps, eliminating internal rule IDs (`PB-xxx`) and fixture names (`TPL-xxx`).
+4. **Level 4 — Safety, Escalation, and Verification (Tests 16–20)**:
+   - Explicit specialist requests (Test 16): transitions to `HANDOFF`, sets status to `pending_assignment`, and avoids claiming a specialist is already assigned.
+   - Sensitive financial zone (Test 17): detects duplicate charge complaints in follow-ups, switches to `billing_refund`, enforces human-led review, and prohibits automated refunds.
+   - Failed verification handling (Test 18): records simulated action success, detects fresh-read mismatch (`verified: false`), and escalates to human support.
+   - Persistence failure resilience (Test 19): catches storage/persistence failures gracefully, preserves case context, provides retry contact route, and sanitizes internal SQLite errors.
+   - Adversarial override defense (Test 20): expanded prompt injection regex in `SECURITY` to match `rules?` and `policies?`, rejecting instructions to ignore rules or mark templates approved without verified evidence.
+5. **Verification & Test Coverage**:
+   - Added automated test suite `tests/recoveryQualityAudit20.test.ts` (20/20 passing).
+   - Total repository test suite: 181/181 passing across 16 test files.
+   - 170-case synthetic benchmark maintains 100% iteration split, 98.5% held-out split, 99.4% overall with 0 critical safety violations.
+   - Static Vite build and Next.js 16 Turbopack production builds pass with 0 errors.
+- Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (vitest test runs, Turbopack build).
+
+## D-023 · 2026-10-15 · Template Rejection Clarification, Delivery Decoupling, and "What Would Help" Workspace Experience
+
+Addressed screenshot-verified discrepancy where a template rejection inquiry ("Why is my WhatsApp template being rejected?") displayed delivery-related diagnosis summaries ("Messages were sent successfully...", "Check message status") and generic status badges:
+1. **Root Causes**:
+   - In `workspace/page.tsx`, `diagnosisSummary` and `recommendedNextStep` defaulted to hardcoded delivery copy when API responses returned `null` for unmapped templates.
+   - In `sessionRegistry.ts`, `findForContext` matched delivery playbooks on unmapped states and did not restrict `playbook.issueType === s.triage.issueType`.
+   - In `workspace/page.tsx`, the top right status badge hardcoded `"Active"` and rendered premature action CTAs while clarification was still required.
+2. **Domain & API Decoupling**:
+   - `buildResolveResponse` enforces `isTemplateRejectionWithoutProposal`: when in clarification or when no template proposal exists, `diagnosisSummary` and `recommendedNextStep` are strictly `null`.
+   - `category` returns `"Template support"` for template rejections without fixtures; `statusBadge` returns `"Needs details"`.
+   - In `workspace/page.tsx`, `diagnosisSummary` and `recommendedNextStep` are suppressed whenever the session is in `CLARIFY_ONCE`.
+3. **Dedicated "What Would Help" Interaction Card**:
+   - Renders focused plain-English guidance: `"Open the rejected template in WhatsApp Manager and share the rejection reason shown there. You can also provide the template name or ID if it's available. I haven't verified the rejection reason yet, so I won't recommend a delivery-status check."`
+   - Features an inline input field and `"Submit details"` button directly calling `/api/resolve` with `message`.
+   - Includes an expandable step-by-step guidance disclosure for locating rejection reason codes in Meta Business Suite / WhatsApp Manager.
+4. **Context-Aware Quick Action Options**:
+   - During template rejection clarification, the 3 bottom quick-actions update to:
+     1. `Share the rejection reason — Help identify the appropriate fix` (focuses input).
+     2. `Explain where to find it — Get step-by-step guidance` (toggles step-by-step guidance).
+     3. `Request a specialist — Get human assistance` (opens specialist escalation modal).
+5. **Verification**:
+   - Added REGRESSION 6 to `tests/apiIntegration.test.ts`.
+   - 182/182 vitest tests passing across 16 test files.
+   - Vite root build and Next.js 16 Turbopack production builds pass with 0 errors.
+- Evidence label: DOCUMENTED (Guardrails G1–G15) + REPORTED (vitest test runs, Turbopack build).
+
+## D-024 · 2026-10-15 · Multi-Turn Follow-Up Intent Understanding, Completed Check Elimination, and Telemetry Integrity
+
+Resolved P0 bug where Totoro repeated the initial diagnosis ("messages were sent, delivery receipts are missing...") and re-recommended already completed actions ("Check message status") across multi-turn follow-ups:
+1. **Root Causes**:
+   - Operator reporting that a recommended check was already performed (and outcome is pending) incremented `attemptsFailed` in `handleFollowUp` but never marked `check_message_status` in `state.completedChecks` or `state.userReportedEvidence`. Furthermore, it invented carrier handset transit assertions without telemetry, violating Rule 4.
+   - For greetings ("hi") or unclear queries ("what chlk"), `handleFollowUp` fell through to default without updating `customExplanation`, causing `buildResolveResponse` to repeat the stale assistant explanation from the previous turn.
+   - `buildResolveResponse` in `sessionRegistry.ts` matched playbooks using `record.originalMessage` and ignored `s.completedChecks`, causing `PB-DELIVERY-STATUS-CHECK` to be continuously re-recommended.
+   - `workspace/page.tsx` had a fallback in `recommendedNextStep` re-recommending `check_message_status` whenever `resolveData.recommendedNextStep` was null, and the primary CTA button unconditionally executed `handleCheckMessageStatus`.
+2. **Domain State Machine Architecture**:
+   - In Check 6: `state.completedChecks.push("check_message_status")`; recorded `userReportedEvidence` with `{ deliveryStatus: "pending" }` and audit event labeled `[REPORTED]`.
+   - Prevented fabricated telemetry (Rule 4): without provider telemetry, Totoro states that carrier queues cannot be verified without provider telemetry and asks one targeted question regarding dispatch timeframe or mobile carrier concentration.
+   - If `attemptsFailed >= 2`, immediately transitions to specialist handoff (G8).
+   - Added natural greeting detector (`isGreeting`) responding contextually without rerunning diagnosis or altering triage.
+   - Added unclear/typo detector (`isUnclearOrTypo`) politely asking for clarification without recording fake technical facts.
+   - Added dynamic conversational fallback for general messages so `customExplanation` is never stale.
+3. **Session Registry & UI Dynamic Action Dispatch**:
+   - `buildResolveResponse` prioritizes `s.recommendedNextStep` and checks `s.completedChecks` to strictly avoid re-recommending completed checks.
+   - `workspace/page.tsx` dynamically dispatches primary and secondary CTAs based on `recommendedNextStep.primaryCta.action` (`clarify` focuses composer; `human` opens handoff modal; `approve` approves resubmission; `check_message_status` executes status check).
+4. **Verification**:
+   - Added Test 25 to `tests/apiIntegration.test.ts` executing the complete 5-step reproduction sequence; all 184 vitest tests passing across 16 test files; Next.js 16 production build compiles with 0 errors across 21 routes.
+- Evidence label: DOCUMENTED (Guardrails G1, G5, G8, Rule 4) + REPORTED (vitest test runs, Turbopack build).
+
+## D-025 · 2026-10-15 · Cross-Case Conversation Isolation, Payment Context Guardrails, and Domain Invariant Enforcement
+
+Resolved P0 defect where a payment/order issue ("I paid ₹2,499 for order ORD-4821. Money was deducted, but my order still says payment pending.") received WhatsApp delivery diagnostics and clarification requests upon follow-up ("I already checked my bank statement..."):
+1. **Root Causes**:
+   - Initial triage in `src/domain/triage.ts` lacked regex patterns for money deductions, order payments, bank account debits, and pending order statuses. The message failed to match `BILLING` and fell into `FALLBACK_AMBIGUOUS`, injecting a WhatsApp-specific clarifying question.
+   - Follow-up interpreter in `src/domain/conversationGraph.ts` (and `src/domain/stateMachine.ts`) used an unscoped regex (`lower.includes("already checked") || lower.includes("still pending")`) that triggered unconditionally, returning WhatsApp delivery status pending, completed check `check_message_status`, and carrier delivery next steps.
+   - `validateProposalNode()` lacked domain context invariants: a proposal with WhatsApp delivery diagnostics was not verified against the active case's `issueType`.
+2. **Remediation**:
+   - Expanded `BILLING` in `src/domain/triage.ts` to detect payment deductions, debited bank accounts, and order payment disputes.
+   - Strictly gated delivery check pattern to `isDeliveryIssue || hasDeliveryKeywords` in `conversationGraph.ts` and `stateMachine.ts`.
+   - Added dedicated isolated Pattern 5B for billing/payment debit confirmations: records `check_bank_statement` as completed, records `[REPORTED]` debit evidence, routes to finance specialist handoff (G10), and suppresses duplicate bank statement checks.
+   - Added context invariant in `validateProposalNode()`: if `issueType === "billing_refund"`, any proposal containing WhatsApp delivery checks or template edits is discarded and re-grounded to billing handoff.
+   - Added structured JSON server logging in `/api/resolve` and `conversationGraph.ts` tracking `sessionId`, `caseId`, `threadId`, `issueCategory`, `selectedRoute`, and `responseCaseId`.
+3. **Verification**:
+   - Automated live probe in `scratch/verify_isolation.ps1` confirmed 100% isolation across Turn 1 and Turn 2 for payment issues, and verified zero cross-contamination with parallel WhatsApp delivery sessions.
+- Evidence label: DOCUMENTED (Guardrails G1, G5, G8, G10, Rule 4) + REPORTED (live isolation test traces in scratch/verify_isolation.ps1).
+
+
+

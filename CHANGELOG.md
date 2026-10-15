@@ -2,6 +2,71 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Cross-Case Conversation Isolation & Payment Context Guardrail
+
+- **Eliminated Cross-Case Conversation Contamination**:
+  - Payment and order inquiries (e.g. `"I paid ₹2,499 for order ORD-4821. Money was deducted, but my order still says payment pending."`) are now strictly triaged as `billing_refund` and escalated to human support under mandatory safety policy G10, with zero template or delivery leakage.
+  - Conversational follow-ups in a payment case (e.g. `"I already checked my bank statement. The debit is definitely there. Don't ask me to check it again."`) remain strictly in the payment domain, record bank statement verification and debit evidence with `[REPORTED]` provenance, mark `check_bank_statement` as completed, avoid repeating the check, and prompt only for missing payment references (such as bank UTR numbers) while routing to finance specialists.
+- **Strict Domain Context Invariants in Conversation Graph**:
+  - Gated delivery check patterns strictly to `message_delivery` issue domains.
+  - Added domain invariant checks in `validateProposalNode`: proposals containing WhatsApp delivery diagnostics or template mutations are discarded when the active case is `billing_refund` or non-WhatsApp.
+- **Minimal Structured Server Logging**:
+  - Added structured telemetry logging in `/api/resolve` and `conversationGraph.ts` capturing `sessionId`, `caseId`, `threadId`, `issueCategory`, `selectedRoute`, and `responseCaseId`.
+- **Verification**:
+  - Verified with automated isolation probe across multi-turn payment and delivery sessions running concurrently; 100% domain isolation confirmed.
+
+## 2026-10-15 — Multi-Turn Follow-Up Intent Understanding & Completed Check Elimination
+
+- **Eliminated Repetitive Diagnoses & Completed Checks**:
+  - When the operator indicates they have already performed the recommended check (e.g., delivery status is still pending), Totoro acknowledges the check, records the result as user-reported evidence with explicit label `[REPORTED]`, marks `check_message_status` as completed, and strictly never re-recommends that check again in the session.
+  - Totoro adheres to Rule 4 by avoiding fabricated facts (no simulated carrier handset transit or outage assertion without provider evidence) and asks a targeted question (dispatch timeframe or mobile carrier) to isolate batch vs route delays.
+  - If 2 attempts have failed, Totoro enforces policy G8 with immediate specialist handoff.
+- **Natural Conversational Interaction (Greetings & Clarifications)**:
+  - Greetings (e.g. `"hi"`, `"hello"`, `"hey"`) during an active troubleshooting case are acknowledged naturally (`"Hi! I'm here. Would you like to continue troubleshooting the pending WhatsApp deliveries?"`) while strictly preserving case context, completed checks, and active triage without rerunning diagnosis or repeating stale responses.
+  - Typos or unclear queries (e.g. `"what chlk"`) prompt a polite clarification request (`"I didn't quite catch that. Did you mean to ask about the delivery check, or would you like me to explain the next step in simpler terms?"`) without inventing technical evidence or repeating prior diagnoses.
+- **Interactive Action Buttons & Secondary CTAs**:
+  - The primary CTA button dynamically dispatches based on the active recommendation action type: `clarify` focuses the chat composer; `human` / `request_specialist` opens the specialist handoff modal; `check_message_status` executes the diagnostic check; `approve` applies the simulated resubmission.
+  - Added secondary CTA support for quick escalation to human support or proposal editing.
+- **Verification**:
+  - Added Test 25 to `tests/apiIntegration.test.ts` executing the complete 5-step reproduction sequence; all 184 vitest tests passing across 16 test files; Next.js 16 production build compiles with 0 errors across 21 routes.
+
+## 2026-10-15 — Template Rejection Clarification, Delivery Decoupling & "What Would Help" Card
+
+- **Decoupled Delivery Telemetry from Template Rejection**:
+  - Eliminated accidental delivery fallbacks (`"Delivery Diagnostic"` category, carrier delivery receipts text, `"Check message status"` CTA) in the workspace and session API.
+  - Template rejection inquiries without an attached template or reason code now stay strictly in the template recovery domain with zero carrier or message delivery leakage.
+- **Dedicated "What would help" Interaction Card**:
+  - Replaced premature diagnosis panels with a focused card during clarification (`Needs details`):
+    - Plain-English guidance: `"Open the rejected template in WhatsApp Manager and share the rejection reason shown there. You can also provide the template name or ID if it's available. I haven't verified the rejection reason yet, so I won't recommend a delivery-status check."`
+    - Inline rejection detail input field with `"Submit details"` button directly calling `/api/resolve`.
+    - Expandable step-by-step guidance card explaining where to find the rejection reason banner in Meta Business Suite / WhatsApp Manager.
+- **Context-Aware Quick Action Options**:
+  - The 3 quick action buttons at the bottom update during clarification to:
+    1. *Share the rejection reason — Help identify the appropriate fix* (focuses input).
+    2. *Explain where to find it — Get step-by-step guidance* (expands step-by-step guidance).
+    3. *Request a specialist — Get human assistance* (opens human handoff modal).
+- **Refined Enterprise Workspace Hierarchy**:
+  - Header displays title `WhatsApp template rejection`, subtitle `Template support · Updated just now`, and dynamic amber `Needs details` status pill.
+  - 3-column diagnosis summary and action CTAs are suppressed while in clarification; simulated action disclaimer is de-emphasized.
+- **Automated Regression Coverage**: Added REGRESSION 6 in `tests/apiIntegration.test.ts`. All 182 vitest tests passing across 16 test files. Root Vite build and Next.js 16 production build compile with 0 errors across 21 routes.
+
+## 2026-10-15 — End-to-End Recovery Quality Audit & Multi-Turn Intelligence (20 Scenarios Across 4 Levels)
+
+- **Comprehensive 20-Scenario Quality Audit**: Executed and automated the 20-scenario audit across Problem Understanding, Evidence Matching, Multi-Turn Continuity, and Safety/Verification (`tests/recoveryQualityAudit20.test.ts`).
+- **Multi-Turn Conversational Memory & Continuity**:
+  - Implemented `ResolveSession.prototype.handleFollowUp(message)` wired to `/api/resolve` and `sessionRegistry.ts`.
+  - The assistant now retains case context across turns, incorporates newly supplied evidence, avoids asking for already provided information, dynamically switches active diagnostics when templates are approved, acknowledges completed checks, and enforces the 2-failed-attempt escalation threshold (G8).
+- **Triage & Classification Improvements**:
+  - Filtered explicit negations of template rejection (e.g. "There is no template rejection error") in `triage.ts`, correctly classifying delivery issues as `message_delivery`.
+  - Added `ambiguous_not_working_properly` rule to request a single targeted clarification without presenting an overwhelming technical questionnaire.
+  - Added message keyword playbook matching for variable format and category mismatch when reason codes are missing.
+- **Safety, Adversarial & Resilience Safeguards**:
+  - Broadened prompt injection pattern to detect and reject adversarial override attempts (e.g. "Ignore all previous rules"), maintaining deterministic safety policy and audit logs.
+  - Detected and isolated duplicate charge / billing inquiries occurring within messaging conversations, routing to `billing_refund` and human-led review.
+  - Handled persistence and storage failures gracefully without exposing raw database errors.
+- **Plain-Language Explanations**: Provided everyday language breakdowns for category mismatches and status discrepancies without technical rule IDs or raw fixture names.
+- **Automated Regression Suite**: Added `tests/recoveryQualityAudit20.test.ts` (20/20 tests passing). Total test count: 181/181 passing across 16 test files. Root and Next.js builds clean.
+
 ## 2026-10-15 — Request-to-Fixture Decoupling & Laya Invocation Audit
 
 - Decoupled non-template support requests from template fixtures:

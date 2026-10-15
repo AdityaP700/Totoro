@@ -170,16 +170,16 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
           <Link
             href="/workspace?new=1"
             onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
-            className="flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 shadow-sm hover:border-zinc-300 hover:bg-zinc-50 transition-all"
+            className="flex h-[42px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white shadow-xs hover:bg-blue-700 transition-colors"
           >
-            <span className="text-base leading-none font-semibold text-zinc-600">+</span>
+            <span className="text-base leading-none font-semibold text-white">+</span>
             <span>New request</span>
           </Link>
         ) : (
           <Link
             href="/workspace?new=1"
             onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
-            className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-800 shadow-sm hover:bg-zinc-50 transition-all"
+            className="mx-auto flex h-[42px] w-[42px] items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs hover:bg-blue-700 transition-colors"
             title="New request"
           >
             <span className="text-base font-semibold">+</span>
@@ -231,23 +231,39 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
                     ? `/workspace?sessionId=${encodeURIComponent(item.id)}`
                     : `/workspace?q=${encodeURIComponent(item.q)}&new=1`;
 
+                  const itemStatus = item.title.toLowerCase().includes("pending")
+                    ? { dot: "bg-amber-500", text: "text-amber-700", label: "Pending" }
+                    : item.title.toLowerCase().includes("resolved") || item.title.toLowerCase().includes("authentication")
+                    ? { dot: "bg-zinc-400", text: "text-zinc-600", label: "Resolved" }
+                    : item.title.toLowerCase().includes("billing")
+                    ? { dot: "bg-amber-500", text: "text-amber-700", label: "Pending" }
+                    : isActive
+                    ? { dot: "bg-blue-600", text: "text-blue-700", label: "Active" }
+                    : { dot: "bg-emerald-500", text: "text-emerald-700", label: "Active" };
+
                   return (
                     <Link
                       key={item.id}
                       href={destination}
                       onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
-                      className={`group relative flex flex-col rounded-lg px-3 py-2 text-left transition-colors ${
+                      className={`group relative flex items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${
                         isActive
-                          ? "bg-blue-50/70 border-l-2 border-blue-600 pl-2.5 text-blue-950 font-medium"
+                          ? "bg-[#F1F5F9] border-l-2 border-blue-600 pl-2.5 text-zinc-950 font-medium"
                           : "text-zinc-700 hover:bg-zinc-100/70 hover:text-zinc-950"
                       }`}
                     >
-                      <span className="truncate text-sm font-medium">
-                        {item.title}
-                      </span>
-                      <span className="mt-0.5 truncate text-xs text-zinc-500">
-                        {item.subtitle}
-                      </span>
+                      <div className="min-w-0 flex-1 pr-2">
+                        <span className="truncate text-sm font-medium block">
+                          {item.title}
+                        </span>
+                        <span className="mt-0.5 truncate text-xs text-zinc-500 block">
+                          {item.subtitle}
+                        </span>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-1.5 text-xs font-normal">
+                        <span className={`h-1.5 w-1.5 rounded-full ${itemStatus.dot}`} />
+                        <span className={itemStatus.text}>{itemStatus.label}</span>
+                      </div>
                     </Link>
                   );
                 })
@@ -397,7 +413,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content Canvas */}
-        <main className="flex-1 overflow-y-auto relative bg-[#fafafa]">
+        <main className="flex-1 overflow-y-auto relative bg-white">
           {children}
         </main>
       </div>

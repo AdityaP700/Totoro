@@ -1,5 +1,35 @@
 # TEST RESULTS
 
+## 2026-10-15 — Multi-Turn Follow-Up Intent Understanding & Completed Check Elimination
+
+- `npm test`: passed — 16 test files, 184 tests passed (100% pass rate, including Test 25 in `tests/apiIntegration.test.ts` reproducing the full 5-turn sequence).
+- `npm run frontend:build`: passed — Next.js 16.2.9 Turbopack production compilation and type check across all 21 routes with 0 errors.
+- `npm run build`: passed — Vite and TypeScript production compilation with 0 errors.
+- Verified:
+  1. Reproduction sequence (Test 25 in `tests/apiIntegration.test.ts`):
+     - Turn 1: "My WhatsApp messages show as sent, but several recipients have not received them. There is no template rejection error." -> Triaged to `message_delivery`, assigned `PB-DELIVERY-STATUS-CHECK`, recommends `check_message_status`.
+     - Turn 2: "I already checked the delivery status. It is still pending. Please don't ask me to repeat the same check." -> Check acknowledged, recorded in `state.completedChecks`, recorded in `state.userReportedEvidence` labeled `[REPORTED]`, `check_message_status` strictly NOT recommended again, recommends `clarify` (dispatch timing or carrier details) with secondary CTA `human` (specialist escalation), and does not fabricate carrier telemetry (Rule 4).
+     - Turn 3: "hi" -> Natural greeting response ("Hi! I'm here. Would you like to continue troubleshooting the pending WhatsApp deliveries?"), active context and triage preserved, does not rerun diagnosis or repeat prior message.
+     - Turn 4: "what chlk" -> Polite clarification request ("I didn't quite catch that. Did you mean to ask about the delivery check, or would you like me to explain the next step in simpler terms?"), no fake technical evidence invented, active context preserved.
+     - All 4 assistant turns across the conversation transcript are completely distinct and context-aware with 0 repetitive loops.
+  2. Dynamic Primary/Secondary CTA Dispatch in UI:
+     - `clarify` action type focuses the chat input composer for seamless follow-up details.
+     - `human` / `request_specialist` action type opens the human escalation modal with complete case file dossier.
+     - `check_message_status` action type runs simulated message status read.
+     - `approve` action type executes simulated resubmission write.
+
+## 2026-10-15 — Template Rejection Clarification, Delivery Decoupling, and "What Would Help" Workspace Experience
+
+- `npm test`: passed — 16 test files, 182 tests passed (100% pass rate, including REGRESSION 6 in `tests/apiIntegration.test.ts` and all 20 quality audit tests in `tests/recoveryQualityAudit20.test.ts`).
+- `npm run frontend:build`: passed — Next.js 16.2.9 Turbopack production compilation and type check across all 21 routes with 0 errors.
+- `npm run build`: passed — Vite and TypeScript production compilation with 0 errors.
+- Verified:
+  1. Regression 6: Template rejection inquiries (`"Why is my WhatsApp template being rejected?"`) without attached template or reason code return `category: "Template support"`, `statusBadge: "Needs details"`, `title: "WhatsApp template rejection"`, `diagnosisSummary: null`, and `recommendedNextStep: null`.
+  2. Zero delivery leakage: Delivery diagnostics (`PB-DELIVERY-STATUS-CHECK`, "Check message status", "Messages were sent successfully...", carrier telemetry) are completely excluded from template rejection cases.
+  3. UI Fidelity: Dedicated **"What would help"** card renders in the workspace during clarification with plain-English instructions, inline rejection detail input, `"Submit details"` button, and expandable step-by-step guidance for finding the reason code in Meta Business Suite / WhatsApp Manager.
+  4. Context-Aware Quick Options: During clarification, the 3 bottom quick options update to: (1) `Share the rejection reason — Help identify the appropriate fix`; (2) `Explain where to find it — Get step-by-step guidance`; (3) `Request a specialist — Get human assistance`.
+  5. Status Badge & Hierarchy: Header displays an amber `Needs details` pill during clarification; premature 3-column diagnosis summary and action CTA panels are suppressed; simulated disclaimer is de-emphasized.
+
 ## 2026-10-15 — Request-to-Fixture Decoupling and Laya Decision Path Audit
 
 - `npm test`: passed — 14 test files, 143 tests passed (100% pass rate, including 5 new targeted regression tests in `tests/apiIntegration.test.ts` covering delivery complaint auto-detect decoupling, duplicate-payment fixture decoupling, genuine template rejection recovery, explicit human specialist handoff, and unmapped entity clarification).

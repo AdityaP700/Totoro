@@ -22,6 +22,10 @@ const EVENT_TITLE_MAP: Record<EventType, string> = {
   ACTION_SIMULATED: "Simulated resubmission executed",
   STATE_VERIFIED: "Fresh state verified",
   HANDOFF_CREATED: "Human specialist review requested",
+  HANDOFF_CONFIRMED: "Human escalation confirmed",
+  SPECIALIST_ASSIGNED: "Specialist assigned to case",
+  CASE_CLOSED: "Case file closed & archived",
+  HANDOFF_WITHDRAWN: "Handoff request withdrawn",
 };
 
 export function TechnicalDetailsInspector({

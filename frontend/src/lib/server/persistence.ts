@@ -46,11 +46,12 @@ export const repositories = {
   saveCase(input: StoredCase) {
     this.ensureWorkspace(input.workspaceId);
     const d = database();
-    const existing = d.prepare("SELECT id FROM cases WHERE workspace_id=? AND session_id=?").get(input.workspaceId, input.sessionId) as { id: string } | undefined;
+    const existing = (input.workspaceId ? d.prepare("SELECT id FROM cases WHERE workspace_id=? AND session_id=?").get(input.workspaceId, input.sessionId) : undefined)
+      || (d.prepare("SELECT id FROM cases WHERE session_id=?").get(input.sessionId) as { id: string } | undefined);
     let targetCaseId = input.id;
     if (existing) {
       targetCaseId = existing.id;
-      d.prepare("UPDATE cases SET title=?, template_id=?, original_message=?, state_json=?, templates_json=?, updated_at=?, deleted_at=NULL WHERE workspace_id=? AND session_id=?").run(input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.updatedAt, input.workspaceId, input.sessionId);
+      d.prepare("UPDATE cases SET title=?, template_id=?, original_message=?, state_json=?, templates_json=?, updated_at=?, deleted_at=NULL WHERE session_id=?").run(input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.updatedAt, input.sessionId);
     } else {
       d.prepare("INSERT INTO cases(id, workspace_id, session_id, title, template_id, original_message, state_json, templates_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title=excluded.title, state_json=excluded.state_json, templates_json=excluded.templates_json, updated_at=excluded.updated_at, deleted_at=NULL").run(input.id, input.workspaceId, input.sessionId, input.title, input.templateId, input.originalMessage, JSON.stringify(input.state), JSON.stringify(input.templates), input.createdAt, input.updatedAt);
     }
@@ -59,6 +60,7 @@ export const repositories = {
     input.messages.forEach((m) => turn.run(targetCaseId, m.role, m.text, m.timestamp));
   },
   getCase(workspaceId: string, sessionId: string): StoredCase | null { const r = database().prepare("SELECT * FROM cases WHERE workspace_id=? AND session_id=? AND deleted_at IS NULL").get(workspaceId, sessionId); return r ? this.rowToCase(r) : null; },
+  getCaseBySessionId(sessionId: string): StoredCase | null { const r = database().prepare("SELECT * FROM cases WHERE session_id=? AND deleted_at IS NULL").get(sessionId); return r ? this.rowToCase(r) : null; },
   hasCase(workspaceId: string, caseId: string) { return Boolean(database().prepare("SELECT 1 FROM cases WHERE workspace_id=? AND id=? AND deleted_at IS NULL").get(workspaceId, caseId)); },
   listCases(workspaceId: string): StoredCase[] { return database().prepare("SELECT * FROM cases WHERE workspace_id=? AND deleted_at IS NULL ORDER BY updated_at DESC").all(workspaceId).map((r) => this.rowToCase(r)); },
   deleteCase(workspaceId: string, sessionId: string) { return database().prepare("UPDATE cases SET deleted_at=?, updated_at=? WHERE workspace_id=? AND session_id=? AND deleted_at IS NULL").run(new Date().toISOString(), new Date().toISOString(), workspaceId, sessionId).changes > 0; },

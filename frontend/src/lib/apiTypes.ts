@@ -1,8 +1,12 @@
 import type {
   AuditEvent,
   Diagnosis,
+  DiagnosisSummary,
+  InteractionState,
   MockTemplate,
   Proposal,
+  RecommendedNextStep,
+  SpecialistAssignment,
   Stage,
   TriageResult,
   VerificationResult,
@@ -21,12 +25,16 @@ export interface ResolveResponse {
   sessionId: string;
   caseId: string;
   stage: Stage;
+  interactionState: InteractionState;
   customerExplanation: CustomerFacingResponse;
   triage: TriageResult;
   diagnosis: Diagnosis | null;
   proposal: Proposal | null;
   clarificationQuestion?: string | null;
   handoffReason?: string | null;
+  handoffRequestedAt?: string | null;
+  specialistAssignment?: SpecialistAssignment | null;
+  closedAt?: string | null;
   isVerified: boolean;
   events: AuditEvent[];
   templateSnapshot?: MockTemplate | null;
@@ -43,25 +51,42 @@ export interface ResolveResponse {
   guardrails: string;
   contextEvaluated: string;
   verificationStatus: string;
+  diagnosisSummary?: DiagnosisSummary | null;
+  recommendedNextStep?: RecommendedNextStep | null;
   messages?: Array<{ role: "user" | "assistant"; text: string; timestamp: string }>;
 }
 
 export interface ActionRequest {
   sessionId: string;
-  action: "approve" | "decline" | "human";
+  action:
+    | "approve"
+    | "decline"
+    | "human"
+    | "check_message_status"
+    | "preview_human"
+    | "cancel_human"
+    | "assign_specialist"
+    | "start_investigation"
+    | "close_case";
   idempotencyKey?: string;
   customReason?: string;
+  specialistName?: string;
+  queue?: string;
 }
 
 export interface ActionResponse {
   sessionId: string;
   caseId: string;
   stage: Stage;
+  interactionState: InteractionState;
   actionResult?: string | null;
   verification?: VerificationResult | null;
   isVerified: boolean;
   customerExplanation: CustomerFacingResponse;
   handoffReason?: string | null;
+  handoffRequestedAt?: string | null;
+  specialistAssignment?: SpecialistAssignment | null;
+  closedAt?: string | null;
   events: AuditEvent[];
   templateAfter?: MockTemplate | null;
   auditTrail?: CaseAuditTrail;
@@ -70,6 +95,10 @@ export interface ActionResponse {
   statusBadge: string;
   verificationStatus: string;
   executionVerification: [string, string][];
+  diagnosisSummary?: DiagnosisSummary | null;
+  recommendedNextStep?: RecommendedNextStep | null;
+  attemptsFailed?: number;
+  messages?: Array<{ role: "user" | "assistant"; text: string; timestamp: string }>;
 }
 
 export interface SessionSummary {

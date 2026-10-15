@@ -1,4 +1,4 @@
-import type { IssueType, Urgency } from "./types";
+import type { IssueType, Urgency, CommandProposal } from "./types";
 
 export interface GroqClientOptions {
   apiKey?: string;
@@ -169,6 +169,105 @@ export class GroqClient {
             : (err.message || "Network request failed"),
         },
       };
+    }
+  }
+
+  /**
+   * Stage C & D: Structured Follow-up interpretation using Groq JSON mode.
+   * Returns a schema-validated CommandProposal or null on failure.
+   */
+  async interpretFollowUp(params: {
+    message: string;
+    contextSummary: string;
+  }): Promise<CommandProposal | null> {
+    const start = Date.now();
+    if (!this.isConfigured) return null;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: [
+            {
+              role: "system",
+              content: `You are the conversation runtime controller for Cheerio Resolve, an enterprise support recovery system for WhatsApp Business API and customer messaging.
+Analyze the user's follow-up message against the active case context. Return a strictly valid JSON object matching this schema:
+{
+  "intent": "greeting" | "answer_question" | "provide_evidence" | "correct_information" | "ask_question" | "request_action" | "request_human" | "unclear" | "other",
+  "status": string (e.g. "follow_up_interpreted", "evidence_incorporated", "question_answered"),
+  "headline": string (e.g. "Delivery Status Clarification", "Deliverability & Spam Findings"),
+  "conversationalResponse": string (A direct, empathetic, technical explanation answering the user or explaining the impact of their reported findings. DO NOT echo "I received your message" or repeat completed troubleshooting),
+  "evidenceExplanation": string (Explicitly label user observations as [REPORTED] and distinguish them from verified platform telemetry),
+  "nextSteps": string (Clear, actionable next step for the operator),
+  "extractedFacts": [{"key": string, "value": string, "provenance": "user_reported"}],
+  "completedCheck": string | null (e.g. "check_message_status" if user stated they performed it),
+  "proposedNextStep": {
+    "actionId": string,
+    "actionTitle": string,
+    "supportingText": string,
+    "primaryCtaLabel": string,
+    "primaryCtaAction": string
+  } | null,
+  "confidence": number
+}
+
+Rules:
+- Never claim an action succeeded or verified without provider read.
+- If billing dispute or security lockout is reported, intent MUST be "request_human".
+- User-reported claims must have provenance "user_reported".`,
+            },
+            {
+              role: "user",
+              content: `CONTEXT:\n${params.contextSummary}\n\nUSER MESSAGE:\n"${params.message}"`,
+            },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.1,
+          max_tokens: 600,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) return null;
+
+      const parsed = JSON.parse(content);
+      if (!parsed.conversationalResponse || typeof parsed.conversationalResponse !== "string") {
+        return null;
+      }
+
+      return {
+        intent: parsed.intent || "other",
+        status: parsed.status || "follow_up_interpreted",
+        note: `Groq model inference (${this.model})`,
+        headline: parsed.headline || "Case Follow-up",
+        conversationalResponse: parsed.conversationalResponse,
+        evidenceExplanation: parsed.evidenceExplanation || "User-reported observations tracked in case context.",
+        nextSteps: parsed.nextSteps || "Let me know how you would like to proceed.",
+        extractedFacts: Array.isArray(parsed.extractedFacts) ? parsed.extractedFacts : [],
+        completedCheck: parsed.completedCheck || undefined,
+        proposedNextStep: parsed.proposedNextStep || null,
+        confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.9,
+        decisionLayer: "groq",
+        modelId: this.model,
+        latencyMs: Date.now() - start,
+        validationOutcome: true,
+      };
+    } catch {
+      clearTimeout(timeoutId);
+      return null;
     }
   }
 }
