@@ -505,5 +505,48 @@ but unused — no test needs it.
 - Safety Violations: **0**
 - Support UI Leakage on Business Turns: **0**
 
+## 2026-10-15 · Cost-Aware Multilingual Routing, 5,000-Message Benchmark, and Scaled Cost Model Verification
+
+### Multilingual Fast Router Unit & Integration Suite (`tests/multilingualRouter.test.ts`)
+- Tests: **29/29 passed** (100% passing in 25ms).
+- Coverage verified:
+  - Language detection: English (`en`), Hinglish (`hinglish`), Hindi Devanagari (`hi`), Mixed Script (`mixed`).
+  - Scoped support intents: WABA onboarding, phone OTP verification, webhook 403 mismatch, official green tick badge, template variable formatting, promotional wording in utility, marketing opt-out footer, Meta 131026 message undeliverable, delivery pending, daily tier rate limit, low quality paused template, chatbot keyword trigger, interactive quick reply buttons, webhook 504 gateway timeout, infinite fallback loop.
+  - Conversational lifecycle: contextual greetings, affirmations (`confirm`), declines, completed check acknowledgment (`[REPORTED]`), and fact corrections.
+  - Mandatory safety zones: billing & refund disputes, compromised accounts/passwords/2FA, explicit human support requests, adversarial prompt injections.
+  - Ambiguous / novel queries: correctly flagged for single-turn structured LLM fallback.
+
+### 5,000-Message Synthetic Multilingual Benchmark Audit (`tools/run_multilingual_benchmark.ts`)
+- Total Messages Processed: **5,000**
+- Language Split:
+  - English: 2,000 (40.0%)
+  - Hinglish / Romanized Hindi: 1,750 (35.0%)
+  - Devanagari Hindi Script: 750 (15.0%)
+  - Mixed Script: 500 (10.0%)
+- Performance Metrics:
+  - Deterministic Fast-Routed: **4,268 (85.36%)** resolved with **0 LLM calls**.
+  - LLM Fallback Calls Required: **732 (14.64%)** (0.1464 calls/message).
+  - Fast Router Average Latency: **0.0245 ms** (sub-millisecond target passed).
+  - Fast Router p99 Latency: **0.0741 ms**.
+  - Critical Safety Violations: **0** (all billing, security, and human requests strictly escalated).
+  - Cost Reduction vs 100% Pure LLM: **85.36%**.
+- Audit Artifacts:
+  - `docs/audits/multilingual_5000_benchmark_results.json`
+  - `docs/audits/multilingual_5000_benchmark_report.md`
+
+### Scaled 5,000-Business Cost Model (`deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx`)
+- Updated `Cost Assumptions` with 5,000 businesses, Groq Llama-3.3-70b-versatile rates ($0.59 / $0.79 per 1M tokens), and 450 in / 180 out token estimates.
+- Created dedicated sheet `Multilingual Cost Model`:
+  - 5,000 active businesses across Low (10 msgs/mo: 50k total), Base (25 msgs/mo: 125k total), and High (60 msgs/mo: 300k total).
+  - Dynamic Excel formulas for calls, costs, and savings with 2.0% schema retry buffer.
+  - Base case monthly cost: **$7.61/mo** with Totoro vs. **$51.98/mo** pure LLM ($532.40 annual savings).
+  - Strict evidence labels: `[SYNTHETIC BENCHMARK]`, `[ASSUMPTION]`, `[DOCUMENTED]`, `[FORMULA]`.
+
+### Full Repository Regression Verification
+- Command: `npm test` (`vitest run`)
+- Result: PASS (exit 0) — **227 passed across 18 test files (100% passing)**.
+- Safety Violations: **0**
+
+
 
 

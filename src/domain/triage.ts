@@ -5,6 +5,7 @@ import type {
   TriageResult,
   Urgency,
 } from "./types";
+import { fastRouteMessage, detectLanguage } from "./fastRouter";
 
 /**
  * Deterministic rules-first triage (D5). Rules NEVER emit provider reason
@@ -590,11 +591,9 @@ function band(confidence: number): ConfidenceBand {
   return confidence >= 0.9 ? "high" : confidence >= 0.65 ? "medium" : "low";
 }
 
-/** Hinglish/en guess — only en and hinglish are supported (D11). Coarse by design. */
-export function guessLanguage(message: string): "en" | "hinglish" {
-  return /\b(nahi|karo|karu|kya|mera|hai|gaya|chahiye|karun|raha|bhai|milna)\b/i.test(message)
-    ? "hinglish"
-    : "en";
+/** Language detection across en, hinglish, hi (Devanagari), and mixed variants */
+export function guessLanguage(message: string): "en" | "hinglish" | "hi" | "mixed" {
+  return detectLanguage(message);
 }
 
 /**
@@ -612,8 +611,22 @@ export function triageMessage(
   if (matched) {
     hit = { ...matched.hit };
   } else {
-    // Fall through to ambiguity: never guess an issue type (G9).
-    hit = { ...AMBIGUOUS.hit };
+    // Check multilingual fast router for non-English / Hinglish / Devanagari support intents
+    const fast = fastRouteMessage(text);
+    if (fast.isConfident && fast.scopedIntent !== "ambiguous") {
+      hit = {
+        issueType: fast.issueType,
+        urgency: fast.urgency,
+        needsHuman: fast.requiresHumanEscalation,
+        route: fast.requiresHumanEscalation ? "human_handoff" : "rules_playbook",
+        confidence: fast.confidence,
+        rationale: fast.evidenceExplanation,
+        missingInformation: fast.missingFields,
+      };
+    } else {
+      // Fall through to ambiguity: never guess an issue type (G9).
+      hit = { ...AMBIGUOUS.hit };
+    }
   }
 
   // Duplicate-delivery rule: choose the issue type from surrounding keywords.
@@ -646,8 +659,6 @@ export function triageMessage(
     }
   }
 
-
-
   return {
     issueType: hit.issueType,
     urgency: hit.urgency,
@@ -662,15 +673,15 @@ export function triageMessage(
 
 /** Check whether user message matches deterministic security, credentials, or access patterns */
 export function isSecurityRequest(message: string): boolean {
-  return SECURITY.patterns.some((re) => re.test(message));
+  return SECURITY.patterns.some((re) => re.test(message)) || fastRouteMessage(message).scopedIntent === "security_identity_access";
 }
 
 /** Check whether user message matches an explicit request for human assistance */
 export function isExplicitHumanRequest(message: string): boolean {
-  return HUMAN_REQUEST.patterns.some((re) => re.test(message));
+  return HUMAN_REQUEST.patterns.some((re) => re.test(message)) || fastRouteMessage(message).scopedIntent === "request_human";
 }
 
 /** Check whether user message matches billing, refund, invoice, or credit patterns */
 export function isBillingRequest(message: string): boolean {
-  return BILLING.patterns.some((re) => re.test(message));
+  return BILLING.patterns.some((re) => re.test(message)) || fastRouteMessage(message).scopedIntent === "billing_refund";
 }

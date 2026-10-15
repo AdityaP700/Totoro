@@ -417,5 +417,44 @@ Resolved defect where a 4-turn founder revenue analysis inquiry ("Our revenue dr
    - 100% pass across all 17 test suites (198/198 tests passing).
 - Evidence label: DOCUMENTED (Guardrails G1, G5, G8, D1–D11) + REPORTED (vitest test suite and Next.js static build).
 
+## D-028 · 2026-10-15 · Cost-Aware Multilingual Routing Architecture, Sub-Millisecond Fast Router, and Scaled Cost Modeling
+
+Implemented a 2-layer, cost-aware multilingual routing architecture in Totoro for customer-support recovery across English, Hinglish / Romanized Hindi, Devanagari Hindi Script, and Mixed-Script queries:
+1. **Context & Motivation**:
+   - High-volume customer support recovery for Cheerio in India involves multilingual and code-mixed queries across WhatsApp setup, template rejection, campaign delivery delays, and chatbot troubleshooting.
+   - Sending 100% of user queries to hosted LLMs introduces unnecessary token expenses, network latency, and hallucination risks on routine support tasks.
+2. **Architecture**:
+   - **Layer 1: Deterministic Fast Router (`src/domain/fastRouter.ts`)**:
+     - Embedded directly in the pure domain layer with zero external dependencies.
+     - Resolves in sub-millisecond memory execution (`mean = 0.0245 ms`, `p99 = 0.0741 ms`) with **zero LLM network calls**.
+     - Covers 4 language modes (`en`, `hinglish`, `hi`, `mixed`) without collisions on shared English words (e.g. `the`).
+     - Directly routes confident customer support intents: WhatsApp setup (WABA onboarding, phone verification OTP, webhook config, green tick), template rejections (variables, promo-in-utility, opt-out footer, general), campaign delivery (Meta 131026, delivery pending, rate limits, paused templates), and chatbot flow troubleshooting (keyword trigger, interactive buttons, 504 timeouts, fallback loops).
+     - Handles conversational lifecycles: contextual greetings, confirmations, declines, completed steps (no duplicate check loops), and fact corrections.
+   - **Layer 2: Hosted LLM Fallback (Groq `llama-3.3-70b-versatile`)**:
+     - Reserved strictly for ambiguous or novel requests.
+     - Single structured JSON response extracting `intent`, `language`, `entities`, `clarificationRequirements`, `conversationalResponse`, `evidenceExplanation`, and `nextSteps`.
+     - Zero separate translation or language-detection API calls.
+   - **Safety & Policy Zones (G8–G12)**:
+     - Billing/refunds, security/credentials/passwords/2FA, and adversarial system overrides are deterministic human-led zones that immediately block automated actions and escalate with complete pre-populated case files.
+3. **5,000-Message Synthetic Multilingual Benchmark (`tools/run_multilingual_benchmark.ts`)**:
+   - Workload: 40% English (2,000), 35% Hinglish (1,750), 15% Devanagari Hindi (750), 10% Mixed Script (500).
+   - Measured Performance:
+     - Deterministic Fast-Routed: **85.36%** (4,268 / 5,000 messages) resolved in < 0.1ms with 0 LLM calls.
+     - LLM Calls Required: **14.64%** (0.1464 calls/message).
+     - Fast Router Average Latency: **0.0245 ms** (well below 1ms target).
+     - Critical Safety Violations: **0** (all billing, security, and human requests strictly escalated).
+     - Cost Reduction vs 100% Pure LLM: **85.36%**.
+4. **Scaled 5,000-Business Cost Model (`deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx`)**:
+   - Created dedicated sheet `Multilingual Cost Model` via `.venv/Scripts/python tools/populate_multilingual_cost_model.py`.
+   - Modeled 5,000 active businesses across Low (10 msgs/mo), Base (25 msgs/mo), and High (60 msgs/mo) activity.
+   - Dynamic Excel formulas for calls, costs, and savings with Groq rates ($0.59 / $0.79 per 1M tokens) and 2.0% retry buffer.
+   - Monthly operating cost for 5,000 businesses at Base case (125k msgs/mo): **$7.61/mo** with Totoro vs. **$51.98/mo** for pure LLM ($532.40 annual savings).
+   - Strict evidence provenance labels: `[SYNTHETIC BENCHMARK]`, `[ASSUMPTION]`, `[DOCUMENTED]`, `[FORMULA]`.
+5. **Verification**:
+   - Created `tests/multilingualRouter.test.ts` (29/29 tests passing).
+   - Full test suite: **227/227 tests passing across 18 test files** (`npm test`).
+- Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/multilingualRouter.test.ts, docs/audits/multilingual_5000_benchmark_results.json, deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx).
+
+
 
 

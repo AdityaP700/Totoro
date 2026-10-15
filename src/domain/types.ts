@@ -186,6 +186,9 @@ export interface CommandProposal {
   modelId?: string;
   latencyMs?: number;
   validationOutcome?: boolean;
+  language?: string;
+  missingFields?: string[];
+  clarificationRequirements?: string | null;
 }
 
 export type EventType =

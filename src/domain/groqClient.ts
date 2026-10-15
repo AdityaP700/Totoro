@@ -199,15 +199,19 @@ export class GroqClient {
             {
               role: "system",
               content: `You are the conversation runtime controller for Cheerio Resolve, an enterprise support recovery system for WhatsApp Business API and customer messaging.
-Analyze the user's follow-up message against the active case context. Return a strictly valid JSON object matching this schema:
+Analyze the user's follow-up message against the active case context. Detect language ("en", "hinglish", "hi", or "mixed").
+Return a strictly valid JSON object matching this schema:
 {
+  "language": "en" | "hinglish" | "hi" | "mixed",
   "intent": "greeting" | "answer_question" | "provide_evidence" | "correct_information" | "ask_question" | "request_action" | "request_human" | "unclear" | "other",
   "status": string (e.g. "follow_up_interpreted", "evidence_incorporated", "question_answered"),
   "headline": string (e.g. "Delivery Status Clarification", "Deliverability & Spam Findings"),
-  "conversationalResponse": string (A direct, empathetic, technical explanation answering the user or explaining the impact of their reported findings. DO NOT echo "I received your message" or repeat completed troubleshooting),
+  "conversationalResponse": string (A direct, empathetic, technical explanation answering the user in their detected language: Hindi for Hindi queries, Hinglish for Hinglish queries, English for English queries. DO NOT echo "I received your message" or repeat completed troubleshooting),
   "evidenceExplanation": string (Explicitly label user observations as [REPORTED] and distinguish them from verified platform telemetry),
-  "nextSteps": string (Clear, actionable next step for the operator),
+  "nextSteps": string (Clear, actionable next step for the operator in their language),
   "extractedFacts": [{"key": string, "value": string, "provenance": "user_reported"}],
+  "missingFields": string[],
+  "clarificationRequirements": string | null,
   "completedCheck": string | null (e.g. "check_message_status" if user stated they performed it),
   "proposedNextStep": {
     "actionId": string,
@@ -220,6 +224,7 @@ Analyze the user's follow-up message against the active case context. Return a s
 }
 
 Rules:
+- Obtain language, intent, entities, and clarification in this ONE structured response (do not ask for separate translation).
 - Never claim an action succeeded or verified without provider read.
 - If billing dispute or security lockout is reported, intent MUST be "request_human".
 - User-reported claims must have provenance "user_reported".`,
@@ -264,6 +269,9 @@ Rules:
         modelId: this.model,
         latencyMs: Date.now() - start,
         validationOutcome: true,
+        language: typeof parsed.language === "string" ? parsed.language : undefined,
+        missingFields: Array.isArray(parsed.missingFields) ? parsed.missingFields : [],
+        clarificationRequirements: typeof parsed.clarificationRequirements === "string" ? parsed.clarificationRequirements : null,
       };
     } catch {
       clearTimeout(timeoutId);

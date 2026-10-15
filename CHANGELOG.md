@@ -2,6 +2,30 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Cost-Aware Multilingual Customer-Support Fast Router & Scaled 5,000-Business Cost Model (D-028, F-014)
+
+- **Cost-Aware Multilingual Customer-Support Fast Router (`src/domain/fastRouter.ts`)**:
+  - Implemented a 2-layer routing architecture in the pure domain layer for customer support recovery across English (`en`), Hinglish / Romanized Hindi (`hinglish`), Devanagari Hindi Script (`hi`), and Mixed Scripts (`mixed`).
+  - Layer 1 (Deterministic Fast Router): Resolves routine support inquiries with **zero LLM calls** in **sub-millisecond latency** (`mean = 0.0245 ms`). Scoped intents include:
+    - *WhatsApp Setup*: WABA onboarding, phone verification OTP, webhook 403 mismatch, official green tick badge.
+    - *Template Rejections*: Variable parameter formatting, promotional wording in utility category, marketing opt-out footer, general template rejections.
+    - *Campaign Delivery*: Meta 131026 message undeliverable, delivery pending / messages queued, daily messaging tier limits, low quality paused templates.
+    - *Chatbot Flows*: Keyword triggers, interactive quick reply buttons, webhook 504 gateway timeouts, infinite fallback loops.
+    - *Conversational Flow*: Greetings, affirmations (`confirm`), declines, completed checks (no duplicate check loops), and fact corrections.
+  - Layer 2 (Hosted Groq LLM Fallback): Reserved strictly as a single-turn structured fallback for ambiguous or novel requests. Gathers intent, language, entities, and next steps in one structured payload with no separate translation API calls.
+  - Mandatory Safety Zones (G8–G12): Billing disputes, payment deductions, account compromised/passwords/2FA, explicit human agent requests, and adversarial prompt injections trigger immediate human handoff with complete case dossiers or block automated execution.
+- **5,000-Message Synthetic Multilingual Benchmark (`tools/run_multilingual_benchmark.ts`)**:
+  - Benchmarked 5,000 synthetic support messages (40% EN, 35% Hinglish, 15% Devanagari Hindi, 10% Mixed).
+  - Measured **85.36% deterministic fast-routing rate** (4,268 / 5,000), **14.64% LLM fallback rate**, **0.0245 ms average latency**, **0 safety violations**, and **85.36% cost savings vs 100% pure LLM**.
+- **Scaled 5,000-Business Cost Model (`deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx`)**:
+  - Generated dedicated `Multilingual Cost Model` tab via `.venv/Scripts/python tools/populate_multilingual_cost_model.py`.
+  - Scaled across 5,000 active businesses with Low (10), Base (25), and High (60) support messages/month scenarios.
+  - Incorporated dynamic Excel formulas with Groq pricing ($0.59 / $0.79 per 1M tokens), 2.0% retry buffer, and strict evidence provenance tags (`[SYNTHETIC BENCHMARK]`, `[ASSUMPTION]`, `[DOCUMENTED]`, `[FORMULA]`).
+  - Demonstrates base-case monthly operating cost of **$7.61/mo** with Totoro vs. **$51.98/mo** pure LLM ($532.40 annual savings).
+- **Verification**:
+  - Added unit and integration suite `tests/multilingualRouter.test.ts` (29/29 tests passing).
+  - Full repository test suite: **227/227 tests passing across 18 test files** (`npm test`).
+
 ## 2026-10-15 — Founder Revenue Analytics Route Preservation & Support UI Leakage Suppression (D-027, F-013)
 
 - **Founder Business Analytics Flow & Route Preservation**:

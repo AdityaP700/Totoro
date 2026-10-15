@@ -116,6 +116,22 @@ Running log of failed commands/tests, diagnosis, attempted fixes, unresolved iss
   4. In `workspace/page.tsx`, defined `isBusinessCategory` and guarded `isMandatoryHumanZone`, `isHumanHandoffStage`, the 5-stage investigation timeline, specialist assignment banner, and `diagnosisSummary`.
   5. Added regression test `F0` in `tests/businessScenarios.test.ts` verifying all 4 turns route to `analyze_data`, and Test 26 in `tests/apiIntegration.test.ts` verifying complete HTTP API contracts. 198/198 tests pass.
 
+### F-014 · Regex boundary collisions in multilingual Romanized Hindi (Hinglish) pattern matching
+- Error:
+  1. Language detector misclassified English sentences like `"I already checked the delivery status"` as `hinglish`.
+  2. Operational requests containing negation phrases like `"phone number verify nahi ho raha"` were misclassified as proposal `decline` actions.
+  3. Devanagari account hack and human escalation requests (e.g. `"खाता हैक हो गया है, तुरंत पासवर्ड और एक्सेस रीसेट करें"`, `"Support specialist human से बात करवाएं"`) initially bypassed regex anchors and fell into `ambiguous` with 0 safety violation flag.
+- Diagnosis:
+  1. The Hinglish marker `\b(hai|hain|tha|thi|the|hoga)\b` included the token `\bthe\b`, which directly collides with the standard English definite article `"the"`.
+  2. The confirmation and decline regexes used unanchored `\b(nahi)\b`, matching any Hindi sentence expressing a technical failure or negation (`verify nahi ho raha`).
+  3. `SECURITY_PATTERNS` and `HUMAN_REQUEST_PATTERNS` only included Latin Hinglish script markers for account compromise (`account hack ho gaya`) and English human requests, lacking coverage for Devanagari script variations and mixed-script verbs (`बात करवाएं`).
+- Fix:
+  1. Removed solitary `the` from `HINGLISH_MARKERS`; anchored Hindi past plural forms to compound phrases (`gaye the`, `kar rahe the`, `aaye the`).
+  2. Anchored `CONFIRM_PATTERNS` and `DECLINE_PATTERNS` to beginning-of-string anchors or explicit action imperatives (`apply kar do`, `fix laga do`, `mat karo`, `cancel karo`).
+  3. Added Devanagari and mixed-script coverage in `SECURITY_PATTERNS` (`/खाता\s*(हैक|हैंक)|पासवर्ड[^\n]{0,30}रीसेट|एक्सेस\s*रीसेट/i`) and `HUMAN_REQUEST_PATTERNS` (`/\b(human|specialist|support)\b[^\n]{0,30}(baat|बात|karwao|karwaen|karwayen|karayein|se baat)/i` and `/मानव\s*विशेषज्ञ|कस्टमर\s*केयर|एजेंट\s*से\s*बात|इंसान\s*से\s*बात|बात\s*(करवाएं|करवाओ|करनी|कराओ)/i`).
+  4. Verified across 5,000 synthetic benchmark messages: critical safety violations dropped to exactly **0**, with 100% policy enforcement.
+
 ## Unresolved issues
-- None (all 198 tests across 17 test suites passing; Next.js 16 and Vite builds clean).
+- None (all 227 tests across 18 test suites passing; 5,000-message benchmark passing with 0 safety violations; Next.js 16 and Vite builds clean).
+
 

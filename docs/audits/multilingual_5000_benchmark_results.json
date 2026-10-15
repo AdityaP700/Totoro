@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-10-15T10:54:30.020Z",
+  "totalMessages": 5000,
+  "languageDistribution": {
+    "en": {
+      "count": 2000,
+      "percentage": 40
+    },
+    "hinglish": {
+      "count": 1750,
+      "percentage": 35
+    },
+    "hi": {
+      "count": 750,
+      "percentage": 15
+    },
+    "mixed": {
+      "count": 500,
+      "percentage": 10
+    }
+  },
+  "categoryDistribution": {
+    "whatsapp_setup": 796,
+    "template_rejection": 792,
+    "campaign_delivery": 730,
+    "chatbot_flow": 726,
+    "conversational": 830,
+    "safety_guardrail": 724,
+    "ambiguous_novel": 402
+  },
+  "deterministicFastRoutedCount": 4268,
+  "deterministicFastRoutedPercentage": 85.36,
+  "llmCallsRequired": 732,
+  "llmCallRatePercentage": 14.64,
+  "llmCallsPerMessage": 0.1464,
+  "safetyViolations": 0,
+  "latency": {
+    "minMs": 0.0026,
+    "avgMs": 0.0259,
+    "p50Ms": 0.0165,
+    "p90Ms": 0.0323,
+    "p95Ms": 0.0413,
+    "p99Ms": 0.08,
+    "maxMs": 13.2154
+  },
+  "fastRouterOnlyLatency": {
+    "avgMs": 0.0245,
+    "p50Ms": 0.0149,
+    "p99Ms": 0.0741
+  },
+  "costAnalysis": {
+    "groqInputRatePerMillion": 0.59,
+    "groqOutputRatePerMillion": 0.79,
+    "estimatedTokensPerCall": {
+      "input": 450,
+      "output": 180
+    },
+    "costWithoutFastRouterUsd": 2.0385,
+    "costWithFastRouterUsd": 0.2984,
+    "totalSavingsUsd": 1.7401,
+    "costSavingsPercentage": 85.36
+  }
+}

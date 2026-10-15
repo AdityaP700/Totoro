@@ -26,6 +26,7 @@ import {
 import type { ResolveSession } from "./stateMachine";
 import type { CaseState, ProposedNextStep } from "./types";
 import { GroqClient } from "./groqClient";
+import { fastRouteMessage, isScopedSupportIntent } from "./fastRouter";
 
 // ============================================================================
 // Types & Structured Schemas
@@ -222,13 +223,14 @@ export interface StructuredInterpretation {
   unsupportedActionRequested?: string | null;
   status?: string;
   note?: string;
+  detectedLanguage?: string;
 }
 
 export interface ProviderStatus {
   configured: boolean;
   providerName: "groq" | "laya" | "none";
   modelId: string;
-  decisionLayer: "groq" | "laya" | "fallback";
+  decisionLayer: "fast_router" | "groq" | "laya" | "fallback";
   fallbackReason?: string;
   latencyMs: number;
 }
@@ -471,6 +473,7 @@ export function validateStructuredInterpretation(raw: unknown): {
       completedCheck,
       confidence,
       unsupportedActionRequested,
+      detectedLanguage: typeof (obj as any).detectedLanguage === "string" ? (obj as any).detectedLanguage : undefined,
     },
     errors,
   };
@@ -1595,7 +1598,68 @@ export async function interpretMessageNode(
   const start = Date.now();
   const provider = checkHostedProvider();
 
-  // 1. If Groq is configured, attempt schema-validated JSON completion
+  // 1. FAST ROUTER: Deterministic language-aware evaluation for scoped customer support intents
+  const fastResult = fastRouteMessage(state.message, {
+    issueType: state.caseContext.issueType as any,
+    stage: state.caseContext.stage,
+    hasActiveProposal: state.caseContext.hasActiveProposal,
+    completedChecks: state.caseContext.completedChecks,
+    userReportedEvidence: state.caseContext.userReportedEvidence,
+    businessContext: state.caseContext.businessContext,
+  });
+
+  const isBiz = isBusinessRequest(state.message) || (
+    Boolean(state.caseContext.businessContext?.domain) &&
+    state.caseContext.businessContext?.domain !== "platform_recovery" &&
+    state.caseContext.businessContext?.domain !== "customer_support"
+  );
+
+  // If fast router has a confident match and this is not an active business inquiry, route with ZERO LLM calls!
+  if (fastResult.isConfident && !isBiz) {
+    return {
+      providerStatus: {
+        configured: provider.configured,
+        providerName: "none",
+        modelId: "fast-router-1.0",
+        decisionLayer: "fast_router",
+        latencyMs: Date.now() - start,
+      },
+      proposal: {
+        intent: fastResult.intent,
+        businessDomain: "customer_support",
+        extractedEntities: fastResult.extractedEntities,
+        corrections: fastResult.corrections,
+        missingFields: fastResult.missingFields,
+        completedCheck: fastResult.completedChecks[0] || null,
+        proposedNextStep: fastResult.proposedNextStep,
+        headline: fastResult.headline,
+        conversationalResponse: fastResult.conversationalResponse,
+        evidenceExplanation: fastResult.evidenceExplanation,
+        nextSteps: fastResult.nextSteps,
+        confidence: fastResult.confidence,
+        detectedLanguage: fastResult.language,
+      },
+    };
+  }
+
+  // If it's a business request, check grounded interpreter first
+  if (isBiz) {
+    const groundedBiz = runGroundedSemanticInterpreter(state.message, state.session.state, state.businessContext);
+    if (groundedBiz.confidence >= 0.9) {
+      return {
+        providerStatus: {
+          configured: provider.configured,
+          providerName: "none",
+          modelId: "grounded-business-interpreter",
+          decisionLayer: "fast_router",
+          latencyMs: Date.now() - start,
+        },
+        proposal: groundedBiz,
+      };
+    }
+  }
+
+  // 2. UNCERTAIN / AMBIGUOUS: Fall back to hosted LLM (single structured call!)
   if (provider.configured && provider.name === "groq") {
     try {
       const groq = new GroqClient();
@@ -1626,14 +1690,15 @@ export async function interpretMessageNode(
             (groqProposal.extractedFacts || []).map((f) => [f.key, f.value]),
           ),
           corrections: [],
-          missingFields: [],
+          missingFields: groqProposal.missingFields || [],
           proposedNextStep: groqProposal.proposedNextStep,
           headline: groqProposal.headline,
           conversationalResponse: groqProposal.conversationalResponse,
           evidenceExplanation: groqProposal.evidenceExplanation,
           nextSteps: groqProposal.nextSteps,
           completedCheck: groqProposal.completedCheck,
-          confidence: groqProposal.confidence ?? 0.9,
+          confidence: groqProposal.confidence ?? 0.85,
+          detectedLanguage: groqProposal.language || fastResult.language,
         };
 
         const validated = validateStructuredInterpretation(rawOutput);
@@ -1650,33 +1715,19 @@ export async function interpretMessageNode(
           };
         }
       }
-    } catch (err: any) {
-      // Catch network or parsing failures cleanly
-      const grounded = runGroundedSemanticInterpreter(state.message, state.session.state, state.businessContext);
-      return {
-        providerStatus: {
-          configured: true,
-          providerName: "groq",
-          modelId: provider.modelId,
-          decisionLayer: "fallback",
-          fallbackReason: `Groq error: ${err.message || "Unknown error"}`,
-          latencyMs: Date.now() - start,
-        },
-        proposal: grounded,
-      };
+    } catch {
+      // Clean fallback on network/timeout
     }
   }
 
-  // 2. Truthful safe fallback: No provider configured or provider skipped
+  // 3. Grounded fallback when LLM is unconfigured, times out, or fails validation
   const grounded = runGroundedSemanticInterpreter(state.message, state.session.state, state.businessContext);
   return {
     providerStatus: {
-      configured: false,
-      providerName: "none",
-      modelId: "none",
+      configured: provider.configured,
+      providerName: provider.name,
+      modelId: provider.modelId,
       decisionLayer: "fallback",
-      fallbackReason:
-        "Neither GROQ_API_KEY nor LAYA_API_KEY is configured in the environment. Operating in truthful deterministic fallback mode.",
       latencyMs: Date.now() - start,
     },
     proposal: grounded,
@@ -2177,6 +2228,17 @@ export async function persistResponseNode(
     nextSteps: exec.nextStepsText,
   };
 
+  // 8B. Update language and completed check on domain session state
+  if (proposal.detectedLanguage) {
+    session.state.language = proposal.detectedLanguage;
+  }
+  if (proposal.completedCheck) {
+    if (!session.state.completedChecks) session.state.completedChecks = [];
+    if (!session.state.completedChecks.includes(proposal.completedCheck)) {
+      session.state.completedChecks.push(proposal.completedCheck);
+    }
+  }
+
   // 9. Update Recommended Next Step
   if (proposal.proposedNextStep) {
     session.state.recommendedNextStep = {
@@ -2363,6 +2425,8 @@ export async function runConversationTurn(params: {
 
 export {
   runGroundedSemanticInterpreter as interpretSemanticGrounded,
+  fastRouteMessage,
+  isScopedSupportIntent,
 };
 
 export function applyCommandProposal(

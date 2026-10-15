@@ -191,12 +191,14 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - Enterprise Template Selector & Technical Details Inspector Redesign gate: PASSED (Custom accessible popover selector, structured diagnostic inspector with execution summary, vertical timeline, evidence trace, and raw log viewer, 138/138 tests passing, Turbopack clean across 21 routes, Vite build clean).
 - Operational Business Scenarios & Capability Boundaries gate: PASSED (All 12 multi-turn business scenarios F1–F2, S1–S2, M1–M2, W1–W2, O1–O2, C1, X1 verified; capability boundaries enforced; 196/196 tests passing across 17 test files).
 - Founder Revenue Analytics & Support UI Leakage Remediation gate: PASSED (4-turn revenue drop journey routed 100% to analyze_data; support triage timeline, specialist banner, and human escalation badge completely suppressed for business domains; 198/198 tests passing across 17 test files; Vite and Next.js builds clean).
+- Cost-Aware Multilingual Routing & Scaled 5,000-Business Benchmark gate: PASSED (Deterministic sub-millisecond fast router in domain layer covering English, Hinglish, Devanagari Hindi, and Mixed-Script across WhatsApp setup, template rejection, campaign delivery, chatbot flows, and conversational lifecycle; 5,000 synthetic message benchmark completed with 85.36% deterministic routing, 0.0245 ms average latency, 0 safety violations, and 85.36% cost savings; scaled cost model populated in `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx` across 5,000 active businesses; 227/227 tests passing across 18 test files; commit ready).
 
 ## Exact next command / task
 
-The founder business analytics routing and support triage UI leakage fixes are complete and verified. Commands available:
-- `npm test`: run full 198-test suite across 17 test files.
+The multilingual cost-aware fast router, 5,000-message benchmark, and cost workbook update are complete and verified:
+- `npm test`: run full 227-test suite across 18 test files.
+- `npx tsx tools/run_multilingual_benchmark.ts`: run the 5,000 synthetic message multilingual benchmark.
+- `.venv/Scripts/python tools/populate_multilingual_cost_model.py`: refresh the 5,000-business cost model in `deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx`.
+- `npm run dev`: run local Vite prototype UI on http://localhost:5173.
 - `npm run frontend:dev`: start Next.js frontend on http://localhost:3000.
-- `npm run frontend:build`: build Next.js production bundle with Turbopack (21/21 routes clean).
-- `npm run dev`: run original Vite prototype UI on http://localhost:5173.
-- `npx tsx src/cli/resolveCli.ts --message "<message>"`: run CLI recovery agent.
+
