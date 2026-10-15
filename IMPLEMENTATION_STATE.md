@@ -90,6 +90,8 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Linked `TOTORO` brand logo in workspace sidebar to `/` (main landing page) with back indicator icon (`← TOTORO`) and tooltip.
   - Added dedicated clickable `← Totoro` back element to top workspace breadcrumb hierarchy leading to `/`.
   - Verification: 233/233 vitest tests passing; Next.js 16 production build clean.
+- **Product Intern Assignment Submission Document (2026-10-15)**:
+  - Created complete submission document `docs/CHEERIO_RESOLVE_ASSIGNMENT_SUBMISSION.md` answering Parts 1–4 of Cheerio Assignment A with grounded prototype evidence, 5,000-business unit economics, and test results.
 
 ## Current phase
 

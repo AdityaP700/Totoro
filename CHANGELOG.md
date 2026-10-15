@@ -2,6 +2,12 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Cheerio Product Intern Assignment Submission Document (Parts 1–4)
+
+- **Comprehensive Assignment Documentation (`docs/CHEERIO_RESOLVE_ASSIGNMENT_SUBMISSION.md`)**:
+  - Authored complete, end-to-end assignment response covering Part 1 (Solution & Product Strategy), Part 2 (Design Prototype & Journey Walkthrough), Part 3 (AI Tooling, Prompts & Reflection), and Part 4 (Numbers, 5,000-Business Cost Model, Packaging, and Audit Controls).
+  - Linked to interactive Next.js 16 workspace (`http://localhost:3000/workspace`), Excel workbook (`deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx`), and 233 automated passing Vitest tests.
+
 ## 2026-10-15 — Clickable Totoro Brand & Header Back Navigation to Landing Page (D-031)
 
 - **Landing Page Navigation from Workspace**:
