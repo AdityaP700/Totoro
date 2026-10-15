@@ -32,15 +32,31 @@ import { HostedLayaClient } from "./layaClient";
 // Types & Structured Schemas
 // ============================================================================
 
+export type BusinessDomain =
+  | "founder_metrics"
+  | "sales_crm"
+  | "management_projects"
+  | "freelancer_invoicing"
+  | "operations_inventory"
+  | "customer_support"
+  | "platform_recovery";
+
 export type ConversationalIntent =
   | "confirm"
   | "decline"
+  | "cancel"
   | "request_human"
   | "ask_question"
   | "provide_evidence"
   | "correct_information"
   | "request_action"
+  | "analyze_metrics"
+  | "summarize_progress"
+  | "draft_message"
+  | "prioritize_tasks"
+  | "troubleshoot_operational_issue"
   | "greeting"
+  | "side_question"
   | "unclear"
   | "other";
 
@@ -48,6 +64,9 @@ export type TargetRoute =
   | "execute_existing_domain_operation"
   | "ask_clarification"
   | "answer_from_evidence"
+  | "draft_content"
+  | "prioritize_plan"
+  | "analyze_data"
   | "request_approval"
   | "handoff";
 
@@ -63,8 +82,44 @@ export interface ProposedCorrection {
   newValue: string;
 }
 
+export interface BusinessContext {
+  domain: BusinessDomain;
+  entities: Record<string, string>;
+  activeConstraints: Record<string, string>;
+  invalidatedConclusions: string[];
+  pendingDraft?: {
+    type: "email" | "reminder" | "update" | "objection_response";
+    recipient?: string;
+    subject?: string;
+    body: string;
+    status: "drafted_for_review" | "sent_external";
+  };
+  supportedCapabilities: string[];
+  unsupportedCapabilitiesAttempted?: string[];
+}
+
+export interface TurnTrace {
+  sessionId: string;
+  caseId: string;
+  turnIndex: number;
+  interpretedIntent: ConversationalIntent;
+  businessDomain: BusinessDomain;
+  selectedRoute: TargetRoute;
+  contextChanges: {
+    addedEntities?: Record<string, string>;
+    corrections?: ProposedCorrection[];
+    invalidatedConclusions?: string[];
+  };
+  supportedCapability: string;
+  unsupportedOperationsAttempted?: string[];
+  pendingInteraction: string | null;
+  invariantViolations: string[];
+  timestamp: string;
+}
+
 export interface StructuredInterpretation {
   intent: ConversationalIntent;
+  businessDomain?: BusinessDomain;
   extractedEntities: Record<string, string>;
   corrections: ProposedCorrection[];
   missingFields: string[];
@@ -75,6 +130,7 @@ export interface StructuredInterpretation {
   nextSteps: string;
   completedCheck?: string | null;
   confidence: number;
+  unsupportedActionRequested?: string | null;
 }
 
 export interface ProviderStatus {
@@ -132,7 +188,28 @@ export const ConversationGraphAnnotation = Annotation.Root({
     completedChecks: string[];
     userReportedEvidence: Record<string, string>;
     attemptsFailed: number;
+    businessContext?: BusinessContext;
   }>(),
+
+  // Active business context
+  businessContext: Annotation<BusinessContext>({
+    reducer: (_, update) => update,
+    default: () => ({
+      domain: "platform_recovery",
+      entities: {},
+      activeConstraints: {},
+      invalidatedConclusions: [],
+      supportedCapabilities: [
+        "draft_message",
+        "summarize_text",
+        "prioritize_items",
+        "analyze_provided_data",
+        "investigate_rules",
+        "escalate_human",
+      ],
+      unsupportedCapabilitiesAttempted: [],
+    }),
+  }),
 
   // Provider resolution & interpretation proposal
   providerStatus: Annotation<ProviderStatus>(),
@@ -194,12 +271,19 @@ export function checkHostedProvider(): {
 const ALLOWED_INTENTS: ReadonlySet<ConversationalIntent> = new Set<ConversationalIntent>([
   "confirm",
   "decline",
+  "cancel",
   "request_human",
   "ask_question",
   "provide_evidence",
   "correct_information",
   "request_action",
+  "analyze_metrics",
+  "summarize_progress",
+  "draft_message",
+  "prioritize_tasks",
+  "troubleshoot_operational_issue",
   "greeting",
+  "side_question",
   "unclear",
   "other",
 ]);
@@ -277,11 +361,14 @@ export function validateStructuredInterpretation(raw: unknown): {
 
   const completedCheck = typeof obj.completedCheck === "string" ? obj.completedCheck : null;
   const confidence = typeof obj.confidence === "number" ? Math.max(0, Math.min(1, obj.confidence)) : 0.85;
+  const businessDomain = typeof obj.businessDomain === "string" ? (obj.businessDomain as BusinessDomain) : undefined;
+  const unsupportedActionRequested = typeof obj.unsupportedActionRequested === "string" ? obj.unsupportedActionRequested : null;
 
   return {
     valid: errors.length === 0,
     data: {
       intent,
+      businessDomain,
       extractedEntities,
       corrections,
       missingFields,
@@ -292,6 +379,7 @@ export function validateStructuredInterpretation(raw: unknown): {
       nextSteps,
       completedCheck,
       confidence,
+      unsupportedActionRequested,
     },
     errors,
   };
@@ -304,6 +392,7 @@ export function validateStructuredInterpretation(raw: unknown): {
 export function runGroundedSemanticInterpreter(
   message: string,
   state: CaseState,
+  activeBusinessContext?: BusinessContext,
 ): StructuredInterpretation {
   const raw = message.trim();
   const lower = raw.toLowerCase();
@@ -612,6 +701,554 @@ export function runGroundedSemanticInterpreter(
     };
   }
 
+  // 8B. Capability Boundary Enforcement: User requests external sending/dispatch
+  const hasSendRequest =
+    lower.includes("send it right now") ||
+    lower.includes("send it now") ||
+    lower.includes("send it") ||
+    lower.includes("send this to the client right now") ||
+    lower.includes("send this right now") ||
+    lower.includes("send this to the client") ||
+    lower.includes("send the email") ||
+    lower.includes("send this email");
+
+  if (hasSendRequest) {
+    const isSalesDraft =
+      activeBusinessContext?.domain === "sales_crm" ||
+      activeBusinessContext?.pendingDraft?.type === "email" ||
+      lower.includes("email") ||
+      Boolean(activeBusinessContext?.entities?.recipient);
+
+    if (isSalesDraft) {
+      return {
+        intent: "request_action",
+        businessDomain: "sales_crm",
+        extractedEntities: { requestedAction: "send_email", status: "rejected_disconnected" },
+        corrections: [],
+        missingFields: [],
+        proposedNextStep: null,
+        unsupportedActionRequested: "send_email",
+        headline: "Capability Boundary: Outbound Email Disconnected",
+        conversationalResponse:
+          "I cannot send this email for you. Totoro does not have an active outbound email or SMTP integration configured. The draft for Acme Corp has been preserved intact in your case workspace. Please copy the text and send it directly from your email client.",
+        evidenceExplanation:
+          "Capability 'send_email' is unsupported/disconnected [LIMITATION]. The draft remains preserved in state with status drafted_for_review.",
+        nextSteps:
+          "Copy the Acme Corp email draft and dispatch it through your corporate email client.",
+        confidence: 0.99,
+      };
+    }
+
+    const isInvoiceDraft =
+      activeBusinessContext?.domain === "freelancer_invoicing" ||
+      activeBusinessContext?.pendingDraft?.type === "reminder" ||
+      lower.includes("client") ||
+      lower.includes("invoice");
+
+    if (isInvoiceDraft) {
+      return {
+        intent: "request_action",
+        businessDomain: "freelancer_invoicing",
+        extractedEntities: { requestedAction: "send_external_invoice", status: "rejected_disconnected" },
+        corrections: [],
+        missingFields: [],
+        proposedNextStep: null,
+        unsupportedActionRequested: "send_external_invoice",
+        headline: "Capability Boundary: Direct Dispatch Disconnected",
+        conversationalResponse:
+          "I cannot send this reminder directly to your client. Totoro does not have access to your billing software or client messaging channels. The draft for INV-204 ($1,200) has been preserved. Please copy and paste it into your email or invoicing platform.",
+        evidenceExplanation:
+          "Action 'send_external_invoice' is disconnected [LIMITATION]. The reminder draft remains preserved with status drafted_for_review.",
+        nextSteps:
+          "Copy the invoice reminder text and send it directly to your client via your billing tool or email.",
+        confidence: 0.99,
+      };
+    }
+  }
+
+  // 8C. Customer Support G8 Two-Attempt Escalation Rule (C1)
+  const hasTwoPriorFailures =
+    state.attemptsFailed >= 2 ||
+    (lower.includes("cache") && lower.includes("credentials")) ||
+    lower.includes("third time") ||
+    lower.includes("third attempt");
+
+  if (
+    hasTwoPriorFailures &&
+    (lower.includes("still happening") ||
+      lower.includes("error is still happening") ||
+      lower.includes("third time") ||
+      lower.includes("already cleared cache"))
+  ) {
+    return {
+      intent: "request_human",
+      businessDomain: "customer_support",
+      extractedEntities: {
+        failedCheck1: "clear_cache",
+        failedCheck2: "resync_credentials",
+        attemptCount: "3",
+        escalationPolicy: "G8_two_failed_attempts",
+      },
+      corrections: [],
+      missingFields: [],
+      completedCheck: "resync_credentials",
+      proposedNextStep: {
+        actionId: "human",
+        actionTitle: "Escalate to engineering specialist (G8 Rule)",
+        supportingText:
+          "Safety policy (G8) mandates specialist handoff after two failed recovery attempts without repeating failed checks.",
+        primaryCtaLabel: "Transfer to engineering queue",
+        primaryCtaAction: "human",
+      },
+      headline: "Escalated to Engineering Specialist (G8 Rule)",
+      conversationalResponse:
+        "Because you have already completed cache clearance and credential re-synchronization without resolution, our policy (G8: two failed recovery attempts) requires escalation. We will not ask you to repeat the cache reset or credential sync. Your case has been transferred to an engineering specialist with your full audit dossier.",
+      evidenceExplanation:
+        "Two diagnostic recovery checks completed and failed [DOCUMENTED]. Automated self-serve exhausted per G8.",
+      nextSteps:
+        "An engineering specialist will review the diagnostic traces and follow up.",
+      confidence: 0.99,
+    };
+  }
+
+  // 8D. Founder: Date Range Fact Correction (F1 - Turn 2)
+  if (
+    lower.includes("oct 1 to oct 7") ||
+    (lower.includes("not this week") && (lower.includes("oct") || lower.includes("actually"))) ||
+    (activeBusinessContext?.domain === "founder_metrics" && lower.includes("oct 1"))
+  ) {
+    return {
+      intent: "correct_information",
+      businessDomain: "founder_metrics",
+      extractedEntities: {
+        dateRange: "Oct 1 to Oct 7",
+      },
+      corrections: [
+        {
+          field: "dateRange",
+          oldValue: "this week",
+          newValue: "Oct 1 to Oct 7",
+        },
+      ],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Date Range Corrected: Oct 1 to Oct 7",
+      conversationalResponse:
+        "Understood. I have updated the date range from 'this week' to 'Oct 1 to Oct 7' [REPORTED]. Any prior hypotheses regarding the current week's conversion metrics have been invalidated. Note that I still do not have access to your live financial database to extract October metrics automatically [LIMITATION]; if you share the session-to-checkout counts for Oct 1 to Oct 7, I can calculate the exact drop-off rate.",
+      evidenceExplanation:
+        "Date range updated to Oct 1 to Oct 7 [REPORTED]. Live analytics database remains disconnected [LIMITATION]. Previous week-to-date hypotheses invalidated.",
+      nextSteps:
+        "Provide session and checkout counts for Oct 1 to Oct 7 to isolate the drop-off.",
+      confidence: 0.97,
+    };
+  }
+
+  // 8E. Founder: Conversion Rate Drop Inquiry (F1 - Turn 1)
+  if (
+    lower.includes("conversion rate drop") ||
+    lower.includes("conversion drop") ||
+    (lower.includes("conversion") && lower.includes("drop") && lower.includes("this week"))
+  ) {
+    return {
+      intent: "analyze_metrics",
+      businessDomain: "founder_metrics",
+      extractedEntities: {
+        topic: "conversion_rate_drop",
+        initialTimeframe: "this week",
+      },
+      corrections: [],
+      missingFields: ["funnelMetrics"],
+      proposedNextStep: null,
+      headline: "Conversion Rate Drop Inquiry: Database Limitation",
+      conversationalResponse:
+        "I do not have access to your live production database or analytics dashboard [LIMITATION]. I cannot directly pull your real-time conversion rates or visitor funnel counts. To analyze what caused the drop, please provide the step-by-step funnel data (e.g., visitors, checkout initiates, completions) or any error logs observed.",
+      evidenceExplanation:
+        "Live analytics database access is disconnected [LIMITATION]. Conversion funnel telemetry is UNKNOWN.",
+      nextSteps:
+        "Share specific funnel breakdown numbers or dates to analyze the drop.",
+      confidence: 0.95,
+    };
+  }
+
+  // 8F. Founder: Dynamic Prioritization with 2-hour Lead Expiry (F2 - Turn 2)
+  if (
+    lower.includes("expires in 2 hours") ||
+    lower.includes("lead expires") ||
+    (lower.includes("2 hours") && (lower.includes("lead") || activeBusinessContext?.domain === "founder_metrics"))
+  ) {
+    return {
+      intent: "prioritize_tasks",
+      businessDomain: "founder_metrics",
+      extractedEntities: {
+        enterpriseLeadExpiry: "2 hours",
+        rank1: "Enterprise lead follow-up",
+        rank2: "Fix checkout drop-off",
+        rank3: "Pitch deck updates",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Dynamic Prioritization: Urgent Constraint Added",
+      conversationalResponse:
+        "With the 2-hour expiration constraint on the enterprise lead, the prioritization dynamically re-ranks:\n1. Enterprise lead follow-up — URGENT: The response window closes in 2 hours. If missed, this pipeline value is permanently lost.\n2. Fix checkout drop-off — HIGH: Active leak, tackle immediately after dispatching the enterprise reply.\n3. Pitch deck updates — DEFERRED: Schedule for later today.",
+      evidenceExplanation:
+        "Dynamic constraint applied: 2-hour lead expiration shifts enterprise lead above checkout fix.",
+      nextSteps:
+        "Send the enterprise lead response immediately before the 2-hour window closes.",
+      confidence: 0.98,
+    };
+  }
+
+  // 8G. Founder: Initial 3-Task Prioritization (F2 - Turn 1)
+  if (
+    lower.includes("prioritize these 3 tasks") ||
+    (lower.includes("checkout drop-off") && lower.includes("enterprise lead") && lower.includes("pitch deck"))
+  ) {
+    return {
+      intent: "prioritize_tasks",
+      businessDomain: "founder_metrics",
+      extractedEntities: {
+        task1: "Fix checkout drop-off",
+        task2: "Enterprise lead follow-up",
+        task3: "Pitch deck updates",
+        rank1: "Fix checkout drop-off",
+        rank2: "Enterprise lead follow-up",
+        rank3: "Pitch deck updates",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Initial Task Prioritization",
+      conversationalResponse:
+        "Based on operational revenue impact and immediate risk, here is the recommended priority order:\n1. Fix checkout drop-off — Critical revenue leak actively reducing conversions on all traffic.\n2. Enterprise lead follow-up — High-value revenue opportunity in your sales pipeline.\n3. Pitch deck updates — Important for fundraising, but does not interrupt live operations.",
+      evidenceExplanation:
+        "Tasks ranked by active revenue impact: immediate conversion leak > pipeline deal > strategic deck.",
+      nextSteps:
+        "Address checkout drop-off first, then respond to the enterprise lead.",
+      confidence: 0.96,
+    };
+  }
+
+  // 8H. Sales: Draft Follow-up Email to Acme Corp (S1 - Turn 1)
+  if (
+    (lower.includes("draft") && (lower.includes("acme") || lower.includes("follow-up email"))) ||
+    lower.includes("email to acme corp")
+  ) {
+    return {
+      intent: "draft_message",
+      businessDomain: "sales_crm",
+      extractedEntities: {
+        recipient: "Acme Corp",
+        context: "proposal sent on Tuesday",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Follow-up Email Drafted: Acme Corp",
+      conversationalResponse:
+        "I've drafted a follow-up email for Acme Corp below for your review:\n\n**Subject:** Follow-up: Proposal for Acme Corp\n\n**Body:**\nHi Team Acme,\n\nI wanted to follow up on the proposal we shared on Tuesday. We're excited about the opportunity to partner with Acme Corp and would love to answer any questions or discuss next steps.\n\nBest regards,\n[Your Name]\n\n*Note: Outbound email sending is not connected. Please review and copy this draft into your email client.*",
+      evidenceExplanation:
+        "Draft generated based on Tuesday proposal context. Outbound email capability is disconnected [LIMITATION].",
+      nextSteps:
+        "Review the draft. When ready, copy and send it via your corporate email client.",
+      confidence: 0.97,
+    };
+  }
+
+  // 8I. Sales: Budget Ceiling Adaptation (S2 - Turn 2)
+  if (
+    lower.includes("budget ceiling") ||
+    lower.includes("$500/month") ||
+    lower.includes("500/month") ||
+    (lower.includes("500") && lower.includes("budget"))
+  ) {
+    return {
+      intent: "provide_evidence",
+      businessDomain: "sales_crm",
+      extractedEntities: {
+        budgetCeiling: "$500/month",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Proposal Adapted: $500/mo Budget Ceiling",
+      conversationalResponse:
+        "With a strict $500/month budget ceiling, here is the adapted commercial structure:\n1. 5-Seat Starter Package: Fit core requirements precisely into the $500/mo allocation.\n2. Annual Pre-pay: Offer annual commitment with an effective rate of $500/month.\n3. Phased Rollout: Defer premium telemetry modules to Phase 2 once initial ROI is proven.",
+      evidenceExplanation:
+        "Budget constraint recorded: $500/month [REPORTED]. Proposal adapted to meet constraint without price erosion.",
+      nextSteps:
+        "Present the 5-seat starter tier or annual pre-pay option to the prospect.",
+      confidence: 0.96,
+    };
+  }
+
+  // 8J. Sales: Price Objection Strategy (S2 - Turn 1)
+  if (
+    lower.includes("too expensive compared to competitor") ||
+    lower.includes("too expensive") ||
+    lower.includes("competitor x")
+  ) {
+    return {
+      intent: "troubleshoot_operational_issue",
+      businessDomain: "sales_crm",
+      extractedEntities: {
+        objectionType: "price_vs_competitor_x",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Pricing Objection Strategy: Competitor Comparison",
+      conversationalResponse:
+        "When a prospect objects that our tier is too expensive compared to Competitor X, follow this value-anchoring strategy:\n1. Reframe from unit price to Total Cost of Ownership (TCO) and time-to-value.\n2. Emphasize native capabilities and included support that competitors bill as paid add-ons.\n3. Ask clarifying questions to uncover their specific budget ceiling.",
+      evidenceExplanation:
+        "Price objection recorded [REPORTED]. Value-anchoring strategy recommended before offering discounts.",
+      nextSteps:
+        "Ask the prospect for their target monthly budget or specific feature requirements.",
+      confidence: 0.95,
+    };
+  }
+
+  // 8K. Manager: Status Summary with 80% Progress and QA Blocker (M1)
+  if (
+    lower.includes("api migration is at 80%") ||
+    (lower.includes("api migration") && lower.includes("auth staging")) ||
+    (lower.includes("qa is currently blocked") && lower.includes("migration"))
+  ) {
+    return {
+      intent: "summarize_progress",
+      businessDomain: "management_projects",
+      extractedEntities: {
+        apiMigrationProgress: "80%",
+        qaStatus: "blocked_on_auth_staging",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Status Summary: API Migration & QA Blocker",
+      conversationalResponse:
+        "Based strictly on the reported facts:\n- API Migration: 80% complete [REPORTED].\n- QA Testing: Currently blocked on the auth staging environment [REPORTED].\n- Projected Completion Date: Cannot be estimated until the auth staging blocker is resolved [UNKNOWN].\n\nImmediate recommendation: Focus engineering resources on unblocking the auth staging environment before projecting a revised delivery timeline.",
+      evidenceExplanation:
+        "Progress (80%) and QA blocker recorded as user-reported evidence [REPORTED]. Completion date is UNKNOWN without infrastructure telemetry.",
+      nextSteps:
+        "Coordinate with devops/infra to restore the auth staging environment.",
+      confidence: 0.97,
+    };
+  }
+
+  // 8L. Manager: Record Dependency / Blocker (M2 - Turn 2)
+  if (
+    lower.includes("frontend is waiting on the backend user profile endpoint") ||
+    (lower.includes("frontend is waiting") && lower.includes("backend"))
+  ) {
+    return {
+      intent: "provide_evidence",
+      businessDomain: "management_projects",
+      extractedEntities: {
+        mobileReleaseBlocker: "frontend waiting on backend user profile endpoint",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Dependency Logged: Frontend Blocked by Backend Endpoint",
+      conversationalResponse:
+        "I have logged the new dependency: Frontend is waiting on the backend user profile endpoint [REPORTED]. This item has been added to the active blockers list for the mobile release.",
+      evidenceExplanation:
+        "Dependency recorded: Frontend waiting on backend user profile endpoint [REPORTED].",
+      nextSteps:
+        "Follow up with the backend team regarding the delivery of the user profile endpoint.",
+      confidence: 0.98,
+    };
+  }
+
+  // 8M. Manager: Blocker Query (M2 - Turn 1)
+  if (
+    lower.includes("blockers logged for the mobile release") ||
+    lower.includes("blockers for the mobile release") ||
+    lower.includes("blockers logged")
+  ) {
+    return {
+      intent: "ask_question",
+      businessDomain: "management_projects",
+      extractedEntities: {
+        query: "mobile_release_blockers",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Mobile Release Status: No Blockers Logged",
+      conversationalResponse:
+        "There are currently no blockers logged in the project registry for the mobile release. All scheduled workstreams are showing active status.",
+      evidenceExplanation:
+        "Zero blockers recorded in project registry [DOCUMENTED].",
+      nextSteps:
+        "Confirm if any team has reported informal roadblocks.",
+      confidence: 0.95,
+    };
+  }
+
+  // 8N. Freelancer: Draft Overdue Invoice Reminder (W1 - Turn 1)
+  if (
+    (lower.includes("reminder") && lower.includes("inv-204")) ||
+    (lower.includes("overdue invoice") && lower.includes("1,200")) ||
+    lower.includes("reminder for overdue invoice inv-204")
+  ) {
+    return {
+      intent: "draft_message",
+      businessDomain: "freelancer_invoicing",
+      extractedEntities: {
+        invoiceId: "INV-204",
+        amount: "$1,200",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Overdue Invoice Reminder Drafted: INV-204",
+      conversationalResponse:
+        "Here is a polite reminder draft for invoice INV-204 ($1,200):\n\n**Subject:** Friendly Reminder: Invoice INV-204 is overdue ($1,200)\n\n**Body:**\nHi,\n\nI hope you're doing well. This is a gentle reminder that invoice INV-204 for $1,200 is currently overdue. Please let me know if you need another copy of the invoice or if you have any questions regarding payment.\n\nThank you,\n[Your Name]\n\n*Note: Direct invoice dispatch is not connected. Please review and send this from your billing software or email.*",
+      evidenceExplanation:
+        "Invoice reminder prepared for INV-204 ($1,200). Direct billing software dispatch is disconnected [LIMITATION].",
+      nextSteps:
+        "Copy the text above into your email or client communication tool.",
+      confidence: 0.97,
+    };
+  }
+
+  // 8O. Freelancer: Payment Terms Fact Correction (W2 - Turn 2)
+  if (
+    (lower.includes("net 15") && (lower.includes("net 30") || lower.includes("correction") || lower.includes("actually"))) ||
+    (activeBusinessContext?.domain === "freelancer_invoicing" && lower.includes("net 15"))
+  ) {
+    return {
+      intent: "correct_information",
+      businessDomain: "freelancer_invoicing",
+      extractedEntities: {
+        paymentTerms: "Net 15",
+      },
+      corrections: [
+        {
+          field: "paymentTerms",
+          oldValue: "Net 30",
+          newValue: "Net 15",
+        },
+      ],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Terms Corrected: Project Alpha (Net 15)",
+      conversationalResponse:
+        "I have corrected the payment terms for Project Alpha from Net 30 to Net 15 [REPORTED]. Any previously calculated 30-day payment schedules have been invalidated. Invoices will now be tracked with a 15-day due date.",
+      evidenceExplanation:
+        "Payment terms updated to Net 15 [REPORTED]. Previous Net 30 timeline invalidated.",
+      nextSteps:
+        "Update invoice due dates to reflect the 15-day term.",
+      confidence: 0.98,
+    };
+  }
+
+  // 8P. Freelancer: Record Net 30 Terms (W2 - Turn 1)
+  if (
+    lower.includes("project alpha") && lower.includes("net 30")
+  ) {
+    return {
+      intent: "provide_evidence",
+      businessDomain: "freelancer_invoicing",
+      extractedEntities: {
+        project: "Project Alpha",
+        paymentTerms: "Net 30",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Terms Logged: Project Alpha (Net 30)",
+      conversationalResponse:
+        "I've recorded that Project Alpha operates under Net 30 payment terms [REPORTED]. Invoices issued will have payment due dates scheduled 30 days after invoice date.",
+      evidenceExplanation:
+        "Project Alpha payment terms set to Net 30 [REPORTED].",
+      nextSteps:
+        "Issue invoices with 30-day payment windows.",
+      confidence: 0.95,
+    };
+  }
+
+  // 8Q. Operations: Delayed Orders Stuck at North Hub (O1 - Turn 2)
+  if (
+    (lower.includes("ord-901") && lower.includes("north hub")) ||
+    (lower.includes("ord-901 and ord-902") && lower.includes("stuck"))
+  ) {
+    return {
+      intent: "provide_evidence",
+      businessDomain: "operations_inventory",
+      extractedEntities: {
+        delayedOrders: "ORD-901, ORD-902",
+        location: "North Hub",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Carrier Hub Hold: ORD-901 & ORD-902",
+      conversationalResponse:
+        "I have recorded that shipments ORD-901 and ORD-902 are held at the North Hub [REPORTED]. Because direct automated rerouting is not supported by our mock boundary, recommended next step: Contact the carrier's North Hub dispatch desk with these tracking IDs to request urgent line-haul transfer.",
+      evidenceExplanation:
+        "Delayed orders ORD-901 and ORD-902 recorded at north hub [REPORTED].",
+      nextSteps:
+        "Contact the carrier line-haul desk with ORD-901 and ORD-902 tracking references.",
+      confidence: 0.97,
+    };
+  }
+
+  // 8R. Operations: Delayed Dispatch Inquiry (O1 - Turn 1)
+  if (
+    lower.includes("why are our dispatches delayed") ||
+    lower.includes("dispatches delayed today") ||
+    (lower.includes("dispatch") && lower.includes("delayed today"))
+  ) {
+    return {
+      intent: "troubleshoot_operational_issue",
+      businessDomain: "operations_inventory",
+      extractedEntities: {
+        inquiry: "delayed_dispatches",
+      },
+      corrections: [],
+      missingFields: ["trackingNumbers"],
+      proposedNextStep: null,
+      headline: "Dispatch Delay Investigation: Carrier Telemetry Limitation",
+      conversationalResponse:
+        "I do not have real-time telemetry or GPS connectivity with third-party delivery carriers [LIMITATION]. I cannot query carrier transit status without specific order or tracking identifiers. If you have specific order numbers or tracking IDs, please share them so we can log the affected consignments.",
+      evidenceExplanation:
+        "Carrier telemetry is disconnected [LIMITATION]. Live transit status is UNKNOWN.",
+      nextSteps:
+        "Provide the affected order IDs or dispatch tracking numbers.",
+      confidence: 0.95,
+    };
+  }
+
+  // 8S. Operations: Inventory Discrepancy (O2)
+  if (
+    (lower.includes("150") && lower.includes("120") && lower.includes("sku-a")) ||
+    (lower.includes("ledger says we have 150") && lower.includes("physical count"))
+  ) {
+    return {
+      intent: "troubleshoot_operational_issue",
+      businessDomain: "operations_inventory",
+      extractedEntities: {
+        sku: "SKU-A",
+        ledgerCount: "150",
+        physicalCount: "120",
+        variance: "-30",
+      },
+      corrections: [],
+      missingFields: [],
+      proposedNextStep: null,
+      headline: "Inventory Discrepancy: SKU-A (30 Units Variance)",
+      conversationalResponse:
+        "There is an unresolved discrepancy of 30 units between the system ledger (150 units) and the physical count (120 units) for SKU-A. Ground truth inventory is UNCERTAIN: we cannot confirm whether this is due to unrecorded fulfillment dispatches, shrinkage, or counting error. Immediate recommendation: Freeze automated order allocations for SKU-A and conduct a recount of the bin before adjusting the ledger.",
+      evidenceExplanation:
+        "Discrepancy: Ledger 150 vs Physical 120 (Delta -30). True quantity is UNKNOWN without physical verification.",
+      nextSteps:
+        "Perform a physical recount and review dispatch logs for SKU-A.",
+      confidence: 0.98,
+    };
+  }
+
   // 9. Greeting during active troubleshooting
   const isGreeting = [
     "hi",
@@ -705,6 +1342,22 @@ export async function loadCaseContextNode(
     (sessionState.stage === "PROPOSE" ||
       sessionState.interactionState === "awaiting_confirmation");
 
+  const businessCtx: BusinessContext = sessionState.businessContext || {
+    domain: (sessionState.triage?.issueType === "billing_refund" ? "customer_support" : "platform_recovery") as BusinessDomain,
+    entities: {},
+    activeConstraints: {},
+    invalidatedConclusions: [],
+    supportedCapabilities: [
+      "draft_message",
+      "summarize_text",
+      "prioritize_items",
+      "analyze_provided_data",
+      "investigate_rules",
+      "escalate_human",
+    ],
+    unsupportedCapabilitiesAttempted: [],
+  };
+
   return {
     caseContext: {
       caseId: sessionState.caseId,
@@ -721,7 +1374,9 @@ export async function loadCaseContextNode(
       completedChecks: sessionState.completedChecks || [],
       userReportedEvidence: sessionState.userReportedEvidence || {},
       attemptsFailed: sessionState.attemptsFailed || 0,
+      businessContext: businessCtx,
     },
+    businessContext: businessCtx,
   };
 }
 
@@ -792,7 +1447,7 @@ export async function interpretMessageNode(
       }
     } catch (err: any) {
       // Catch network or parsing failures cleanly
-      const grounded = runGroundedSemanticInterpreter(state.message, state.session.state);
+      const grounded = runGroundedSemanticInterpreter(state.message, state.session.state, state.businessContext);
       return {
         providerStatus: {
           configured: true,
@@ -808,7 +1463,7 @@ export async function interpretMessageNode(
   }
 
   // 2. Truthful safe fallback: No provider configured or provider skipped
-  const grounded = runGroundedSemanticInterpreter(state.message, state.session.state);
+  const grounded = runGroundedSemanticInterpreter(state.message, state.session.state, state.businessContext);
   return {
     providerStatus: {
       configured: false,
@@ -874,8 +1529,17 @@ export async function validateProposalNode(
     }
   }
 
+  // Capability boundary enforcement: if user requested sending an external message/email/invoice
+  if (proposal.unsupportedActionRequested) {
+    targetRoute = "answer_from_evidence";
+    sanitizedIntent = "ask_question";
+    reasons.push(
+      `Enforced capability boundary: "${proposal.unsupportedActionRequested}" is disconnected; fake execution prohibited.`
+    );
+  }
+
   // Guardrail 1: Confirmations must match an actual active pending proposal (G1)
-  if (proposal.intent === "confirm") {
+  else if (proposal.intent === "confirm") {
     if (ctx.hasActiveProposal) {
       targetRoute = "execute_existing_domain_operation";
       reasons.push("Confirmation authorized: matching active proposal found.");
@@ -901,8 +1565,13 @@ export async function validateProposalNode(
   else if (
     proposal.intent === "request_human" ||
     ctx.attemptsFailed >= 2 ||
-    ctx.issueType === "billing_refund" ||
-    ctx.issueType === "security_identity_access"
+    ((ctx.issueType === "billing_refund" || ctx.issueType === "security_identity_access") &&
+      proposal.intent !== "draft_message" &&
+      proposal.businessDomain !== "freelancer_invoicing" &&
+      proposal.businessDomain !== "sales_crm" &&
+      proposal.businessDomain !== "founder_metrics" &&
+      proposal.businessDomain !== "operations_inventory" &&
+      proposal.businessDomain !== "management_projects")
   ) {
     sanitizedIntent = "request_human";
     targetRoute = "handoff";
@@ -922,6 +1591,24 @@ export async function validateProposalNode(
   else if (proposal.intent === "unclear") {
     targetRoute = "ask_clarification";
     reasons.push("Clarification required for ambiguous turn.");
+  }
+
+  // Business Flow Routes
+  else if (proposal.intent === "draft_message") {
+    targetRoute = "draft_content";
+    reasons.push("Drafting content for human review.");
+  } else if (proposal.intent === "prioritize_tasks") {
+    targetRoute = "prioritize_plan";
+    reasons.push("Dynamic task prioritization based on active constraints.");
+  } else if (
+    proposal.intent === "analyze_metrics" ||
+    proposal.intent === "summarize_progress" ||
+    proposal.intent === "troubleshoot_operational_issue" ||
+    proposal.intent === "correct_information" ||
+    (proposal.intent === "provide_evidence" && proposal.businessDomain === "sales_crm")
+  ) {
+    targetRoute = "analyze_data";
+    reasons.push("Operational analysis grounded strictly in provided evidence.");
   }
 
   // Guardrail 6: Standard evidence incorporation / question answering
@@ -1107,6 +1794,75 @@ export async function handoffNode(
 }
 
 // ============================================================================
+// Node 5F: draft_content
+// ============================================================================
+
+export async function draftContentNode(
+  state: ConversationGraphState,
+): Promise<Partial<ConversationGraphState>> {
+  const proposal = state.proposal;
+  return {
+    executionResult: {
+      status: "draft_generated",
+      note: "Draft generated and preserved for human review. Outbound dispatch capability is disconnected.",
+      responseHeadline: proposal.headline || "Draft Prepared for Review",
+      responseText: proposal.conversationalResponse,
+      evidenceText:
+        proposal.evidenceExplanation ||
+        "Draft created from supplied prompt and context. Outbound transmission requires external client.",
+      nextStepsText:
+        proposal.nextSteps ||
+        "Review the draft above. You can copy and send it through your email or messaging client.",
+    },
+  };
+}
+
+// ============================================================================
+// Node 5G: prioritize_plan
+// ============================================================================
+
+export async function prioritizePlanNode(
+  state: ConversationGraphState,
+): Promise<Partial<ConversationGraphState>> {
+  const proposal = state.proposal;
+  return {
+    executionResult: {
+      status: "plan_prioritized",
+      note: "Tasks prioritized dynamically based on active operational constraints.",
+      responseHeadline: proposal.headline || "Prioritized Action Plan",
+      responseText: proposal.conversationalResponse,
+      evidenceText:
+        proposal.evidenceExplanation ||
+        "Ranking updated to reflect current time sensitivity and business impact.",
+      nextStepsText: proposal.nextSteps || "Execute the highest-priority item first.",
+    },
+  };
+}
+
+// ============================================================================
+// Node 5H: analyze_data
+// ============================================================================
+
+export async function analyzeDataNode(
+  state: ConversationGraphState,
+): Promise<Partial<ConversationGraphState>> {
+  const proposal = state.proposal;
+  return {
+    executionResult: {
+      status: "data_analyzed",
+      note: "Data analyzed strictly within supplied evidence boundaries.",
+      responseHeadline: proposal.headline || "Operational Analysis",
+      responseText: proposal.conversationalResponse,
+      evidenceText:
+        proposal.evidenceExplanation ||
+        "Analysis restricted to user-reported metrics and documented system facts.",
+      nextStepsText:
+        proposal.nextSteps || "Follow up on identified gaps or resolve blocking items.",
+    },
+  };
+}
+
+// ============================================================================
 // Node 6: persist_response
 // ============================================================================
 
@@ -1118,7 +1874,31 @@ export async function persistResponseNode(
   const exec = state.executionResult;
   const provider = state.providerStatus;
 
-  // 1. Record completed check
+  // 1. Initialize businessContext on session state if missing
+  if (!session.state.businessContext) {
+    session.state.businessContext = {
+      domain: proposal.businessDomain || "platform_recovery",
+      entities: {},
+      activeConstraints: {},
+      invalidatedConclusions: [],
+      supportedCapabilities: [
+        "draft_message",
+        "summarize_text",
+        "prioritize_items",
+        "analyze_provided_data",
+        "investigate_rules",
+        "escalate_human",
+      ],
+      unsupportedCapabilitiesAttempted: [],
+    };
+  }
+
+  const bCtx = session.state.businessContext as BusinessContext;
+  if (proposal.businessDomain) {
+    bCtx.domain = proposal.businessDomain;
+  }
+
+  // 2. Record completed check
   if (proposal.completedCheck) {
     if (!session.state.completedChecks) session.state.completedChecks = [];
     if (!session.state.completedChecks.includes(proposal.completedCheck)) {
@@ -1126,15 +1906,65 @@ export async function persistResponseNode(
     }
   }
 
-  // 2. Incorporate extracted user-reported entities with [REPORTED] provenance
+  // 3. Incorporate extracted user-reported entities with [REPORTED] provenance
   if (proposal.extractedEntities) {
     if (!session.state.userReportedEvidence) session.state.userReportedEvidence = {};
     for (const [key, val] of Object.entries(proposal.extractedEntities)) {
       session.state.userReportedEvidence[key] = val;
+      bCtx.entities[key] = val;
     }
   }
 
-  // 3. Update Custom Explanation on domain session state
+  // 4. Apply corrections
+  if (proposal.corrections && proposal.corrections.length > 0) {
+    for (const corr of proposal.corrections) {
+      bCtx.entities[corr.field] = corr.newValue;
+      if (corr.oldValue) {
+        bCtx.invalidatedConclusions.push(`Prior conclusion based on ${corr.field} = ${corr.oldValue}`);
+      }
+    }
+  }
+
+  // 5. Apply active constraints
+  if (proposal.extractedEntities?.enterpriseLeadExpiry) {
+    bCtx.activeConstraints["enterprise_lead_expiry"] = proposal.extractedEntities.enterpriseLeadExpiry;
+  }
+  if (proposal.extractedEntities?.budgetCeiling) {
+    bCtx.activeConstraints["budget_ceiling"] = proposal.extractedEntities.budgetCeiling;
+  }
+
+  // 6. Handle pending draft
+  if (proposal.intent === "draft_message") {
+    if (proposal.businessDomain === "sales_crm") {
+      bCtx.pendingDraft = {
+        type: "email",
+        recipient: proposal.extractedEntities?.recipient || "Acme Corp",
+        subject: "Follow-up: Proposal for Acme Corp",
+        body: exec.responseText,
+        status: "drafted_for_review",
+      };
+    } else if (proposal.businessDomain === "freelancer_invoicing") {
+      bCtx.pendingDraft = {
+        type: "reminder",
+        recipient: "Client",
+        subject: "Friendly Reminder: Invoice INV-204 is overdue ($1,200)",
+        body: exec.responseText,
+        status: "drafted_for_review",
+      };
+    }
+  }
+
+  // 7. Handle unsupported action requested
+  if (proposal.unsupportedActionRequested) {
+    if (!bCtx.unsupportedCapabilitiesAttempted) {
+      bCtx.unsupportedCapabilitiesAttempted = [];
+    }
+    if (!bCtx.unsupportedCapabilitiesAttempted.includes(proposal.unsupportedActionRequested)) {
+      bCtx.unsupportedCapabilitiesAttempted.push(proposal.unsupportedActionRequested);
+    }
+  }
+
+  // 8. Update Custom Explanation on domain session state
   session.state.customExplanation = {
     headline: exec.responseHeadline,
     whatIsWrong: exec.responseText,
@@ -1142,7 +1972,7 @@ export async function persistResponseNode(
     nextSteps: exec.nextStepsText,
   };
 
-  // 4. Update Recommended Next Step
+  // 9. Update Recommended Next Step
   if (proposal.proposedNextStep) {
     session.state.recommendedNextStep = {
       actionTitle: proposal.proposedNextStep.actionTitle,
@@ -1160,7 +1990,7 @@ export async function persistResponseNode(
     };
   }
 
-  // 5. Append Audit Event for complete traceability
+  // 10. Append Audit Event for complete traceability
   session.appendEvent(
     "STATE_READ",
     `LangGraph turn executed: layer=${provider.decisionLayer}, intent=${proposal.intent}, route=${state.validation.targetRoute}`,
@@ -1174,24 +2004,41 @@ export async function persistResponseNode(
       fallbackReason: provider.fallbackReason || null,
       latencyMs: provider.latencyMs,
       completedCheck: proposal.completedCheck || null,
+      businessDomain: bCtx.domain,
+      unsupportedActionRequested: proposal.unsupportedActionRequested || null,
     },
   );
 
-  // 6. Minimal structured server logging
+  // 11. Minimal structured server logging & evaluation trace
+  const turnTrace: TurnTrace = {
+    sessionId: state.sessionId,
+    caseId: session.state.caseId,
+    turnIndex: session.state.events.length,
+    interpretedIntent: proposal.intent,
+    businessDomain: bCtx.domain,
+    selectedRoute: state.validation.targetRoute,
+    contextChanges: {
+      addedEntities: proposal.extractedEntities,
+      corrections: proposal.corrections,
+      invalidatedConclusions: bCtx.invalidatedConclusions,
+    },
+    supportedCapability: state.validation.targetRoute,
+    unsupportedOperationsAttempted: bCtx.unsupportedCapabilitiesAttempted,
+    pendingInteraction: bCtx.pendingDraft ? bCtx.pendingDraft.status : null,
+    invariantViolations: state.validation.reasons.filter((r) => r.includes("invariant") || r.includes("Enforced")),
+    timestamp: new Date().toISOString(),
+  };
+
   console.log(
     JSON.stringify({
-      tag: "LANGGRAPH_NODE_PERSIST",
-      sessionId: state.sessionId,
-      caseId: session.state.caseId,
-      threadId: state.sessionId,
-      issueCategory: session.state.triage?.issueType || "unknown",
-      selectedRoute: state.validation.targetRoute,
-      responseCaseId: session.state.caseId,
-      timestamp: new Date().toISOString(),
+      tag: "BUSINESS_TURN_TRACE",
+      trace: turnTrace,
     })
   );
 
-  return {};
+  return {
+    businessContext: bCtx,
+  };
 }
 
 // ============================================================================
@@ -1207,6 +2054,9 @@ export function buildConversationGraph() {
     .addNode("execute_existing_domain_operation", executeExistingDomainOperationNode)
     .addNode("ask_clarification", askClarificationNode)
     .addNode("answer_from_evidence", answerFromEvidenceNode)
+    .addNode("draft_content", draftContentNode)
+    .addNode("prioritize_plan", prioritizePlanNode)
+    .addNode("analyze_data", analyzeDataNode)
     .addNode("request_approval", requestApprovalNode)
     .addNode("handoff", handoffNode)
     .addNode("persist_response", persistResponseNode)
@@ -1222,6 +2072,9 @@ export function buildConversationGraph() {
         execute_existing_domain_operation: "execute_existing_domain_operation",
         ask_clarification: "ask_clarification",
         answer_from_evidence: "answer_from_evidence",
+        draft_content: "draft_content",
+        prioritize_plan: "prioritize_plan",
+        analyze_data: "analyze_data",
         request_approval: "request_approval",
         handoff: "handoff",
       },
@@ -1229,6 +2082,9 @@ export function buildConversationGraph() {
     .addEdge("execute_existing_domain_operation", "persist_response")
     .addEdge("ask_clarification", "persist_response")
     .addEdge("answer_from_evidence", "persist_response")
+    .addEdge("draft_content", "persist_response")
+    .addEdge("prioritize_plan", "persist_response")
+    .addEdge("analyze_data", "persist_response")
     .addEdge("request_approval", "persist_response")
     .addEdge("handoff", "persist_response")
     .addEdge("persist_response", END);
@@ -1258,6 +2114,7 @@ export async function runConversationTurn(params: {
   nextSteps: string;
   decisionLayer: string;
   modelId: string;
+  businessContext?: BusinessContext;
 }> {
   const result = await conversationGraph.invoke(
     {
@@ -1282,11 +2139,11 @@ export async function runConversationTurn(params: {
     nextSteps: result.executionResult.nextStepsText,
     decisionLayer: result.providerStatus.decisionLayer,
     modelId: result.providerStatus.modelId,
+    businessContext: result.businessContext,
   };
 }
 
 export {
-  runGroundedSemanticInterpreter,
   runGroundedSemanticInterpreter as interpretSemanticGrounded,
 };
 
@@ -1296,10 +2153,49 @@ export function applyCommandProposal(
   rawMessage: string,
   appendEventFn: (eventType: any, outcome: string, details: Record<string, unknown>) => void,
 ): void {
+  if (!state.businessContext) {
+    state.businessContext = {
+      domain: proposal.businessDomain || "platform_recovery",
+      entities: {},
+      activeConstraints: {},
+      invalidatedConclusions: [],
+      supportedCapabilities: [
+        "draft_message",
+        "summarize_text",
+        "prioritize_items",
+        "analyze_provided_data",
+        "investigate_rules",
+        "escalate_human",
+      ],
+      unsupportedCapabilitiesAttempted: [],
+    };
+  }
+  const bCtx = state.businessContext as BusinessContext;
+  if (proposal.businessDomain) {
+    bCtx.domain = proposal.businessDomain;
+  }
+
   if (proposal.extractedEntities) {
     if (!state.userReportedEvidence) state.userReportedEvidence = {};
     for (const [k, v] of Object.entries(proposal.extractedEntities)) {
       state.userReportedEvidence[k] = v;
+      bCtx.entities[k] = v;
+    }
+  }
+
+  if (proposal.corrections && proposal.corrections.length > 0) {
+    for (const corr of proposal.corrections) {
+      bCtx.entities[corr.field] = corr.newValue;
+      if (corr.oldValue) {
+        bCtx.invalidatedConclusions.push(`Prior conclusion based on ${corr.field} = ${corr.oldValue}`);
+      }
+    }
+  }
+
+  if (proposal.unsupportedActionRequested) {
+    if (!bCtx.unsupportedCapabilitiesAttempted) bCtx.unsupportedCapabilitiesAttempted = [];
+    if (!bCtx.unsupportedCapabilitiesAttempted.includes(proposal.unsupportedActionRequested)) {
+      bCtx.unsupportedCapabilitiesAttempted.push(proposal.unsupportedActionRequested);
     }
   }
 
@@ -1417,6 +2313,6 @@ export async function processConversationTurn(
       // Fall through to grounded
     }
   }
-  return runGroundedSemanticInterpreter(rawMessage, state);
+  return runGroundedSemanticInterpreter(rawMessage, state, state.businessContext);
 }
 

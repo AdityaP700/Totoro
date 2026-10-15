@@ -163,4 +163,14 @@ export interface CaseState {
   startedAt: string;
   updatedAt: string;
   events: AuditEvent[];
+  customExplanation?: {
+    headline: string;
+    whatIsWrong: string;
+    evidenceExplanation: string;
+    nextSteps: string;
+  };
+  recommendedNextStep?: any;
+  completedChecks?: string[];
+  userReportedEvidence?: Record<string, string>;
+  businessContext?: any;
 }

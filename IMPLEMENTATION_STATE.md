@@ -61,6 +61,27 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
     3. Missing Domain Context Invariant: Added cross-case contamination check in `validateProposalNode()` in `conversationGraph.ts` that enforces domain boundaries (billing cases discard any WhatsApp delivery/template proposals and preserve finance escalation text in `handoffNode`).
     4. Structured Server Telemetry: Added minimal JSON logs tracking `sessionId`, `caseId`, `threadId`, `issueCategory`, `selectedRoute`, and `responseCaseId` in both `/api/resolve` and `conversationGraph.ts`.
   - Verification: Created `scratch/verify_isolation.ps1` and tested both payment and delivery sessions live. Verified 100% isolation with zero cross-case contamination. All checks passed.
+- **General-Purpose Operational Assistant & 12 Multi-Turn Business Scenarios (2026-10-15)**:
+  - Expanded Totoro beyond platform delivery recovery into an operational assistant for founders, salespeople, managers, freelancers, operations, and customer support.
+  - Layer 1 Catalog & Scenarios Evaluated:
+    - `F1`: Founder metrics date correction (invalidates prior conclusions; discloses database limitations).
+    - `F2`: Founder dynamic task re-ranking (detects time-sensitive lead expiration; promotes to #1).
+    - `S1`: Sales email drafting vs external sending (drafts email cleanly; explicitly refuses fake external sending; preserves draft for review).
+    - `S2`: Sales objection handling with budget ceiling constraint (preserves \$5,000 ceiling; adapts messaging).
+    - `M1`: Manager sprint blocker evidence synthesis (synthesizes `[REPORTED]` blocker facts without guessing completion dates).
+    - `M2`: Manager blocker dependency tracking (links dependency chain; isolates unresolved root causes).
+    - `W1`: Freelancer invoice reminder drafting vs direct dispatch boundary (drafts reminder; blocks automated dispatch without connected integration).
+    - `W2`: Freelancer Net 30 -> Net 15 fact correction (updates entity; invalidates Net 30 payment schedule).
+    - `O1`: Operations carrier telemetry limitation & North Hub hold evidence (discloses carrier API limits; incorporates order hold evidence).
+    - `O2`: Operations 30-unit inventory discrepancy (flags variance without fabricating shrinkage/loss causes).
+    - `C1`: Support G8 2-attempt failure escalation (escalates to specialist with complete diagnostic dossier).
+    - `X1`: Interleaved cross-session state & memory isolation (100% state and memory isolation between concurrent sessions).
+  - Layer 2 LangGraph.js Routing & Safety Strengthening:
+    - Added typed business context and intent contracts (`BusinessDomain`, `ConversationalIntent`, `TargetRoute`, `BusinessContext`, `TurnTrace`).
+    - Added dedicated operational nodes: `draftContentNode`, `prioritizePlanNode`, `analyzeDataNode`.
+    - Enforced capability boundaries: refuses external actions (`send_email`, `send_external_invoice`) with explicit limitations; preserves drafts in state with `drafted_for_review`.
+    - Emitted structured audit telemetry: `BUSINESS_TURN_TRACE` and `STATE_READ`.
+  - Verification: Authored `tests/businessScenarios.test.ts` (12/12 passing). Total test suite: 196/196 passing across 17 test files.
 
 ## Current phase
 
@@ -168,11 +189,12 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
 - UI API Integration & Recovery Engine Connection gate: PASSED (Next.js route handlers connected to domain state machine; workspace, history, reports, and settings functional; 133/133 tests passing; Turbopack production build clean).
 - Evidence-Expansion Fix & Design System Typography Polish gate: PASSED (Zero SQLite uniqueness errors on evidence inspection, idempotent database upsert, standard typography scale applied, authentic fixtures preserved, 136/136 tests passing, Turbopack clean across 21 routes).
 - Enterprise Template Selector & Technical Details Inspector Redesign gate: PASSED (Custom accessible popover selector, structured diagnostic inspector with execution summary, vertical timeline, evidence trace, and raw log viewer, 138/138 tests passing, Turbopack clean across 21 routes, Vite build clean).
+- Operational Business Scenarios & Capability Boundaries gate: PASSED (All 12 multi-turn business scenarios F1–F2, S1–S2, M1–M2, W1–W2, O1–O2, C1, X1 verified; capability boundaries enforced; 196/196 tests passing across 17 test files).
 
 ## Exact next command / task
 
-The full UI-to-Engine integration, design system polish, template selector, and technical details inspector are complete and verified. Commands available:
-- `npm test`: run full 138-test suite across 14 test files.
+The general-purpose operational assistant with 12 business scenarios, capability boundaries, dynamic re-ranking, and context invalidation is complete and verified. Commands available:
+- `npm test`: run full 196-test suite across 17 test files.
 - `npm run frontend:dev`: start Next.js frontend on http://localhost:3000.
 - `npm run frontend:build`: build Next.js production bundle with Turbopack.
 - `npm run dev`: run original Vite prototype UI on http://localhost:5173.

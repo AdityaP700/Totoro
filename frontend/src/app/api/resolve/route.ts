@@ -36,14 +36,18 @@ export async function POST(req: Request) {
     let record = body.sessionId ? getSession(workspaceId, body.sessionId) : undefined;
 
     if (record) {
-      // Multi-turn conversational follow-up handled by LangGraph.js flow
       record.messages.push({ role: "user", text: message, timestamp: new Date().toISOString() });
-      await runConversationTurn({
-        sessionId: record.sessionId,
-        message,
-        history: record.messages,
-        session: record.session,
-      });
+      if (record.session.state.stage === "CLARIFY_ONCE") {
+        record.session.clarify(message);
+      } else {
+        // Multi-turn conversational follow-up handled by LangGraph.js flow
+        await runConversationTurn({
+          sessionId: record.sessionId,
+          message,
+          history: record.messages,
+          session: record.session,
+        });
+      }
       record.updatedAt = new Date().toISOString();
     } else {
       // Create new isolated session

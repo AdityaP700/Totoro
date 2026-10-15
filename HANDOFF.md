@@ -87,6 +87,7 @@ tests/
   templateDrafter.test.ts Vitest tests for constrained template drafting
   evidenceTrail.test.ts   Vitest tests for CaseAuditTrail compilation
   e2eMatrix.test.ts       Vitest end-to-end reality check matrix (Cases A–F)
+  businessScenarios.test.ts Vitest multi-turn business scenarios suite (F1–F2, S1–S2, M1–M2, W1–W2, O1–O2, C1, X1)
 
 tools/
   audit_dataset.py        Dataset structural validation tool
@@ -104,10 +105,10 @@ npm run dev
 # Opens Vite dev server at http://localhost:5173
 ```
 
-### Full Test Suite (85 tests across 12 files)
+### Full Test Suite (196 tests across 17 files)
 ```powershell
 npm test
-# Runs vitest covering all 85 tests across 12 test files
+# Runs vitest covering all 196 tests across 17 test files
 ```
 
 ### End-to-End Reality Check Matrix (7 tests)

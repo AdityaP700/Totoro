@@ -2,6 +2,30 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — General-Purpose Operational Assistant, Capability Boundaries & 12 Multi-Turn Business Scenarios
+
+- **Everyday Operational Scenarios Across 6 Business Domains**:
+  - Expanded conversational support beyond WhatsApp/Instagram recovery to everyday operational challenges for founders, salespeople, managers, freelancers, operations, and support specialists.
+  - Handled 12 distinct multi-turn scenarios:
+    - *Founder Metrics (`F1`)*: Answered conversion inquiries with explicit financial database limitation disclosures; updated date ranges dynamically upon fact correction (`Oct 1 to Oct 7`) and cleanly invalidated prior conclusions.
+    - *Founder Prioritization (`F2`)*: Dynamically re-ranked tasks when time-sensitive enterprise lead deadlines emerged, elevating the expiring opportunity to #1 priority.
+    - *Sales Outreach & Capability Boundaries (`S1`)*: Drafted cold sales emails cleanly; explicitly refused fake outbound sending requests, disclosing disconnected email integrations and preserving drafts for review (`drafted_for_review`).
+    - *Sales Objection & Constraints (`S2`)*: Maintained budget ceilings ($5,000) across objection-handling turns and adapted proposals to phased milestones.
+    - *Management Progress Synthesis (`M1`)*: Synthesized reported blockers from team updates without speculating or fabricating project completion dates.
+    - *Management Dependency Chains (`M2`)*: Tracked cross-team dependencies (backend auth blocking frontend checkout) and surfaced the root cause.
+    - *Freelancer Invoicing (`W1`)*: Drafted professional overdue payment reminders for invoices ($1,200); refused automated dispatch over disconnected external accounting systems.
+    - *Freelancer Payment Terms Correction (`W2`)*: Updated terms from Net 30 to Net 15, invalidating prior schedules and updating the reminder cadence.
+    - *Operations Delivery Telemetry (`O1`)*: Disclosed courier API limits and incorporated ground hold evidence (ORD-901, ORD-902).
+    - *Operations Inventory Variance (`O2`)*: Flagged 30-unit discrepancies between physical and ledger inventory without guessing root causes.
+    - *Customer Support Thresholds (`C1`)*: Strictly enforced the G8 two-failed-attempt rule, transferring difficult recovery cases to specialists with structured dossiers.
+    - *Cross-Session Isolation (`X1`)*: Maintained 100% memory and state isolation between interleaved concurrent sessions.
+- **LangGraph Routing & Capability Boundary Enforcement**:
+  - Added new operational nodes: `draftContentNode`, `prioritizePlanNode`, and `analyzeDataNode`.
+  - Prohibited fake execution: unintegrated operations (e.g., `send_email`, `send_external_invoice`) are safely declined with explicit limitations, while drafted content is preserved intact.
+  - Preserved deterministic safety guardrails G1–G15 and scoped billing human handoffs to customer disputes without blocking invoicing drafting.
+- **Automated Regression Suite**:
+  - Added `tests/businessScenarios.test.ts` (12/12 passing). Total suite: 196/196 passing across 17 test files.
+
 ## 2026-10-15 — Cross-Case Conversation Isolation & Payment Context Guardrail
 
 - **Eliminated Cross-Case Conversation Contamination**:

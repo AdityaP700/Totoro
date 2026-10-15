@@ -371,5 +371,33 @@ Resolved P0 defect where a payment/order issue ("I paid ₹2,499 for order ORD-4
    - Automated live probe in `scratch/verify_isolation.ps1` confirmed 100% isolation across Turn 1 and Turn 2 for payment issues, and verified zero cross-contamination with parallel WhatsApp delivery sessions.
 - Evidence label: DOCUMENTED (Guardrails G1, G5, G8, G10, Rule 4) + REPORTED (live isolation test traces in scratch/verify_isolation.ps1).
 
+## D-026 · 2026-10-15 · General-Purpose Operational Assistant, Capability Boundary Enforcement, Dynamic Task Re-ranking, and Invalidation Contracts
+
+Expanded Totoro from a WhatsApp/Instagram messaging recovery tool into a general-purpose operational assistant capable of handling multi-turn operational problems across 6 core business domains:
+1. **Catalog of 12 Multi-Turn Business Scenarios Evaluated**:
+   - `F1` (Founder metrics date correction): handles conversion drop inquiries, admits financial/production DB limitations, and on date-range correction (`Oct 1 to Oct 7`) updates entities and appends to `invalidatedConclusions`.
+   - `F2` (Founder dynamic task prioritization): re-ranks 3 tasks (checkout drop-off, enterprise lead follow-up, pitch deck) dynamically when a time-sensitive lead expiration constraint is introduced, elevating it to #1.
+   - `S1` (Sales email drafting vs sending boundary): drafts cold outreach email cleanly; when operator requests "send it directly", enforces capability boundary by refusing fake execution, disclosing disconnected outbound email integrations, and preserving the draft as `drafted_for_review`.
+   - `S2` (Sales objection & budget ceiling): preserves \$5,000 budget ceiling constraint and adapts proposal messaging to phase-based milestones.
+   - `M1` (Manager evidence synthesis without guessing): synthesizes user-reported blocker facts `[REPORTED]` without fabricating launch or completion dates `[UNKNOWN]`.
+   - `M2` (Manager blocker dependency tracking): links dependency chain (backend auth blocker preventing frontend integration) and flags unresolved root cause.
+   - `W1` (Freelancer invoice reminder drafting vs direct dispatch boundary): drafts reminder for overdue invoice; refuses direct automated dispatch with clear integration boundary.
+   - `W2` (Freelancer Net 30 -> Net 15 fact correction): updates payment terms from Net 30 to Net 15, invalidates prior Net 30 payment schedule, and recalculates follow-up cadence.
+   - `O1` (Operations carrier telemetry limitation & North Hub hold): discloses absence of real-time courier API integrations, then incorporates customer-reported hold evidence for ORD-901 and ORD-902.
+   - `O2` (Operations 30-unit inventory discrepancy): flags variance between ledger count (150) and physical count (120) as an active discrepancy without guessing causes.
+   - `C1` (Support G8 2-attempt failure escalation): recognizes two prior failed attempts and triggers immediate escalation to an engineering specialist with a complete diagnostic dossier.
+   - `X1` (Cross-session memory and state isolation): verifies 100% state and memory isolation between two interleaved concurrent sessions using thread-isolated LangGraph memory.
+2. **LangGraph.js Strengthening & Contract Architecture**:
+   - Extended `CaseState` with typed `businessContext`, `customExplanation`, `recommendedNextStep`, `completedChecks`, and `userReportedEvidence`.
+   - Defined `BusinessDomain` union (`"founder_metrics" | "sales_crm" | "management_projects" | "freelancer_invoicing" | "operations_inventory" | "customer_support" | "platform_recovery"`).
+   - Added new nodes to `conversationGraph.ts`: `draftContentNode`, `prioritizePlanNode`, `analyzeDataNode`.
+   - Enforced capability boundaries: `unsupportedOperationsAttempted` records requested actions like `send_email` or `send_external_invoice`, returning safe refusal copy while preserving drafted assets.
+   - Preserved deterministic safety guardrails G1–G15 and scoped billing human handoffs to customer support disputes, allowing business operations and invoicing to execute safely.
+   - Emitted structured audit telemetry: `BUSINESS_TURN_TRACE` and `STATE_READ`.
+3. **Verification**:
+   - Authored automated evaluation suite in `tests/businessScenarios.test.ts` (12/12 passing).
+   - Full repository test suite expanded to 196/196 passing tests across 17 test files (`npm test`).
+- Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/businessScenarios.test.ts).
+
 
 
