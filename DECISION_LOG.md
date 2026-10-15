@@ -501,3 +501,15 @@ Polished the conversation UI and fixed conversational lifecycle issues without a
   - Root Vite production build clean (`npm run build`).
   - Next.js 16 Turbopack production build clean (`npm --prefix frontend run build`).
 - Evidence label: DOCUMENTED (User request, Workspace context specs) + REPORTED (vitest 233/233, Vite build, Next.js build).
+
+## D-031 · 2026-10-15 · Clickable Totoro Brand & Header Back Navigation to Landing Page
+
+- **User Request**: Add a clickable back element / link to Totoro in the workspace that takes the user directly back to the main landing page (`/`).
+- **Changes Applied**:
+  - `frontend/src/app/workspace/layout.tsx`:
+    - Updated sidebar brand header so clicking `TOTORO` navigates to `/` (with back arrow `← TOTORO` and tooltip). When collapsed, the back icon button also navigates to `/`.
+    - Added a dedicated clickable `← Totoro` back element to the top workspace breadcrumb hierarchy leading to `/`.
+- **Verification**:
+  - All 233 vitest tests passing across all 18 test files (`npm test`).
+  - Next.js 16 production build compiles with 0 errors (`npm --prefix frontend run build`).
+- Evidence label: DOCUMENTED (User request) + REPORTED (vitest 233/233, Next.js build).

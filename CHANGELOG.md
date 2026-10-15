@@ -2,6 +2,12 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Clickable Totoro Brand & Header Back Navigation to Landing Page (D-031)
+
+- **Landing Page Navigation from Workspace**:
+  - Made the `TOTORO` brand logo in the workspace sidebar a clickable back navigation link to `/` (the main landing page) with a subtle back indicator icon (`← TOTORO`) and tooltip.
+  - Added a dedicated clickable `← Totoro` back element in the top workspace breadcrumb header, enabling users on both desktop and mobile to navigate back to the main landing page from anywhere in the workspace.
+
 ## 2026-10-15 — Clean Onboarding Sidebar (Mock Requests Removal) & Generalized Support Tagline (D-030)
 
 - **Clean Onboarding Sidebar**:

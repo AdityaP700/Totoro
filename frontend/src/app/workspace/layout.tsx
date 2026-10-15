@@ -163,11 +163,50 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
         {/* Brand Header */}
         <div className="flex items-center justify-between pb-1">
-          {!sidebarCollapsed && (
-            <Link href="/workspace" className="flex items-center gap-2">
-              <span className="font-semibold text-sm tracking-wider text-zinc-900 font-mono">
+          {!sidebarCollapsed ? (
+            <Link
+              href="/"
+              className="group flex items-center gap-1.5 rounded-md px-1.5 py-1 text-zinc-900 hover:bg-zinc-100 hover:text-blue-600 transition-all"
+              title="Return to main landing page"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-zinc-400 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-transform"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span className="font-semibold text-sm tracking-wider font-mono">
                 TOTORO
               </span>
+            </Link>
+          ) : (
+            <Link
+              href="/"
+              className="group mx-auto flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-100 hover:text-blue-600 transition-colors"
+              title="Return to main landing page"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="group-hover:-translate-x-0.5 transition-transform"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
             </Link>
           )}
 
@@ -400,7 +439,29 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
               </svg>
             </button>
 
-            {/* Breadcrumb Hierarchy */}
+            {/* Breadcrumb Hierarchy with Clickable Back to Landing Page */}
+            <Link
+              href="/"
+              className="group flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 hover:text-blue-600 transition-colors"
+              title="Return to main landing page"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-zinc-400 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-transform"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span>Totoro</span>
+            </Link>
+            <span className="text-zinc-300 text-sm">/</span>
             <span className="text-zinc-500 text-sm font-normal">Workspace</span>
             <span className="text-zinc-300 text-sm">/</span>
             <span className="font-semibold text-zinc-900 text-sm truncate max-w-[180px] sm:max-w-[320px]">

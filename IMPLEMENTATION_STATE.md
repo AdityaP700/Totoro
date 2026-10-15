@@ -86,8 +86,10 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
   - Removed pre-populated mock requests (`req-1` through `req-4`) from `defaultRecent` in `frontend/src/lib/workspaceContext.tsx`. New user signups now start with a clean state showing `"No requests yet"`.
   - Updated onboarding completion (`handleFinish`, `handleSkip`) to initialize `totoro_recent_requests` as `[]`, clearing legacy items.
   - Added filter in `WorkspaceProvider` to strip any lingering `req-*` mock requests from browser storage.
-  - Broadened workspace welcome tagline in `frontend/src/app/workspace/page.tsx` from WhatsApp-specific to: *"Configured for {displayRole} at {displayBusiness}. Totoro diagnoses customer support issues, enforces safety guardrails, and guides simulated recovery."*
-  - Verification: Full test suite passing (233/233 tests across all 18 test files); root Vite build clean; Next.js 16 production build clean.
+- **Landing Page Back Navigation from Workspace (2026-10-15)**:
+  - Linked `TOTORO` brand logo in workspace sidebar to `/` (main landing page) with back indicator icon (`← TOTORO`) and tooltip.
+  - Added dedicated clickable `← Totoro` back element to top workspace breadcrumb hierarchy leading to `/`.
+  - Verification: 233/233 vitest tests passing; Next.js 16 production build clean.
 
 ## Current phase
 
