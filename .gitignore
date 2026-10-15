@@ -42,3 +42,4 @@ Thumbs.db
 # --- Generated private data ---
 docs/audits/raw/
 .totoro-data/
+PROMPT_LOG.md
