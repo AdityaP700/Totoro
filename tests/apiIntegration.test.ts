@@ -927,6 +927,173 @@ describe("Cheerio Resolve — UI API Integration Suite", () => {
     expect(data4.customerExplanation.whatIsWrong).toContain("LIMITATION");
     expect(data4.messages).toHaveLength(8);
   });
+
+  // 26. UI Chat Regression: Issue switching: delivery -> chatbot flow -> WhatsApp setup with state cleanup
+  it("REGRESSION: issue switching (delivery -> chatbot flow -> WhatsApp setup) clears stale proposals, summaries, and actions", async () => {
+    // Step 1: Initial message delivery query
+    const res1 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Our WhatsApp campaign messages are delayed and not being delivered",
+      })
+    );
+    expect(res1.status).toBe(200);
+    const data1 = await res1.json();
+    const sessionId = data1.sessionId;
+
+    expect(data1.triage.issueType).toBe("message_delivery");
+    expect(data1.statusBadge).toBe("Investigation complete");
+    expect(data1.verificationStatus).toBe("Investigation complete");
+    expect(data1.proposal).toBeNull();
+    expect(data1.recommendedNextStep).toBeDefined();
+    expect(data1.recommendedNextStep.primaryCta.action).toBe("check_message_status");
+    expect(data1.diagnosisSummary.whatWeKnow[0]).toContain("dashboard");
+
+    // Step 2: Switch issue to chatbot flow
+    const res2 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "Actually, our chatbot flow is stuck on interactive buttons and keyword triggers",
+      })
+    );
+    expect(res2.status).toBe(200);
+    const data2 = await res2.json();
+
+    expect(data2.sessionId).toBe(sessionId);
+    expect(data2.triage.issueType).toBe("chatbot_flow");
+    expect(data2.statusBadge).toBe("Investigation complete");
+    expect(data2.proposal).toBeNull();
+    expect(data2.recommendedNextStep).toBeDefined();
+    expect(data2.recommendedNextStep.primaryCta.action).toBe("inspect_interactive_button_payloads");
+    expect(data2.diagnosisSummary.whatWeKnow[0]).toContain("Chatbot flow triggers");
+    // Verify no delivery checks or delivery diagnosis leaked
+    expect(data2.recommendedNextStep.primaryCta.action).not.toBe("check_message_status");
+
+    // Step 3: Switch issue to WhatsApp setup
+    const res3 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "Now help me set up our WhatsApp Business Account and verify our display name",
+      })
+    );
+    expect(res3.status).toBe(200);
+    const data3 = await res3.json();
+
+    expect(data3.sessionId).toBe(sessionId);
+    expect(data3.triage.issueType).toBe("number_waba_setup");
+    expect(data3.statusBadge).toBe("Investigation complete");
+    expect(data3.proposal).toBeNull();
+    expect(data3.recommendedNextStep).toBeDefined();
+    expect(data3.recommendedNextStep.primaryCta.action).toBe("verify_waba_prerequisites");
+    expect(data3.diagnosisSummary.whatWeKnow[0]).toContain("WhatsApp Business Account setup");
+    expect(data3.recommendedNextStep.primaryCta.action).not.toBe("inspect_chatbot_flow_triggers");
+  });
+
+  // 27. UI Chat Regression: Completed step acknowledgements do not repeat completed diagnostics
+  it("REGRESSION: completed-step acknowledgement suppresses duplicate diagnostic recommendations", async () => {
+    // Step 1: Delivery inquiry
+    const res1 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "My WhatsApp messages are stuck in pending status",
+      })
+    );
+    const data1 = await res1.json();
+    const sessionId = data1.sessionId;
+
+    expect(data1.triage.issueType).toBe("message_delivery");
+
+    // Step 2: User informs that message status was already checked
+    const res2 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        sessionId,
+        message: "I already checked the message status on the carrier dashboard",
+      })
+    );
+    const data2 = await res2.json();
+
+    expect(data2.completedChecks).toContain("check_message_status");
+    expect(data2.customerExplanation.evidenceExplanation).toContain("We will not repeat the delivery status check");
+    expect(data2.statusBadge).toBe("Investigation complete");
+  });
+
+  // 28. UI Chat Regression: Multilingual queries in English, Hinglish, and Hindi retain meaning
+  it("REGRESSION: handles multilingual support queries in English, Hinglish, and Hindi script", async () => {
+    // Hinglish query
+    const resHinglish = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Hamare messages deliver nahi ho rahe hain, please check karo",
+      })
+    );
+    const dataHinglish = await resHinglish.json();
+    expect(dataHinglish.triage.issueType).toBe("message_delivery");
+    expect(dataHinglish.customerExplanation.whatIsWrong).toContain("messages 'Pending' ya 'Sent'");
+
+    // Hindi script query
+    const resHindi = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "हमारे व्हाट्सएप संदेश नहीं पहुंच रहे हैं",
+      })
+    );
+    const dataHindi = await resHindi.json();
+    expect(dataHindi.triage.issueType).toBe("message_delivery");
+    expect(dataHindi.customerExplanation.whatIsWrong).toContain("मैसेज 'Pending' या 'Sent'");
+  });
+
+  // 29. UI Chat Regression: Billing escalation immediately triggers human handoff with complete case file
+  it("REGRESSION: billing inquiry triggers human handoff without automated proposals or leaked delivery checks", async () => {
+    const res = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "We were charged twice on our credit card for WhatsApp messages. Need a refund.",
+      })
+    );
+    const data = await res.json();
+
+    expect(data.triage.issueType).toBe("billing_refund");
+    expect(data.stage).toBe("HANDOFF");
+    expect(data.triage.needsHuman).toBe(true);
+    expect(data.statusBadge).toBe("Escalated to human support");
+    expect(data.verificationStatus).toBe("Handoff dossier");
+    expect(data.proposal).toBeNull();
+    expect(data.diagnosisSummary).toBeNull();
+    expect(data.recommendedNextStep.primaryCta.action).toBe("human");
+  });
+
+  // 30. UI Chat Regression: Distinction between Investigation complete, State verified, and Issue resolved
+  it("REGRESSION: clearly distinguishes Investigation complete, State verified, and Issue resolved", async () => {
+    // 1. Initial investigation (unresolved, no write verified yet)
+    const res1 = await resolvePost(
+      makeJsonRequest("http://localhost:3000/api/resolve", {
+        message: "Check message delivery status for our account",
+      })
+    );
+    const data1 = await res1.json();
+    expect(data1.statusBadge).toBe("Investigation complete");
+    expect(data1.verificationStatus).toBe("Investigation complete");
+    expect(data1.isVerified).toBe(false);
+
+    // 2. Action execution with fresh read verification
+    const res2 = await actionPost(
+      makeJsonRequest("http://localhost:3000/api/action", {
+        sessionId: data1.sessionId,
+        action: "check_message_status",
+      })
+    );
+    const data2 = await res2.json();
+    expect(data2.statusBadge).toBe("State verified");
+    expect(data2.verificationStatus).toBe("State verified (Carrier Read)");
+    expect(data2.isVerified).toBe(true);
+
+    // 3. Case closed -> Issue resolved
+    const res3 = await actionPost(
+      makeJsonRequest("http://localhost:3000/api/action", {
+        sessionId: data1.sessionId,
+        action: "close_case",
+        customReason: "Resolved by operator confirmation",
+      })
+    );
+    const data3 = await res3.json();
+    expect(data3.statusBadge).toBe("Issue resolved");
+    expect(data3.verificationStatus).toBe("Issue resolved");
+  });
 });
 
 

@@ -131,7 +131,27 @@ Running log of failed commands/tests, diagnosis, attempted fixes, unresolved iss
   3. Added Devanagari and mixed-script coverage in `SECURITY_PATTERNS` (`/खाता\s*(हैक|हैंक)|पासवर्ड[^\n]{0,30}रीसेट|एक्सेस\s*रीसेट/i`) and `HUMAN_REQUEST_PATTERNS` (`/\b(human|specialist|support)\b[^\n]{0,30}(baat|बात|karwao|karwaen|karwayen|karayein|se baat)/i` and `/मानव\s*विशेषज्ञ|कस्टमर\s*केयर|एजेंट\s*से\s*बात|इंसान\s*से\s*बात|बात\s*(करवाएं|करवाओ|करनी|कराओ)/i`).
   4. Verified across 5,000 synthetic benchmark messages: critical safety violations dropped to exactly **0**, with 100% policy enforcement.
 
+### F-015 · Chat scroll jump on cards mount, duplicate secondary buttons, and issue-switch state retention
+- Error:
+  1. Sending a message caused the chat scroll position to jump or cut off above diagnosis cards, forcing users to manually scroll down.
+  2. The UI rendered duplicate "View supporting evidence" and "Edit proposal" buttons.
+  3. Switching issues mid-conversation (e.g. from delivery delay to chatbot flow to WhatsApp setup) retained previous diagnosis cards, summaries, and action buttons.
+  4. Non-English support queries on Turn 1 fell back to English text because LangGraph was only called on Turn 1 for business queries.
+- Diagnosis:
+  1. The scroll anchor `messagesEndRef` was placed prematurely above diagnosis cards in `workspace/page.tsx`, causing `scrollIntoView()` to stop above the cards.
+  2. The UI unconditionally rendered static secondary action buttons even when `recommendedNextStep.secondaryLabel` was already configured with those exact actions.
+  3. `persistResponseNode` lacked an issue-switch detector to transition `session.state.triage.issueType` and wipe stale proposals, verifications, and diagnoses.
+  4. In `fastRouter.ts`, generic fact correction was evaluated before scoped technical support intents, causing messages starting with "Actually, ..." to be intercepted as generic fact updates rather than domain switches.
+  5. In `/api/resolve/route.ts`, Turn 1 only invoked LangGraph for `isBusinessRequest(message)`.
+- Fix:
+  1. Repositioned `messagesEndRef` to the bottom of the conversation stream and added user-scroll-intent tracking (`userScrolledUpRef`) on `#workspace-main-scroll` (>150px scroll up) to follow streaming responses without jarring jumps.
+  2. Suppressed duplicate secondary action buttons when already rendered by `recommendedNextStep`.
+  3. Implemented issue-switch detection and state clearance in `persistResponseNode`.
+  4. Reordered `fastRouter.ts` so technical support intents evaluate before fact correction, and refined chatbot trigger/button regexes.
+  5. Executed LangGraph on Turn 1 when `detectLanguage(message) !== "en"`.
+  6. Verified with Tests 26–30 in `tests/apiIntegration.test.ts`. All 233 vitest tests passing across 18 test files; strict Vite and Next.js 16 builds clean.
+
 ## Unresolved issues
-- None (all 227 tests across 18 test suites passing; 5,000-message benchmark passing with 0 safety violations; Next.js 16 and Vite builds clean).
+- None (all 233 tests across 18 test suites passing; Next.js 16 and Vite builds clean; 0 safety violations).
 
 

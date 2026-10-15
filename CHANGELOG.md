@@ -2,6 +2,28 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — UI Chat Natural Scrolling, Duplicate Action Cleanup, Issue-Switch State Isolation, and Semantic Status Badges (D-029, F-015)
+
+- **Natural Chat Scrolling & Anchored Composer**:
+  - Replaced erratic page-level scrolling with a dedicated, smooth-scrolling conversation container (`#workspace-main-scroll`).
+  - Added user-scroll-intent detection: auto-scrolling smoothly tracks growing responses and newly mounted diagnosis cards without jarring jumps, but automatically pauses if the user intentionally scrolls up (>150px) to read previous messages.
+  - Composer remains firmly fixed at the bottom while conversation history scrolls independently.
+- **Duplicate Action Cleanup & Active Issue Specificity**:
+  - Removed duplicated "View supporting evidence" and "Edit proposal" buttons by conditionally suppressing secondary action buttons when already rendered in CTA headers.
+  - Enforced strict issue-type scoping on diagnostic cards and action fallbacks so every rendered card and button corresponds strictly to the active issue (`message_delivery`, `chatbot_flow`, `number_waba_setup`, `template_rejection`).
+- **Issue-Switch State Isolation & Clearance**:
+  - When switching issues mid-conversation (e.g. from campaign delivery delays to chatbot flow issues to WhatsApp setup), previous diagnosis summaries, proposals, verification badges, and action buttons are cleanly cleared.
+  - Reordered fast router evaluation so specific technical support inquiries take precedence over general conversational fact correction, enabling instant issue switching even on messages beginning with "Actually, ...".
+- **Semantic Status Badge Distinction**:
+  - Standardized status badges to accurately reflect progress:
+    - `Investigation complete` (blue): Diagnostic analysis complete, action recommendations ready.
+    - `State verified` (teal): Simulated recovery executed and verified against fresh platform state.
+    - `Issue resolved` (emerald): Ticket confirmed resolved or explicitly closed.
+- **Multilingual First-Turn Routing**:
+  - Integrated LangGraph on Turn 1 for multilingual inputs, ensuring Hinglish and Hindi messages receive immediate localized explanations and tailored recovery CTAs.
+- **Verification**:
+  - Added Tests 26–30 in `tests/apiIntegration.test.ts`. Full test suite: **233/233 tests passing across all 18 test files** (`npm test`). Both Vite and Next.js 16 production builds clean.
+
 ## 2026-10-15 — Cost-Aware Multilingual Customer-Support Fast Router & Scaled 5,000-Business Cost Model (D-028, F-014)
 
 - **Cost-Aware Multilingual Customer-Support Fast Router (`src/domain/fastRouter.ts`)**:

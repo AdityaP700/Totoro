@@ -455,6 +455,30 @@ Implemented a 2-layer, cost-aware multilingual routing architecture in Totoro fo
    - Full test suite: **227/227 tests passing across 18 test files** (`npm test`).
 - Evidence label: DOCUMENTED (Guardrails G1–G15, Decisions D1–D11) + REPORTED (tests in tests/multilingualRouter.test.ts, docs/audits/multilingual_5000_benchmark_results.json, deliverables/cheerio_resolve_eval_and_cost_workbook.xlsx).
 
+## D-029 · 2026-10-15 · UI Natural Chat Scrolling, Duplicate Button Elimination, Issue-Switch State Isolation, and Semantic Status Badges
 
-
-
+Polished the conversation UI and fixed conversational lifecycle issues without altering existing LangGraph architecture, routing, or dependencies:
+1. **Natural Chat Scrolling & Anchored Composer**:
+   - Replaced fragile window-level scrolling with an independent scroll container (`#workspace-main-scroll` with `overflow-y-auto` and `scroll-smooth`).
+   - Attached an active scroll position listener tracking user scroll intent. If the user scrolls upward by more than 150px to inspect historical context, auto-scroll is paused (`userScrolledUpRef.current = true`).
+   - Moved the bottom scroll anchor element from an intermediate position above diagnosis cards to the true end of the conversation stream (`messagesEndRef`), ensuring newly rendered diagnosis summaries, action buttons, and follow-up chips scroll naturally into full view without requiring manual scrolling.
+2. **Duplicate Action Cleanup & Active Issue Specificity**:
+   - Identified and fixed redundant action buttons: `recommendedNextStep.secondaryLabel` was duplicating static "View supporting evidence" and "Edit proposal" buttons. Added conditional suppression (`!secondaryLabel.toLowerCase().includes(...)`) to eliminate duplicates.
+   - Enforced strict issue-type scoping for diagnosis cards and CTA fallbacks (`PB-WABA-REGISTRATION-CHECK`, `PB-CHATBOT-FLOW-CHECK`, `PB-DELIVERY-STATUS-CHECK`, `PB-001-PROMO-IN-UTILITY`), ensuring every rendered card corresponds strictly to the active issue.
+3. **Issue-Switch State Isolation & Clearance**:
+   - In `src/domain/conversationGraph.ts` (`persistResponseNode`), added issue-switch detection: when `proposal.issueType` transitions away from `session.state.triage.issueType` (e.g. from delivery delay to chatbot flow to WhatsApp setup), the triage state updates, and all stale proposals, diagnoses, verifications, action results, confirmations, and template snapshots from previous issues are cleared.
+   - Reordered pattern evaluation in `src/domain/fastRouter.ts` so scoped technical support intents (WhatsApp setup, template rejection, campaign delivery, and chatbot flows) take precedence over general fact correction, enabling seamless conversational issue switching even when messages begin with "Actually, ...".
+4. **Semantic Status Badge Hierarchy**:
+   - Clarified semantic boundaries across state transitions:
+     - `Investigation complete` (blue): Active diagnostic checks concluded, recommended action prepared, but recovery action not yet executed or verified.
+     - `State verified` (teal): Simulated recovery write executed and confirmed via fresh state read.
+     - `Issue resolved` (emerald): Case explicitly closed or confirmed resolved by operator.
+     - `Analysis active` (indigo): Non-support business data/operational analytics inquiry.
+5. **Multilingual Turn 1 Routing**:
+   - Extended `/api/resolve/route.ts` Turn 1 execution to automatically run LangGraph turns when `detectLanguage(message) !== "en"`, immediately returning localized Hinglish/Hindi text without falling back to English defaults.
+6. **Verification**:
+   - Added Tests 26–30 in `tests/apiIntegration.test.ts`.
+   - Full vitest test suite: **233/233 tests passing across all 18 test files** (`npm test`).
+   - Strict root Vite build clean (`npm run build`).
+   - Production Next.js 16 Turbopack build clean (`npm --prefix frontend run build`).
+- Evidence label: DOCUMENTED (Guardrails G1, G2, G5, G8, D1–D11) + REPORTED (tests 26–30 in tests/apiIntegration.test.ts, Vite and Next.js production builds).

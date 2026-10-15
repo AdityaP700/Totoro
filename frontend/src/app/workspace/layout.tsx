@@ -41,28 +41,49 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   // Format status badge color
   const badgeConfig = (() => {
     const s = (statusBadge || "").toLowerCase();
+    if (s.includes("resolved") || s === "issue resolved") {
+      return {
+        dot: "bg-emerald-600",
+        pill: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
+        label: "Issue resolved",
+      };
+    }
+    if (s.includes("state verified") || s.includes("verified read") || s.includes("carrier read")) {
+      return {
+        dot: "bg-teal-600",
+        pill: "bg-teal-50 text-teal-700 border-teal-200/70",
+        label: "State verified",
+      };
+    }
+    if (s.includes("investigation complete") || s.includes("investigation")) {
+      return {
+        dot: "bg-blue-600",
+        pill: "bg-blue-50 text-blue-700 border-blue-200/70",
+        label: "Investigation complete",
+      };
+    }
+    if (s.includes("analysis active") || s.includes("analysis")) {
+      return {
+        dot: "bg-indigo-600",
+        pill: "bg-indigo-50 text-indigo-700 border-indigo-200/70",
+        label: "Analysis active",
+      };
+    }
     if (s.includes("awaiting") || s.includes("propose") || s.includes("approval")) {
       return {
         dot: "bg-blue-600",
         pill: "bg-blue-50 text-blue-700 border-blue-200/70",
-        label: statusBadge || "Awaiting approval",
+        label: statusBadge || "Approval required",
       };
     }
-    if (s.includes("verified") || s.includes("success") || s.includes("pass") || s.includes("complete")) {
-      return {
-        dot: "bg-emerald-600",
-        pill: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
-        label: statusBadge || "Verified read",
-      };
-    }
-    if (s.includes("escalat") || s.includes("human") || s.includes("handoff") || s.includes("block")) {
+    if (s.includes("escalat") || s.includes("human") || s.includes("handoff") || s.includes("block") || s.includes("specialist")) {
       return {
         dot: "bg-rose-600",
         pill: "bg-rose-50 text-rose-700 border-rose-200/70",
         label: statusBadge || "Escalated to human support",
       };
     }
-    if (s.includes("clarif")) {
+    if (s.includes("clarif") || s.includes("needs details")) {
       return {
         dot: "bg-amber-600",
         pill: "bg-amber-50 text-amber-800 border-amber-200/70",
@@ -413,7 +434,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content Canvas */}
-        <main className="flex-1 overflow-y-auto relative bg-white">
+        <main id="workspace-main-scroll" className="flex-1 overflow-y-auto relative bg-white scroll-smooth">
           {children}
         </main>
       </div>

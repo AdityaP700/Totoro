@@ -547,6 +547,24 @@ but unused — no test needs it.
 - Result: PASS (exit 0) — **227 passed across 18 test files (100% passing)**.
 - Safety Violations: **0**
 
+## 2026-10-15 · UI Chat Natural Scrolling, Duplicate Action Cleanup, Issue-Switch State Isolation, and Semantic Status Badges
 
+### UI API Integration & Regression Suite (`tests/apiIntegration.test.ts`)
+- Added Tests 26–30:
+  - Test 26: Multi-turn issue switching (`message_delivery` → `chatbot_flow` → `number_waba_setup`) clears stale proposals, summaries, diagnostic cards, and action buttons.
+  - Test 27: Completed-step acknowledgements record evidence and suppress duplicate recommendations without repeating checks.
+  - Test 28: Multilingual support queries in English, Hinglish, and Hindi script preserve meaning and receive localized responses on Turn 1.
+  - Test 29: Billing and duplicate card charges immediately trigger human handoff without automated proposals or leaked delivery checks.
+  - Test 30: Semantic status badges distinguish `"Investigation complete"` (blue), `"State verified"` (teal), and `"Issue resolved"` (emerald), never asserting resolution when unresolved.
+- Result: PASS (exit 0) — 31/31 integration tests passed.
 
-
+### Full Repository Regression Verification
+- Command: `npm test` (`vitest run`)
+  - Result: PASS (exit 0) — **233 passed across 18 test files (100% passing)** in 5.35s.
+- Command: `npm run build` (`tsc -b && vite build`)
+  - Result: PASS (exit 0) — strict mode typecheck clean, bundle built in 9.85s.
+- Command: `npm --prefix frontend run build` (`next build`)
+  - Result: PASS (exit 0) — Next.js 16.2.9 Turbopack clean across all 21 routes in 10.0s.
+- Safety Violations: **0**
+- Duplicate Buttons: **0**
+- Stale Cross-Issue State Leaks: **0**

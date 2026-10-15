@@ -122,17 +122,19 @@ export function listSessions(workspaceId: string): SessionSummary[] {
     const cached = registry.get(stored.sessionId);
     const record = cached?.workspaceId === workspaceId ? cached : hydrate(stored);
     const s = record.session.state;
-    let statusBadge = "Diagnosing";
+    let statusBadge = "Investigation complete";
     if (s.businessContext && s.businessContext.domain !== "platform_recovery" && s.businessContext.domain !== "customer_support") {
       statusBadge = "Analysis active";
-    } else if (s.stage === "PENDING" && s.verification?.verified) {
-      statusBadge = "Verified (Pending Review)";
+    } else if (s.closedAt || s.stage === "RESOLVED") {
+      statusBadge = "Issue resolved";
+    } else if (s.verification?.verified) {
+      statusBadge = "State verified";
     } else if (s.stage === "HANDOFF") {
-      statusBadge = "Human Escalation";
+      statusBadge = s.specialistAssignment ? "Specialist Assigned" : "Escalated to human support";
     } else if (s.stage === "PROPOSE" || s.stage === "CONFIRM") {
-      statusBadge = "Action Proposed";
+      statusBadge = "Approval required";
     } else if (s.stage === "CLARIFY_ONCE") {
-      statusBadge = s.triage?.issueType === "template_rejection" ? "Needs details" : "Clarification Needed";
+      statusBadge = s.triage?.issueType === "template_rejection" ? "Needs details" : "Clarification needed";
     }
 
     summaries.push({
@@ -326,9 +328,13 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
     ]);
   }
 
-  let statusBadge = "Diagnosis verified";
+  let statusBadge = "Investigation complete";
   if (isBusinessDomain) {
     statusBadge = "Analysis active";
+  } else if (s.closedAt || s.stage === "RESOLVED") {
+    statusBadge = "Issue resolved";
+  } else if (s.verification?.verified) {
+    statusBadge = "State verified";
   } else if (s.stage === "CLARIFY_ONCE") {
     statusBadge = s.triage?.issueType === "template_rejection" ? "Needs details" : "Clarification needed";
   } else if (s.stage === "HANDOFF") {
@@ -336,7 +342,7 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
   } else if (s.stage === "PROPOSE" || s.stage === "CONFIRM") {
     statusBadge = "Approval required";
   } else if (s.stage === "PENDING" && s.verification?.verified) {
-    statusBadge = "Verified read";
+    statusBadge = "State verified";
   }
 
   const interactionState = s.interactionState || deriveInteractionState(s);
@@ -472,13 +478,15 @@ export function buildResolveResponse(record: ActiveSessionRecord, latencyMs: num
       : `Request context (${s.triage?.issueType ?? "general"})`,
     verificationStatus: isBusinessDomain
       ? "Analysis active"
+      : s.closedAt || s.stage === "RESOLVED"
+      ? "Issue resolved"
       : s.verification?.verified
-      ? "Verified read (MOCK)"
+      ? "State verified"
       : s.stage === "HANDOFF"
       ? "Handoff dossier"
       : s.stage === "CLARIFY_ONCE"
       ? "Clarification pending"
-      : "Inspection complete",
+      : "Investigation complete",
     diagnosisSummary,
     recommendedNextStep,
     completedChecks: s.completedChecks || [],

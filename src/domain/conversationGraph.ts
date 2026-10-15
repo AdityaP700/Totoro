@@ -24,7 +24,7 @@ import {
   MemorySaver,
 } from "@langchain/langgraph";
 import type { ResolveSession } from "./stateMachine";
-import type { CaseState, ProposedNextStep } from "./types";
+import type { CaseState, ProposedNextStep, IssueType } from "./types";
 import { GroqClient } from "./groqClient";
 import { fastRouteMessage, isScopedSupportIntent } from "./fastRouter";
 
@@ -210,6 +210,8 @@ export function isBusinessRequest(message: string): boolean {
 export interface StructuredInterpretation {
   intent: ConversationalIntent;
   businessDomain?: BusinessDomain;
+  scopedIntent?: string;
+  issueType?: IssueType;
   extractedEntities: Record<string, string>;
   corrections: ProposedCorrection[];
   missingFields: string[];
@@ -456,12 +458,16 @@ export function validateStructuredInterpretation(raw: unknown): {
   const confidence = typeof obj.confidence === "number" ? Math.max(0, Math.min(1, obj.confidence)) : 0.85;
   const businessDomain = typeof obj.businessDomain === "string" ? (obj.businessDomain as BusinessDomain) : undefined;
   const unsupportedActionRequested = typeof obj.unsupportedActionRequested === "string" ? obj.unsupportedActionRequested : null;
+  const scopedIntent = typeof obj.scopedIntent === "string" ? (obj.scopedIntent as string) : undefined;
+  const issueType = typeof obj.issueType === "string" ? (obj.issueType as IssueType) : undefined;
 
   return {
     valid: errors.length === 0,
     data: {
       intent,
       businessDomain,
+      scopedIntent,
+      issueType,
       extractedEntities,
       corrections,
       missingFields,
@@ -1627,6 +1633,8 @@ export async function interpretMessageNode(
       proposal: {
         intent: fastResult.intent,
         businessDomain: "customer_support",
+        scopedIntent: fastResult.scopedIntent,
+        issueType: fastResult.issueType,
         extractedEntities: fastResult.extractedEntities,
         corrections: fastResult.corrections,
         missingFields: fastResult.missingFields,
@@ -1699,6 +1707,8 @@ export async function interpretMessageNode(
           completedCheck: groqProposal.completedCheck,
           confidence: groqProposal.confidence ?? 0.85,
           detectedLanguage: groqProposal.language || fastResult.language,
+          issueType: (groqProposal as any).issueType,
+          scopedIntent: groqProposal.intent,
         };
 
         const validated = validateStructuredInterpretation(rawOutput);
@@ -2154,6 +2164,51 @@ export async function persistResponseNode(
     bCtx.domain = proposal.businessDomain;
   }
 
+  // 1B. Handle Issue Switching across customer support intents
+  const prevIssueType = session.state.triage?.issueType;
+  const newIssueType = proposal.issueType;
+  const isSupportIssueSwitch = Boolean(
+    newIssueType &&
+    prevIssueType &&
+    newIssueType !== prevIssueType &&
+    (proposal.businessDomain === "customer_support" || !proposal.businessDomain)
+  );
+
+  if (isSupportIssueSwitch && session.state.triage && newIssueType) {
+    session.state.triage.issueType = newIssueType;
+    if (
+      newIssueType === "billing_refund" ||
+      newIssueType === "security_identity_access" ||
+      proposal.intent === "request_human"
+    ) {
+      session.state.triage.needsHuman = true;
+      session.state.triage.route = "human_handoff";
+      session.state.stage = "HANDOFF";
+      session.state.handoffReason =
+        proposal.headline || "Policy constraint mandates human specialist review.";
+    } else {
+      session.state.triage.needsHuman = false;
+      session.state.triage.route = "rules_playbook";
+      session.state.stage = "DIAGNOSE";
+      session.state.handoffReason = null;
+      session.state.specialistAssignment = null;
+    }
+
+    // Clear stale state, diagnosis, and proposals from previous issue
+    session.state.proposal = null;
+    session.state.diagnosis = null;
+    session.state.verification = null;
+    session.state.actionResult = null;
+    session.state.confirmation = null;
+    session.state.declined = false;
+    session.state.closedAt = undefined;
+    if (newIssueType !== "template_rejection" && !proposal.extractedEntities?.templateId) {
+      session.state.templateSnapshot = null;
+      session.state.templateId = null;
+    }
+    session.state.completedChecks = proposal.completedCheck ? [proposal.completedCheck] : [];
+  }
+
   // 2. Record completed check
   if (proposal.completedCheck) {
     if (!session.state.completedChecks) session.state.completedChecks = [];
@@ -2265,6 +2320,14 @@ export async function persistResponseNode(
     session.state.handoffReason = null;
     session.state.handoffRequestedAt = null;
     session.state.specialistAssignment = null;
+    session.state.proposal = null;
+    session.state.diagnosis = null;
+    session.state.verification = null;
+    session.state.actionResult = null;
+    session.state.confirmation = null;
+    session.state.declined = false;
+    session.state.templateSnapshot = null;
+    session.state.templateId = null;
     session.state.stage = "RESOLVED";
   }
 

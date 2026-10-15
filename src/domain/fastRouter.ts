@@ -279,7 +279,9 @@ const DELIVERY_PENDING_PATTERNS = [
   i(/\b(messages?|campaign)\b[^\n]{0,30}\bpending (delivery|status)\b/),
   i(/\bmessages pending (dikha raha|hai|dikh rahe)\b/i),
   i(/\bcampaign ke messages atke hue hain\b/i),
-  i(/मैसेज\s*पेंडिंग|डिलीवर\s*नहीं\s*हो\s*रहे|अभियान\s*अटका/i),
+  i(/\b(messages?|campaign)\b[^\n]{0,35}\b(deliver nahi|pahunch nahi|pohoch nahi|reach nahi|deliver na|send nahi)\b/i),
+  i(/\b(deliver nahi ho rahe|pahunch nahi rahe|atke hue hain|deliver nahi ho raha|deliver nahi ho pa rahe)\b/i),
+  i(/मैसेज\s*पेंडिंग|डिलीवर\s*नहीं\s*हो\s*रहे|अभियान\s*अटका|संदेश\s*नहीं\s*पहुंच|संदेश\s*पहुंच\s*नहीं|संदेश\s*नहीं/i),
 ];
 
 // --- Campaign Delivery: Rate Limit & Messaging Tiers ---
@@ -303,8 +305,10 @@ const DELIVERY_PAUSED_PATTERNS = [
 
 // --- Chatbot Troubleshooting: Keyword Trigger Failure ---
 const CHATBOT_KEYWORD_PATTERNS = [
-  i(/\b(chatbot|bot)\b[^\n]{0,40}\b(not triggering|not replying|keyword|trigger fail\w*|no response)\b/),
-  i(/\bkeyword trigger\b[^\n]{0,30}\b(failed|fail|not working|broken|nhi|nahi)\b/),
+  i(/\b(chatbot|bot)\b[^\n]{0,50}\b(keyword trigger|keyword)\b/i),
+  i(/\b(chatbot|bot)\b[^\n]{0,40}\b(not triggering|not replying|trigger fail\w*|no response)\b/),
+  i(/\bkeyword triggers?\b[^\n]{0,30}\b(failed|fail|not working|broken|nhi|nahi|stuck)\b/),
+  i(/\bkeyword triggers?\b/i),
   i(/\b(chatbot|bot) reply nahi kar raha\b/i),
   i(/\bkeyword par (bot|chatbot) trigger nahi ho raha\b/i),
   i(/कीवर्ड\s*पर\s*ट्रिगर\s*नहीं|बॉट\s*जवाब\s*नहीं\s*दे\s*रहा/i),
@@ -312,7 +316,9 @@ const CHATBOT_KEYWORD_PATTERNS = [
 
 // --- Chatbot Troubleshooting: Interactive Button Response Failure ---
 const CHATBOT_BUTTON_PATTERNS = [
-  i(/\b(interactive button|quick reply|cta button|button click|buttons?)\b[^\n]{0,40}\b(not working|not sending|fails|no response|did not trigger|unresponsive|broken)\b/),
+  i(/\b(interactive button|quick reply|cta button|button click|buttons?)\b[^\n]{0,40}\b(not working|not sending|fails|no response|did not trigger|unresponsive|broken|stuck)\b/),
+  i(/\b(stuck|broken|failing|error)\b[^\n]{0,35}\b(interactive button|buttons?|quick reply)\b/),
+  i(/\b(chatbot|bot|flow)\b[^\n]{0,50}\b(interactive button|buttons?|quick reply)\b/),
   i(/\bquick reply button click\b/),
   i(/\bchatbot (ke )?buttons? kaam nahi kar rahe\b/i),
   i(/\b(button|quick reply)\b[^\n]{0,40}\b(press|click)\b[^\n]{0,30}\b(nahi|aage nahi|kuch nahi)\b/i),
@@ -1921,36 +1927,6 @@ export function fastRouteMessage(
     };
   }
 
-  // 9. CONVERSATIONAL: FACT CORRECTION
-  if (CORRECTION_PATTERNS.some((p) => p.test(text))) {
-    const loc = buildLocalizedResponse("correct_information", lang, extractedEntities);
-    return {
-      isConfident: true,
-      language: lang,
-      intent: "correct_information",
-      scopedIntent: "correct_information",
-      issueType: context.issueType || "template_rejection",
-      targetRoute: "answer_from_evidence",
-      urgency: "medium",
-      confidence: 0.95,
-      extractedEntities,
-      corrections: [
-        {
-          field: "operatorFactUpdate",
-          newValue: text,
-        },
-      ],
-      completedChecks: [],
-      missingFields: [],
-      headline: loc.headline,
-      conversationalResponse: loc.conversationalResponse,
-      evidenceExplanation: loc.evidenceExplanation,
-      nextSteps: loc.nextSteps,
-      proposedNextStep: loc.proposedNextStep,
-      requiresHumanEscalation: false,
-    };
-  }
-
   // 10. SCOPED SUPPORT INTENTS: WHATSAPP SETUP
   if (SETUP_WABA_PATTERNS.some((p) => p.test(text))) {
     const loc = buildLocalizedResponse("setup_waba_onboarding", lang, extractedEntities);
@@ -2243,13 +2219,13 @@ export function fastRouteMessage(
   }
 
   // 13. SCOPED SUPPORT INTENTS: CHATBOT FLOWS
-  if (CHATBOT_KEYWORD_PATTERNS.some((p) => p.test(text))) {
-    const loc = buildLocalizedResponse("chatbot_keyword_trigger", lang, extractedEntities);
+  if (CHATBOT_BUTTON_PATTERNS.some((p) => p.test(text))) {
+    const loc = buildLocalizedResponse("chatbot_interactive_button", lang, extractedEntities);
     return {
       isConfident: true,
       language: lang,
       intent: "troubleshoot_operational_issue",
-      scopedIntent: "chatbot_keyword_trigger",
+      scopedIntent: "chatbot_interactive_button",
       issueType: "chatbot_flow",
       targetRoute: "rules_playbook" as any,
       urgency: "medium",
@@ -2267,13 +2243,13 @@ export function fastRouteMessage(
     };
   }
 
-  if (CHATBOT_BUTTON_PATTERNS.some((p) => p.test(text))) {
-    const loc = buildLocalizedResponse("chatbot_interactive_button", lang, extractedEntities);
+  if (CHATBOT_KEYWORD_PATTERNS.some((p) => p.test(text))) {
+    const loc = buildLocalizedResponse("chatbot_keyword_trigger", lang, extractedEntities);
     return {
       isConfident: true,
       language: lang,
       intent: "troubleshoot_operational_issue",
-      scopedIntent: "chatbot_interactive_button",
+      scopedIntent: "chatbot_keyword_trigger",
       issueType: "chatbot_flow",
       targetRoute: "rules_playbook" as any,
       urgency: "medium",
@@ -2328,6 +2304,36 @@ export function fastRouteMessage(
       confidence: 0.95,
       extractedEntities,
       corrections: [],
+      completedChecks: [],
+      missingFields: [],
+      headline: loc.headline,
+      conversationalResponse: loc.conversationalResponse,
+      evidenceExplanation: loc.evidenceExplanation,
+      nextSteps: loc.nextSteps,
+      proposedNextStep: loc.proposedNextStep,
+      requiresHumanEscalation: false,
+    };
+  }
+
+  // 13B. CONVERSATIONAL: FACT CORRECTION
+  if (CORRECTION_PATTERNS.some((p) => p.test(text))) {
+    const loc = buildLocalizedResponse("correct_information", lang, extractedEntities);
+    return {
+      isConfident: true,
+      language: lang,
+      intent: "correct_information",
+      scopedIntent: "correct_information",
+      issueType: context.issueType || "template_rejection",
+      targetRoute: "answer_from_evidence",
+      urgency: "medium",
+      confidence: 0.95,
+      extractedEntities,
+      corrections: [
+        {
+          field: "operatorFactUpdate",
+          newValue: text,
+        },
+      ],
       completedChecks: [],
       missingFields: [],
       headline: loc.headline,

@@ -831,6 +831,27 @@ export class PlaybookRegistry {
         failureHandoff: true,
       },
       humanHandoffConditions: ["Business registration rejected by Meta"],
+      recommendedAction: {
+        title: "Verify Meta Business Manager and WABA 2-Step PIN registration.",
+        subtitle: "Review business display name approval and phone certificate binding in Meta Business Manager.",
+        primaryCtaLabel: "Verify registration details",
+        primaryCtaAction: "verify_waba_registration",
+        secondaryCtaLabel: "View supporting evidence",
+        secondaryCtaAction: "view_supporting_evidence",
+      },
+      diagnosisSummary: {
+        whatWeKnow: [
+          "WhatsApp Business Account setup is in progress or pending verification.",
+          "Phone number registration requires 2-step verification and display name approval.",
+        ],
+        whatRemainsUncertain: [
+          "Whether the certificate was issued by Meta Business Manager.",
+          "Whether the 6-digit two-step PIN has been registered on the handset.",
+        ],
+        impact: [
+          "Outbound messages cannot be dispatched until number registration is verified.",
+        ],
+      },
     });
 
     // PB-CHATBOT: Flow Logic & Triggers
@@ -859,6 +880,27 @@ export class PlaybookRegistry {
         failureHandoff: true,
       },
       humanHandoffConditions: ["Complex flow loop or custom webhook action failure"],
+      recommendedAction: {
+        title: "Inspect chatbot trigger conditions and keyword matching rules.",
+        subtitle: "Audit keyword match thresholds, interactive button payload handlers, and fallback routes.",
+        primaryCtaLabel: "Inspect flow triggers",
+        primaryCtaAction: "inspect_chatbot_flow_triggers",
+        secondaryCtaLabel: "View supporting evidence",
+        secondaryCtaAction: "view_supporting_evidence",
+      },
+      diagnosisSummary: {
+        whatWeKnow: [
+          "Chatbot flow triggers or interactive quick-reply nodes are reporting unexpected stops.",
+          "Flow trigger definitions require exact keyword or interactive button payload matching.",
+        ],
+        whatRemainsUncertain: [
+          "Whether user response matches keyword patterns or was routed to default fallback.",
+          "Whether webhook action nodes are encountering timeout or latency.",
+        ],
+        impact: [
+          "Automated conversational routing is paused for incoming customer replies.",
+        ],
+      },
     });
   }
 }

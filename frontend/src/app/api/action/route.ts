@@ -87,8 +87,8 @@ export async function POST(req: Request) {
           statusLabel: "Verified (Carrier Read)",
         },
         events: session.state.events,
-        statusBadge: "Verified (Carrier Read)",
-        verificationStatus: "Carrier telemetry verified",
+        statusBadge: "State verified",
+        verificationStatus: "State verified (Carrier Read)",
         executionVerification: [
           ["Action Result", "Checked message status via carrier gateway"],
           ["Verification", "Verified (Outbound HTTP 200)"],
@@ -255,8 +255,8 @@ export async function POST(req: Request) {
           statusLabel: "Closed",
         },
         events: session.state.events,
-        statusBadge: "Closed",
-        verificationStatus: "Case closed",
+        statusBadge: "Issue resolved",
+        verificationStatus: "Issue resolved",
         executionVerification: [["Status", "Case closed"]],
         messages: record.messages,
       });
@@ -537,10 +537,10 @@ export async function POST(req: Request) {
       templateAfter,
       auditTrail,
       statusBadge: isVerified
-        ? "Verified (Pending Review)"
+        ? "State verified"
         : "Verification Failed — Escalated",
       verificationStatus: isVerified
-        ? "Fresh state verified (MOCK)"
+        ? "State verified (MOCK)"
         : "Verification failed fresh read",
       executionVerification,
       messages: record.messages,

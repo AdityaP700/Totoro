@@ -8,6 +8,7 @@ import {
 import { getWorkspaceId } from "../../../lib/server/workspace";
 import type { ResolveRequest } from "../../../lib/apiTypes";
 import { runConversationTurn, isBusinessRequest } from "../../../../../src/domain/conversationGraph";
+import { detectLanguage } from "../../../../../src/domain/fastRouter";
 
 export const runtime = "nodejs";
 
@@ -64,8 +65,9 @@ export async function POST(req: Request) {
         sessionId: body.sessionId,
       });
 
-      // Execute LangGraph flow on Turn 1 for business requests
-      if (isBusinessRequest(message)) {
+      // Execute LangGraph flow on Turn 1 for business requests or multilingual queries
+      const detectedLang = detectLanguage(message);
+      if (isBusinessRequest(message) || detectedLang !== "en") {
         await runConversationTurn({
           sessionId: record.sessionId,
           message,

@@ -176,9 +176,29 @@ function WorkspacePageContent() {
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const userScrolledUpRef = useRef<boolean>(false);
   const composerInputRef = useRef<HTMLInputElement>(null);
   const clarificationInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Natural scroll listener: track whether user scrolled up
+  useEffect(() => {
+    const container = document.getElementById("workspace-main-scroll");
+    if (!container) return;
+
+    const handleScroll = () => {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distanceFromBottom > 150) {
+        userScrolledUpRef.current = true;
+      } else {
+        userScrolledUpRef.current = false;
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Initialize sound preference from localStorage
   useEffect(() => {
@@ -202,11 +222,11 @@ function WorkspacePageContent() {
   // Sync active title and status badge with layout context
   useEffect(() => {
     if (actionData) {
-      setStatusBadge(actionData.statusBadge || "Execution complete");
+      setStatusBadge(actionData.statusBadge || "State verified");
     } else if (resolveData) {
       const title = customTitle || deriveCaseTitle(resolveData, activeQuery);
       setActiveTitle(title);
-      setStatusBadge(resolveData.statusBadge || "Awaiting approval");
+      setStatusBadge(resolveData.statusBadge || "Investigation complete");
     } else {
       setActiveTitle("New request");
       setStatusBadge("Ready");
@@ -267,12 +287,15 @@ function WorkspacePageContent() {
     const filesToUpload = [...stagedFiles];
     setStagedFiles([]); // Clear staged files from composer
 
+    userScrolledUpRef.current = false;
     setPendingQuery(targetText);
     if (!activeQuery) setActiveQuery(targetText);
     setLoading(true);
     setErrorMessage(null);
     setActionData(null);
+    setShowEvidenceSection(false);
     setShowAlternativeChecks(false);
+    setShowEditProposal(false);
 
     try {
       const templateToUse =
@@ -393,11 +416,15 @@ function WorkspacePageContent() {
     const textToSubmit = (overrideText || clarificationInput).trim();
     if (!textToSubmit || !sessionId || clarificationSubmitting || loading) return;
 
+    userScrolledUpRef.current = false;
     playSubmitSound();
     setPendingQuery(textToSubmit);
     setClarificationSubmitting(true);
     setErrorMessage(null);
     setActionData(null);
+    setShowEvidenceSection(false);
+    setShowAlternativeChecks(false);
+    setShowEditProposal(false);
 
     try {
       const res = await fetch("/api/resolve", {
@@ -774,6 +801,32 @@ function WorkspacePageContent() {
             : "Customers may not be receiving expected campaign messages.",
       };
     }
+    if (resolveData?.triage?.issueType === "chatbot_flow") {
+      return {
+        whatWeKnow: [
+          "Chatbot flow triggers or interactive quick-reply nodes are reporting unexpected stops.",
+          "Keyword trigger definitions require exact pattern or payload matching.",
+        ],
+        whatRemainsUncertain: [
+          "Whether user response matches keyword patterns or was routed to default fallback.",
+          "Whether webhook action nodes are encountering timeout or latency.",
+        ],
+        impact: "Automated conversational routing is paused for incoming customer replies.",
+      };
+    }
+    if (resolveData?.triage?.issueType === "number_waba_setup") {
+      return {
+        whatWeKnow: [
+          "WhatsApp Business Account setup is in progress or pending verification.",
+          "Phone number registration requires 2-step verification and display name approval.",
+        ],
+        whatRemainsUncertain: [
+          "Whether the certificate was issued by Meta Business Manager.",
+          "Whether the 6-digit two-step PIN has been registered on the handset.",
+        ],
+        impact: "Outbound messages cannot be dispatched until number registration is verified.",
+      };
+    }
     return null;
   }, [resolveData]);
 
@@ -802,7 +855,7 @@ function WorkspacePageContent() {
         secondaryAction,
       };
     }
-    if (resolveData?.proposal) {
+    if (resolveData?.proposal && isTemplateRejectionIssue) {
       return {
         title: "Approve simulated resubmission to conform with WhatsApp policies",
         explanation:
@@ -868,10 +921,13 @@ function WorkspacePageContent() {
   };
 
   useEffect(() => {
-    if (conversationMessages.length > 0 || pendingQuery) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!userScrolledUpRef.current && (conversationMessages.length > 0 || pendingQuery || loading)) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 60);
+      return () => clearTimeout(timer);
     }
-  }, [conversationMessages.length, pendingQuery]);
+  }, [conversationMessages.length, pendingQuery, loading, resolveData, actionData]);
 
   // Brief assistant acknowledgement text (Section 2 Step 2)
   const getAssistantAcknowledgement = (index: number) => {
@@ -1345,8 +1401,6 @@ function WorkspacePageContent() {
                 </>
               )}
 
-              <div ref={messagesEndRef} />
-
               {/* ========================================================= */}
               {/* 3. DIAGNOSIS SUMMARY (Section 2 Step 6)                   */}
               {/* Compact structured panel: What we know, Uncertain, Impact */}
@@ -1545,15 +1599,17 @@ function WorkspacePageContent() {
                       </button>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => setShowEvidenceSection((prev) => !prev)}
-                      className="h-10 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#68717D] hover:bg-[#F8F9FB] hover:text-[#20242B] transition-colors"
-                    >
-                      {showEvidenceSection ? "Hide supporting evidence" : "View supporting evidence"}
-                    </button>
+                    {!recommendedNextStep.secondaryLabel?.toLowerCase().includes("evidence") && (
+                      <button
+                        type="button"
+                        onClick={() => setShowEvidenceSection((prev) => !prev)}
+                        className="h-10 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#68717D] hover:bg-[#F8F9FB] hover:text-[#20242B] transition-colors"
+                      >
+                        {showEvidenceSection ? "Hide supporting evidence" : "View supporting evidence"}
+                      </button>
+                    )}
 
-                    {resolveData?.proposal && !actionData && (
+                    {resolveData?.proposal && !actionData && !recommendedNextStep.secondaryLabel?.toLowerCase().includes("edit") && (
                       <button
                         type="button"
                         onClick={() => setShowEditProposal(!showEditProposal)}
@@ -2297,6 +2353,9 @@ function WorkspacePageContent() {
                   />
                 </div>
               )}
+
+              {/* Bottom anchor for natural auto-scrolling */}
+              <div ref={messagesEndRef} className="h-4 w-full shrink-0" />
             </div>
 
             {/* ========================================================= */}
