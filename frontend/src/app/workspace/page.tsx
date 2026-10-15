@@ -966,7 +966,7 @@ function WorkspacePageContent() {
                 How can I help you today, {displayName}?
               </h1>
               <p className="mt-2 text-sm text-[#68717D] max-w-xl leading-relaxed">
-                Configured for {displayRole} at {displayBusiness}. Totoro diagnoses WhatsApp rejections, enforces safety guardrails, and guides simulated recovery.
+                Configured for {displayRole} at {displayBusiness}. Totoro diagnoses customer support issues, enforces safety guardrails, and guides simulated recovery.
               </p>
             </div>
 

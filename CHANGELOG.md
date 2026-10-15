@@ -2,6 +2,15 @@
 
 User-visible changes. (Internal engineering notes live in the other continuity files.)
 
+## 2026-10-15 — Clean Onboarding Sidebar (Mock Requests Removal) & Generalized Support Tagline (D-030)
+
+- **Clean Onboarding Sidebar**:
+  - Removed pre-populated mock requests (`req-1` through `req-4`) from the default sidebar state. New user signups and clean browser sessions now start with a clean empty state showing `"No requests yet"`.
+  - Added onboarding cleanup on both finishing and skipping onboarding, ensuring new sessions clear legacy storage and only populate with genuine user requests as they are submitted.
+  - Added an automatic filter in `WorkspaceProvider` that cleans any legacy mock entries (`req-*`) from previously stored browser sessions.
+- **Generalized Tagline Beyond WhatsApp**:
+  - Broadened the workspace welcome greeting description from *"Totoro diagnoses WhatsApp rejections..."* to *"Totoro diagnoses customer support issues, enforces safety guardrails, and guides simulated recovery."* to reflect full platform scope (WhatsApp setup, template recovery, campaign delivery, and chatbot flow troubleshooting).
+
 ## 2026-10-15 — UI Chat Natural Scrolling, Duplicate Action Cleanup, Issue-Switch State Isolation, and Semantic Status Badges (D-029, F-015)
 
 - **Natural Chat Scrolling & Anchored Composer**:

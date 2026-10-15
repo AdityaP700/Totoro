@@ -62,6 +62,7 @@ function OnboardingContent() {
       try {
         localStorage.setItem("totoro_onboarding_profile", JSON.stringify(profile));
         localStorage.setItem("totoro_onboarding_completed", "true");
+        localStorage.setItem("totoro_recent_requests", JSON.stringify([]));
       } catch {
         // Ignore write error
       }
@@ -75,6 +76,7 @@ function OnboardingContent() {
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem("totoro_onboarding_completed", "true");
+        localStorage.setItem("totoro_recent_requests", JSON.stringify([]));
       } catch {
         // Ignore
       }

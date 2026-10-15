@@ -82,6 +82,12 @@ Last updated: 2026-10-13 (All Phases 0–4 PASSED — Prototype Complete)
     - Enforced capability boundaries: refuses external actions (`send_email`, `send_external_invoice`) with explicit limitations; preserves drafts in state with `drafted_for_review`.
     - Emitted structured audit telemetry: `BUSINESS_TURN_TRACE` and `STATE_READ`.
   - Verification: Authored `tests/businessScenarios.test.ts` (12/12 passing). Total test suite: 196/196 passing across 17 test files.
+- **Clean Onboarding Sidebar & Generalized Support Tagline (2026-10-15)**:
+  - Removed pre-populated mock requests (`req-1` through `req-4`) from `defaultRecent` in `frontend/src/lib/workspaceContext.tsx`. New user signups now start with a clean state showing `"No requests yet"`.
+  - Updated onboarding completion (`handleFinish`, `handleSkip`) to initialize `totoro_recent_requests` as `[]`, clearing legacy items.
+  - Added filter in `WorkspaceProvider` to strip any lingering `req-*` mock requests from browser storage.
+  - Broadened workspace welcome tagline in `frontend/src/app/workspace/page.tsx` from WhatsApp-specific to: *"Configured for {displayRole} at {displayBusiness}. Totoro diagnoses customer support issues, enforces safety guardrails, and guides simulated recovery."*
+  - Verification: Full test suite passing (233/233 tests across all 18 test files); root Vite build clean; Next.js 16 production build clean.
 
 ## Current phase
 

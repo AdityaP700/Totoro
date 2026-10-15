@@ -46,17 +46,12 @@ const defaultProfile: OnboardingProfile = {
   teamName: "",
 };
 
-const defaultRecent: RecentRequestItem[] = [
-  { id: "req-1", title: "WhatsApp template rejection", subtitle: "festive_offer_blast (TPL-1001) · 2 min ago", q: "Why was my WhatsApp template rejected?", timestamp: Date.now() - 120000 },
-  { id: "req-2", title: "Variable format rejection", subtitle: "order_update_v3 (TPL-1002) · 3 hours ago", q: "Template order_update_v3 has invalid variable format", timestamp: Date.now() - 10800000 },
-  { id: "req-3", title: "Payment reminder rejection", subtitle: "payment_reminder_aug (TPL-1003) · 1 day ago", q: "Payment reminder template rejected for tag mismatch", timestamp: Date.now() - 86400000 },
-  { id: "req-4", title: "Billing refund dispute", subtitle: "Billing escalation · 2 days ago", q: "I want a refund for the billing overcharge", timestamp: Date.now() - 172800000 },
-];
+const defaultRecent: RecentRequestItem[] = [];
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [activeTitle, setActiveTitle] = useState<string>("WhatsApp template rejection");
+  const [activeTitle, setActiveTitle] = useState<string>("New request");
   const [statusBadge, setStatusBadge] = useState<string>("Ready");
   const [userProfile, setUserProfile] = useState<OnboardingProfile>(defaultProfile);
   const [recentRequests, setRecentRequests] = useState<RecentRequestItem[]>(defaultRecent);
@@ -81,8 +76,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         const savedRecent = localStorage.getItem("totoro_recent_requests");
         if (savedRecent) {
           const parsed = JSON.parse(savedRecent);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setRecentRequests(parsed);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((item: RecentRequestItem) => item && !item.id?.startsWith("req-"));
+            setRecentRequests(cleaned);
+            if (cleaned.length !== parsed.length) {
+              localStorage.setItem("totoro_recent_requests", JSON.stringify(cleaned));
+            }
           }
         }
       } catch {

@@ -482,3 +482,22 @@ Polished the conversation UI and fixed conversational lifecycle issues without a
    - Strict root Vite build clean (`npm run build`).
    - Production Next.js 16 Turbopack build clean (`npm --prefix frontend run build`).
 - Evidence label: DOCUMENTED (Guardrails G1, G2, G5, G8, D1–D11) + REPORTED (tests 26–30 in tests/apiIntegration.test.ts, Vite and Next.js production builds).
+
+## D-030 · 2026-10-15 · Clean Onboarding Sidebar (Mock Requests Removal) & Generalized Support Tagline
+
+- **User Request**:
+  1. Remove pre-populated mock requests (`req-1` through `req-4`) in the left sidebar whenever a new user signs up or starts a clean workspace.
+  2. Broaden the welcome screen tagline beyond WhatsApp: replace "Totoro diagnoses WhatsApp rejections, enforces safety guardrails, and guides simulated recovery." with phrasing encompassing overall customer support issues and recovery.
+- **Root Causes Identified**:
+  - `frontend/src/lib/workspaceContext.tsx` hardcoded `defaultRecent` with 4 legacy mock items (`festive_offer_blast`, `order_update_v3`, `payment_reminder_aug`, `Billing refund dispute`), which initialized the sidebar on every clean device or new session.
+  - `frontend/src/app/onboarding/page.tsx` persisted user profile on onboarding completion/skip but did not reset or ensure a clean slate for `totoro_recent_requests`.
+  - `frontend/src/app/workspace/page.tsx:969` hardcoded "Totoro diagnoses WhatsApp rejections, enforces safety guardrails, and guides simulated recovery." on the welcome screen.
+- **Changes Applied**:
+  - `frontend/src/lib/workspaceContext.tsx`: Set `defaultRecent = []`; set initial `activeTitle` to `"New request"`; added automatic cleansing filter in `useEffect` to purge legacy `req-*` mock items if present in browser storage.
+  - `frontend/src/app/onboarding/page.tsx`: Explicitly initializes `totoro_recent_requests` as `[]` on both `handleFinish` and `handleSkip` so new signups start with an empty sidebar.
+  - `frontend/src/app/workspace/page.tsx`: Generalized greeting tagline to: *"Configured for {displayRole} at {displayBusiness}. Totoro diagnoses customer support issues, enforces safety guardrails, and guides simulated recovery."*
+- **Verification**:
+  - Full vitest test suite: **233/233 tests passing across all 18 test files** (`npm test`).
+  - Root Vite production build clean (`npm run build`).
+  - Next.js 16 Turbopack production build clean (`npm --prefix frontend run build`).
+- Evidence label: DOCUMENTED (User request, Workspace context specs) + REPORTED (vitest 233/233, Vite build, Next.js build).
