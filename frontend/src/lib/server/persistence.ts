@@ -2,21 +2,44 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 
+import os from "node:os";
+
 type DatabaseSync = { exec(sql: string): void; prepare(sql: string): { run(...params: unknown[]): { changes: number }; get(...params: unknown[]): Record<string, unknown> | undefined; all(...params: unknown[]): Array<Record<string, unknown>>; }; };
 // A filesystem request anchor keeps Turbopack from treating import.meta.url as an external URL.
 const nodeRequire = createRequire(path.join(process.cwd(), "package.json"));
 const SqliteDatabase = nodeRequire(`node:${"sqlite"}`).DatabaseSync as new (path: string) => DatabaseSync;
 
-const dataRoot = process.env.TOTORO_DATA_DIR || path.join(process.cwd(), ".totoro-data");
-const dbPath = path.join(dataRoot, "totoro.sqlite");
-export const uploadRoot = path.join(dataRoot, "uploads");
+function resolveDataDirectory(): { root: string; upload: string; db: string } {
+  const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
+  const base = process.env.TOTORO_DATA_DIR || (isServerless ? path.join(os.tmpdir(), "totoro-data") : path.join(process.cwd(), ".totoro-data"));
+  return {
+    root: base,
+    upload: path.join(base, "uploads"),
+    db: path.join(base, "totoro.sqlite"),
+  };
+}
+
+let paths = resolveDataDirectory();
+export let uploadRoot = paths.upload;
 
 let db: DatabaseSync | undefined;
-function database() {
+function database(): DatabaseSync {
   if (db) return db;
   try {
-    mkdirSync(uploadRoot, { recursive: true });
-    db = new SqliteDatabase(dbPath);
+    try {
+      mkdirSync(paths.upload, { recursive: true });
+      db = new SqliteDatabase(paths.db);
+    } catch {
+      // In read-only serverless container (/var/task), fall back safely to /tmp
+      paths = {
+        root: path.join(os.tmpdir(), "totoro-data"),
+        upload: path.join(os.tmpdir(), "totoro-data", "uploads"),
+        db: path.join(os.tmpdir(), "totoro-data", "totoro.sqlite"),
+      };
+      uploadRoot = paths.upload;
+      mkdirSync(paths.upload, { recursive: true });
+      db = new SqliteDatabase(paths.db);
+    }
     db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
     db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, created_at TEXT NOT NULL);

@@ -162,10 +162,14 @@ export function resetAllSessions(): void {
 
 export function persist(record: ActiveSessionRecord): void {
   record.updatedAt = new Date().toISOString();
-  repositories.saveCase({ id: record.caseId, workspaceId: record.workspaceId, sessionId: record.sessionId,
-    title: record.originalMessage.slice(0, 100), templateId: record.templateId, originalMessage: record.originalMessage,
-    state: record.session.state, templates: record.store.listTemplates(), createdAt: record.createdAt,
-    updatedAt: record.updatedAt, messages: record.messages });
+  try {
+    repositories.saveCase({ id: record.caseId, workspaceId: record.workspaceId, sessionId: record.sessionId,
+      title: record.originalMessage.slice(0, 100), templateId: record.templateId, originalMessage: record.originalMessage,
+      state: record.session.state, templates: record.store.listTemplates(), createdAt: record.createdAt,
+      updatedAt: record.updatedAt, messages: record.messages });
+  } catch (err) {
+    console.warn("[SessionRegistry] Persistent storage sync skipped:", err);
+  }
 }
 
 function hydrate(stored: StoredCase): ActiveSessionRecord {
