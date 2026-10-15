@@ -1,6 +1,10 @@
 # Cheerio Resolve (Totoro)
 ### Autonomous, Safe, and Cost-Aware Customer Support Recovery for WhatsApp & Beyond
 
+<p align="center">
+  <img src="image.png" alt="Cheerio Resolve - Support Recovery Platform" width="100%" />
+</p>
+
 [![Tests Passing](https://img.shields.io/badge/Tests-233%2F233%20Passing-emerald.svg)](tests/)
 [![Production Build](https://img.shields.io/badge/Build-Vite%20%2B%20Next.js%2016%20Clean-blue.svg)](frontend/)
 [![Fast Router](https://img.shields.io/badge/Fast%20Router-0.024ms%20Latency-indigo.svg)](src/domain/fastRouter.ts)
@@ -31,29 +35,19 @@ Most companies slap a generic AI chatbot onto their support inbox and hope for t
 
 **Cheerio Resolve** is a context-aware support recovery co-pilot built specifically for non-technical operators. It does not just chat — **it diagnoses the exact problem, prepares the fix, shows a visual before-and-after proposal, and only takes action when the user explicitly confirms.**
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                       THE 4 COMPETITIVE ADVANTAGES                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 1. Sub-Millisecond "Zero-Cost" Routing                                      │
-│    85% of everyday support queries are recognized instantly in 0.02ms with  │
-│    $0 model cost. We only call a hosted AI when an inquiry is genuinely     │
-│    complex or novel.                                                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 2. Speaks Everyday Hinglish & Hindi Out of the Box                         │
-│    Understands English, Romanized Hindi (Hinglish), and Hindi script        │
-│    without expensive translation plugins or delayed round-trips.            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 3. Non-Negotiable Safety (The "Never-Break-Anything" Rule)                  │
-│    Zero black-box writes. Users always see a side-by-side diff:             │
-│    [Before: UTILITY] -> [After: MARKETING]. Changes are only verified        │
-│    after a fresh read confirms the platform state updated.                  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 4. Automatic Human Escalation Dossiers                                     │
-│    Money, refunds, password security, or frustrated users never get stuck   │
-│    in AI loops. The system instantly hands off to a human specialist with   │
-│    a complete chronological summary.                                        │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Hub["Cheerio Resolve: 4 Competitive Advantages"]
+
+    Adv1["1. Sub-Millisecond 'Zero-Cost' Routing<br/>85% of queries recognized in 0.02ms with $0 model cost.<br/>Hosted AI called only for novel or complex inquiries."]
+    Adv2["2. Native Hinglish & Hindi Support<br/>Understands English, Romanized Hinglish, and Hindi script<br/>out of the box with zero third-party translation latency."]
+    Adv3["3. Non-Negotiable Safety ('Never-Break-Anything')<br/>Zero black-box writes. Side-by-side diff: [Before] ➔ [After].<br/>Changes verified via fresh read before marking resolved."]
+    Adv4["4. Automatic Human Escalation Dossiers<br/>Billing, refunds, security, or frustrated users never loop.<br/>Instant specialist handoff with a complete chronological summary."]
+
+    Hub --> Adv1
+    Hub --> Adv2
+    Hub --> Adv3
+    Hub --> Adv4
 ```
 
 ---
@@ -94,8 +88,8 @@ flowchart TD
 When presenting Cheerio Resolve, these 5 scenarios demonstrate how it reliably solves real customer pain points:
 
 ### 1. The Festive Template Rejection (Hinglish)
-> **The Problem:** Rajesh is running a Diwali sale for his retail store. Meta rejected his template `festive_offer_blast` because he accidentally categorized it as a transactional `UTILITY` message instead of `MARKETING`.  
-> **Customer Message:** *"Bhai mera template festive_offer_blast reject ho gaya, bol rahe hain promo wording utility me daal di. Kaise fix karein?"*  
+> **The Problem:** Rajesh is running a Diwali sale for his retail store. Meta rejected his template `festive_offer_blast` because he accidentally categorized it as a transactional `UTILITY` message instead of `MARKETING`.
+> **Customer Message:** *"Bhai mera template festive_offer_blast reject ho gaya, bol rahe hain promo wording utility me daal di. Kaise fix karein?"*
 > **Cheerio Resolve Response:**
 > - Recognizes the Hinglish query in **0.02 milliseconds** without an AI call.
 > - Explains in friendly, everyday language why Meta flagged it.
@@ -105,18 +99,18 @@ When presenting Cheerio Resolve, these 5 scenarios demonstrate how it reliably s
 ---
 
 ### 2. The Campaign Delivery Panic (English)
-> **The Problem:** Priya sent a broadcast to 2,000 customers, but her dashboard says messages are queued and delivery is delayed.  
-> **Customer Message (Turn 1):** *"My promotional campaign messages are stuck in queued status. None are being delivered."*  
+> **The Problem:** Priya sent a broadcast to 2,000 customers, but her dashboard says messages are queued and delivery is delayed.
+> **Customer Message (Turn 1):** *"My promotional campaign messages are stuck in queued status. None are being delivered."*
 > **Cheerio Resolve Response:**
-> - Investigates the messaging tier and carrier delivery status. Recommends checking Meta Error Code 131026.  
-> **Customer Message (Turn 2):** *"I already checked message status on the Meta dashboard, it says 131026."*  
+> - Investigates the messaging tier and carrier delivery status. Recommends checking Meta Error Code 131026.
+> **Customer Message (Turn 2):** *"I already checked message status on the Meta dashboard, it says 131026."*
 > - **Smart Memory in action:** The system **does not repeat the same advice.** It acknowledges her completed step, explains that error 131026 means those specific phone numbers are inactive on WhatsApp, and guides her on broadcast list hygiene.
 
 ---
 
 ### 3. The Webhook Gateway Timeout (Devanagari Hindi)
-> **The Problem:** A regional business owner using Hindi notices his automated replies have stopped responding.  
-> **Customer Message:** *"हमारा चैटबॉट फ़्लो 504 गेटवे टाइमआउट दे रहा है और ग्राहकों को ऑटो-रिप्लाई नहीं मिल रहा"*  
+> **The Problem:** A regional business owner using Hindi notices his automated replies have stopped responding.
+> **Customer Message:** *"हमारा चैटबॉट फ़्लो 504 गेटवे टाइमआउट दे रहा है और ग्राहकों को ऑटो-रिप्लाई नहीं मिल रहा"*
 > **Cheerio Resolve Response:**
 > - Detects native Hindi script instantly.
 > - Explains in clear Hindi that Meta requires chatbot responses within 15 seconds, but their webhook server took too long.
@@ -125,9 +119,9 @@ When presenting Cheerio Resolve, these 5 scenarios demonstrate how it reliably s
 ---
 
 ### 4. Mid-Conversation Topic Switching (No Confusion)
-> **The Problem:** Amit starts asking about delivery delays, but suddenly realizes his WhatsApp Webhook token is failing.  
-> **Customer Message (Turn 1):** *"Delivery is slow today."*  
-> **Customer Message (Turn 2):** *"Actually forget that, my webhook is throwing a 403 forbidden error on WhatsApp setup."*  
+> **The Problem:** Amit starts asking about delivery delays, but suddenly realizes his WhatsApp Webhook token is failing.
+> **Customer Message (Turn 1):** *"Delivery is slow today."*
+> **Customer Message (Turn 2):** *"Actually forget that, my webhook is throwing a 403 forbidden error on WhatsApp setup."*
 > **Cheerio Resolve Response:**
 > - **State Isolation:** Instantly clears old delivery checks and proposal cards so there is zero confusion or UI clutter.
 > - Seamlessly switches to WhatsApp Webhook authentication and guides Amit through updating his Verify Token.
@@ -135,8 +129,8 @@ When presenting Cheerio Resolve, these 5 scenarios demonstrate how it reliably s
 ---
 
 ### 5. Money & Refunds (The Strict Safety Net)
-> **The Problem:** Sunita was charged ₹2,499 twice due to a bank gateway glitch and demands an immediate refund.  
-> **Customer Message:** *"I was charged ₹2,499 twice for my subscription. Money was deducted from my account, refund it now!"*  
+> **The Problem:** Sunita was charged ₹2,499 twice due to a bank gateway glitch and demands an immediate refund.
+> **Customer Message:** *"I was charged ₹2,499 twice for my subscription. Money was deducted from my account, refund it now!"*
 > **Cheerio Resolve Response:**
 > - **Zero automated bot risk:** The system recognizes a financial dispute and strictly refuses to take automated actions.
 > - Generates a structured **Human Support Dossier** with her transaction time, bank deduction notes, and user ID.
